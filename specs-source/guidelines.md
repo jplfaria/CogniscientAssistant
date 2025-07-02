@@ -138,8 +138,27 @@ The AI Co-Scientist paper demonstrates three successful validations:
 2. **Liver Fibrosis Targets**: 4 epigenetic targets reduced fibroblast activity
 3. **AMR Mechanism Discovery**: Independently discovered cf-PICI mechanism in 2 days
 
-Our implementation should:
-- Include test cases based on these examples
-- Define success criteria (e.g., hypothesis quality, ranking accuracy)
-- Specify how to measure if the system "works"
-- Include both automated tests and manual validation protocols
+While these are complex lab validations, our implementation should include attainable tests:
+
+**Functional Validation** (Can the system work?):
+- Generate hypotheses for a simple research goal
+- Agents complete their assigned tasks
+- Tournament produces Elo rankings
+- System outputs ranked hypotheses
+
+**Behavioral Validation** (Does it work correctly?):
+- Hypothesis quality improves over iterations (rising Elo scores)
+- Different review types produce distinct feedback
+- Evolution agent creates variations of top hypotheses
+- Meta-review synthesizes patterns across reviews
+
+**Simplified Test Cases**:
+1. **Literature-based drug repurposing**: Can it suggest metformin for cancer (well-documented)?
+2. **Known mechanism discovery**: Can it explain why aspirin reduces heart disease risk?
+3. **Simple hypothesis ranking**: Do better hypotheses get higher Elo scores?
+
+**Success Criteria**:
+- System completes full workflow without errors
+- Hypotheses are grounded in literature (citations present)
+- Rankings are justifiable (good hypotheses rank higher)
+- Iterative improvement is measurable
