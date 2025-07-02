@@ -36,7 +36,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 ## Phase 7: Safety and Validation
 - [x] 020-safety-mechanisms.md - Goal review, hypothesis filtering
 - [x] 021-validation-criteria.md - Novelty, testability, alignment
-- [ ] 022-monitoring-logging.md - System observability
+- [x] 022-monitoring-logging.md - System observability
 
 ## Phase 8: Extension and Integration
 - [ ] 023-llm-abstraction.md - Model-agnostic design via BAML
