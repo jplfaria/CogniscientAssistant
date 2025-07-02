@@ -65,6 +65,8 @@ Create separate specs for:
 - How is novelty measured?
 - How do hypotheses evolve?
 - What constitutes a research proposal?
+- How do we validate the system works?
+- What are the success criteria from the paper?
 
 ### 8. **Avoid Common Pitfalls**
 - Don't invent features not in source
@@ -126,3 +128,15 @@ For each agent, specify:
 - Output classes (GeneratedHypothesis, ReviewResult, RankingResult, etc.)
 - Tool call interfaces
 - Error and retry patterns
+
+### 16. **Validation Framework**
+The AI Co-Scientist paper demonstrates three successful validations:
+1. **Drug Repurposing for AML**: KIRA6 showed IC50 of 13 nM in KG-1 cells
+2. **Liver Fibrosis Targets**: 4 epigenetic targets reduced fibroblast activity
+3. **AMR Mechanism Discovery**: Independently discovered cf-PICI mechanism in 2 days
+
+Our implementation should:
+- Include test cases based on these examples
+- Define success criteria (e.g., hypothesis quality, ranking accuracy)
+- Specify how to measure if the system "works"
+- Include both automated tests and manual validation protocols
