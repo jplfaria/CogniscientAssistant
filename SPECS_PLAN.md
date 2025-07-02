@@ -4,7 +4,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 
 ## Phase 1: System Foundation
 - [x] 001-system-overview.md - High-level system behavior and goals
-- [ ] 002-core-principles.md - Expert-in-the-loop, safety, success criteria
+- [x] 002-core-principles.md - Expert-in-the-loop, safety, success criteria
 - [ ] 003-research-workflow.md - End-to-end process from input to output
 
 ## Phase 2: Multi-Agent Framework
