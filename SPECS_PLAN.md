@@ -13,7 +13,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 - [x] 006-task-queue-behavior.md - Asynchronous task execution patterns
 
 ## Phase 3: Core Research Agents
-- [ ] 007-generation-agent.md - Hypothesis creation behaviors
+- [x] 007-generation-agent.md - Hypothesis creation behaviors
 - [ ] 008-reflection-agent.md - Review types and evaluation processes
 - [ ] 009-ranking-agent.md - Tournament system and Elo ratings
 - [ ] 010-evolution-agent.md - Hypothesis refinement strategies
