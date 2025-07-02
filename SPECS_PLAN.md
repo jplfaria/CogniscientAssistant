@@ -15,7 +15,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 ## Phase 3: Core Research Agents
 - [x] 007-generation-agent.md - Hypothesis creation behaviors
 - [x] 008-reflection-agent.md - Review types and evaluation processes
-- [ ] 009-ranking-agent.md - Tournament system and Elo ratings
+- [x] 009-ranking-agent.md - Tournament system and Elo ratings
 - [ ] 010-evolution-agent.md - Hypothesis refinement strategies
 
 ## Phase 4: Supporting Agents
