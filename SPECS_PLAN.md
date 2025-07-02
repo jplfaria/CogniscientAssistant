@@ -10,7 +10,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 ## Phase 2: Multi-Agent Framework
 - [x] 004-multi-agent-architecture.md - Agent collaboration patterns
 - [x] 005-supervisor-agent.md - Orchestration and resource management
-- [ ] 006-task-queue-behavior.md - Asynchronous task execution patterns
+- [x] 006-task-queue-behavior.md - Asynchronous task execution patterns
 
 ## Phase 3: Core Research Agents
 - [ ] 007-generation-agent.md - Hypothesis creation behaviors
