@@ -31,7 +31,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 ## Phase 6: User Interaction
 - [x] 017-natural-language-interface.md - Research goal specification
 - [x] 018-expert-intervention-points.md - Where humans can guide the system
-- [ ] 019-output-formats.md - NIH Specific Aims, research proposals
+- [x] 019-output-formats.md - NIH Specific Aims, research proposals
 
 ## Phase 7: Safety and Validation
 - [ ] 020-safety-mechanisms.md - Goal review, hypothesis filtering
