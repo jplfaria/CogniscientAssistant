@@ -3,7 +3,7 @@
 This document outlines the phased approach for creating CLEANROOM specifications for the AI Co-Scientist system. Each phase builds upon the previous ones, creating a comprehensive specification suite.
 
 ## Phase 1: System Foundation
-- [ ] 001-system-overview.md - High-level system behavior and goals
+- [x] 001-system-overview.md - High-level system behavior and goals
 - [ ] 002-core-principles.md - Expert-in-the-loop, safety, success criteria
 - [ ] 003-research-workflow.md - End-to-end process from input to output
 
