@@ -1,342 +1,348 @@
 # Expert Intervention Points Specification
 
-**Type**: Interface Pattern  
-**Interactions**: Scientist (User), All Agents, Natural Language Interface, Context Memory
+**Type**: System Feature  
+**Interactions**: All Agents, Natural Language Interface, Context Memory
+
+## Overview
+
+The Expert Intervention Points define where and how human scientists can guide, refine, and collaborate with the AI Co-Scientist system. These intervention points implement the "scientist-in-the-loop" paradigm, ensuring human expertise remains central to the research process while leveraging AI capabilities for augmentation.
 
 ## Prerequisites
-- Read: 001-system-overview.md - System behaviors and expert-in-the-loop principle
-- Read: 002-core-principles.md - Expert collaboration as foundational principle
-- Read: 017-natural-language-interface.md - Primary interaction mechanism
-- Understand: Asynchronous task execution and state persistence
 
-## Purpose
-
-Expert intervention points define where and how human scientists interact with the AI Co-Scientist system to guide research, provide feedback, and make critical decisions. These intervention points ensure the system remains a collaborative tool that augments rather than replaces human expertise, maintaining scientific rigor while leveraging AI capabilities.
+- Read: System Overview Specification
+- Read: Core Principles Specification  
+- Read: Natural Language Interface Specification
+- Understand: Expert-in-the-loop collaborative paradigm
 
 ## Core Intervention Categories
 
-### Strategic Research Guidance
+### 1. Strategic Research Guidance
+Points where scientists shape the overall research direction and objectives.
 
-Scientists shape the overall research direction through:
+### 2. Hypothesis Management
+Points where scientists evaluate, filter, and contribute to the hypothesis pool.
 
-- **Goal Specification**: Define initial research objectives in natural language
-- **Goal Refinement**: Modify research goals based on emerging insights
-- **Scope Adjustment**: Narrow or expand research boundaries during execution
-- **Direction Steering**: Guide system focus toward promising areas
-- **Constraint Definition**: Set experimental, ethical, and resource boundaries
+### 3. Continuous Collaboration
+Points where scientists engage in ongoing dialogue and refinement with the system.
 
-### Hypothesis Management
-
-Scientists directly influence hypothesis generation and evaluation:
-
-- **Custom Hypothesis Injection**: Add scientist-formulated hypotheses to the system
-- **Hypothesis Review**: Rate and comment on system-generated hypotheses
-- **Priority Override**: Elevate or demote specific hypotheses regardless of Elo rating
-- **Safety Assessment**: Override automated safety evaluations with expert judgment
-- **Selection for Validation**: Choose which hypotheses proceed to experimental testing
-
-### Continuous Collaboration
-
-Scientists maintain ongoing dialogue with the system:
-
-- **Conversational Refinement**: Use natural language chat for clarification
-- **Feedback Integration**: Provide insights that influence future iterations
-- **Progress Monitoring**: Track research advancement and intermediate results
-- **Intervention Requests**: Respond to system-initiated requests for guidance
-- **Knowledge Contribution**: Supply domain expertise and unpublished insights
-
-## Intervention Point Behaviors
+## Intervention Point Specifications
 
 ### Research Goal Definition Point
 
-**When**: System initialization or research redirection
+**When**: System initialization and research planning
+**Purpose**: Establish research objectives and constraints
 
-**Scientist Actions**:
-```
-- Provide natural language research goal
-- Attach relevant documents (PDFs, prior publications)
-- Specify preferences and constraints
-- Define success criteria
-```
+**Inputs**:
+- Natural language research goal (string, unlimited length)
+- Supporting documents (optional, PDF/text, up to 100MB)
+- Constraint specifications:
+  - Budget constraints (optional, structured format)
+  - Timeline requirements (optional, date range)
+  - Equipment limitations (optional, string list)
+  - Safety requirements (optional, string)
 
-**System Responses**:
-```
-- Parse goal into research plan configuration
-- Request clarification for ambiguous elements
-- Confirm understanding before proceeding
-- Present resource and timeline estimates
-```
+**Behaviors**:
+- System parses natural language into structured research plan
+- System identifies ambiguous requirements and requests clarification
+- System validates goal against safety and ethical guidelines
+- System generates initial research scope for expert approval
 
-**State Transitions**:
-- From: Awaiting Input
-- To: Active Research (upon scientist confirmation)
+**Outputs**:
+- Structured research plan for review
+- Clarification requests (if needed)
+- Safety/ethics validation results
 
 ### Hypothesis Review Point
 
-**When**: After hypothesis generation and initial system review
+**When**: After hypothesis generation, ranking, or evolution cycles
+**Purpose**: Apply human expertise to evaluate AI-generated hypotheses
 
-**Scientist Actions**:
-```
-- Rate hypotheses (1-5 scale)
-- Provide detailed comments
-- Mark safety concerns
-- Suggest modifications
-```
+**Inputs**:
+- Expert review (natural language, per hypothesis):
+  - Quality assessment
+  - Domain-specific insights
+  - Concerns or limitations
+  - Experimental feasibility
+- Bulk actions:
+  - Approve/reject sets of hypotheses
+  - Prioritization overrides
+  - Category-based filtering
 
-**System Responses**:
-```
-- Update hypothesis rankings based on feedback
-- Propagate ratings to tournament system
-- Adjust generation strategies
-- Highlight changes from feedback
-```
+**Behaviors**:
+- System presents hypotheses with full context
+- System incorporates feedback into future generation
+- System adjusts rankings based on expert input
+- System learns preference patterns for future iterations
 
-**Persistence**: All reviews stored in Context Memory for pattern analysis
+**Outputs**:
+- Updated hypothesis rankings
+- Feedback incorporation summary
+- Learning updates confirmation
 
 ### Custom Hypothesis Submission Point
 
-**When**: Any time during active research
+**When**: Any time during research process
+**Purpose**: Include human-generated hypotheses in the evaluation pool
 
-**Scientist Actions**:
-```
-- Submit complete hypothesis with:
-  - Summary statement
-  - Scientific rationale
-  - Experimental approach
-  - Priority level
-- Optionally allow system refinement
-```
+**Inputs**:
+- Hypothesis specification:
+  - Hypothesis text (string, required)
+  - Supporting rationale (string, optional)
+  - Experimental approach (string, optional)
+  - Prior evidence (references, optional)
+- Metadata:
+  - Confidence level (0-1, optional)
+  - Priority flag (boolean, optional)
 
-**System Responses**:
-```
-- Validate hypothesis completeness
-- Enter into tournament system
-- Apply same review processes as generated hypotheses
-- Track provenance as scientist-contributed
-```
+**Behaviors**:
+- System validates hypothesis format
+- System adds to tournament pool with equal standing
+- System applies same evaluation criteria as AI-generated hypotheses
+- System tracks provenance (human vs. AI generated)
 
-**Integration**: Custom hypotheses compete equally in tournaments
+**Outputs**:
+- Hypothesis ID for tracking
+- Initial evaluation results
+- Integration confirmation
 
 ### Research Redirection Point
 
-**When**: Based on intermediate results or new insights
+**When**: After reviewing intermediate results
+**Purpose**: Adjust research focus based on findings
 
-**Scientist Actions**:
-```
-- Identify promising directions
-- Exclude unproductive paths
-- Adjust evaluation criteria
-- Modify resource allocation
-```
+**Inputs**:
+- Direction adjustment:
+  - New focus areas (string list)
+  - Deprecated areas (string list)
+  - Modified constraints (structured)
+- Rationale for redirection (string)
 
-**System Responses**:
-```
-- Acknowledge direction change
-- Adjust agent behaviors accordingly
-- Summarize impact on current work
-- Estimate timeline changes
-```
+**Behaviors**:
+- System preserves existing valid work
+- System adjusts generation parameters
+- System updates evaluation criteria if needed
+- System maintains audit trail of changes
 
-**Propagation**: Changes flow to all active agents via Supervisor
+**Outputs**:
+- Redirection plan summary
+- Impact assessment on existing hypotheses
+- Updated research configuration
 
 ### Safety Override Point
 
-**When**: System flags safety concerns or scientist identifies risks
+**When**: System detects potential safety/ethical concerns
+**Purpose**: Human judgment on borderline cases
 
-**Scientist Actions**:
-```
-- Review safety assessment rationale
-- Override with documented justification
-- Add additional safety constraints
-- Halt specific research directions
-```
+**Inputs**:
+- Override decision (approve/reject/modify)
+- Justification (string, required for approve)
+- Modified version (if modify selected)
 
-**System Responses**:
-```
-- Log override with full audit trail
-- Apply scientist's safety determination
-- Adjust safety parameters for future assessments
-- Alert if patterns of concern emerge
-```
+**Behaviors**:
+- System pauses affected operations
+- System presents full context of concern
+- System implements decision immediately
+- System updates safety parameters based on decision
 
-**Requirements**: All overrides require explicit justification
+**Outputs**:
+- Decision implementation confirmation
+- Safety parameter updates
+- Audit log entry
 
 ### Experimental Selection Point
 
-**When**: Sufficient high-quality hypotheses generated
+**When**: Before experimental validation phase
+**Purpose**: Choose hypotheses for real-world testing
 
-**Scientist Actions**:
-```
-- Review top-ranked hypotheses
-- Select subset for wet-lab validation
-- Prioritize based on resources
-- Request additional experimental details
-```
+**Inputs**:
+- Selected hypothesis IDs (list)
+- Selection rationale per hypothesis:
+  - Clinical relevance
+  - Resource requirements
+  - Expected timeline
+  - Success probability
+- Experimental constraints update (optional)
 
-**System Responses**:
-```
-- Provide detailed protocols for selected hypotheses
-- Suggest experimental priorities
-- Estimate resource requirements
-- Generate formal research proposals if requested
-```
+**Behaviors**:
+- System validates selections against constraints
+- System generates detailed experimental protocols
+- System identifies resource conflicts
+- System suggests optimal experimental ordering
 
-**Output**: Experimental protocols ready for laboratory execution
+**Outputs**:
+- Experimental plan with protocols
+- Resource allocation summary
+- Timeline projection
+- Risk assessment
 
-## Intervention Mechanisms
+## Continuous Interaction Mechanisms
 
-### Synchronous Interventions
+### Conversational Refinement
+- **Available**: Throughout entire session
+- **Purpose**: Iterative clarification and guidance
+- **Interface**: Natural language chat
+- **Behaviors**:
+  - System maintains conversation context
+  - System relates queries to current research state
+  - System provides progress updates proactively
+  - System requests clarification when needed
 
-Immediate scientist input required:
+### Progress Monitoring
+- **Available**: Real-time during execution
+- **Purpose**: Visibility into system operations
+- **Interface**: Status queries and notifications
+- **Behaviors**:
+  - System reports current agent activities
+  - System provides completion estimates
+  - System alerts on significant findings
+  - System requests input on ambiguous situations
 
-- **Blocking Requests**: System pauses for critical decisions
-- **Clarification Dialogs**: Real-time ambiguity resolution
-- **Safety Confirmations**: Immediate response for risk assessment
-- **Resource Approvals**: Authorization for compute-intensive operations
+### Feedback Integration
+- **Available**: After any system output
+- **Purpose**: Continuous improvement
+- **Interface**: Structured and unstructured feedback
+- **Behaviors**:
+  - System acknowledges all feedback
+  - System adjusts behavior for current session
+  - System logs patterns for long-term improvement
+  - System confirms understanding of preferences
 
-### Asynchronous Interventions
+## Quality Control Interventions
 
-Scientist input integrated when available:
+### Manual Review Override
+- Scientists can override any system-generated ranking
+- Overrides are logged with justification
+- System learns from override patterns
 
-- **Review Queues**: Hypotheses awaiting scientist evaluation
-- **Feedback Windows**: Designated times for input collection
-- **Progress Checkpoints**: Scheduled intervention opportunities
-- **Passive Monitoring**: Optional engagement based on scientist availability
+### Hypothesis Filtering
+- Scientists can exclude hypotheses based on:
+  - Domain-specific knowledge
+  - Practical constraints
+  - Strategic priorities
+  - Safety concerns
 
-### Proactive System Requests
+### Quality Threshold Adjustment
+- Scientists can modify evaluation criteria weights
+- Adjustments apply to current and future evaluations
+- System provides impact preview before applying
 
-System initiates intervention needs:
+## Collaboration Features
 
-- **Ambiguity Detection**: Request clarification on goals
-- **Resource Limits**: Seek guidance when approaching constraints
-- **Safety Concerns**: Escalate potential risks for review
-- **Promising Directions**: Highlight opportunities for deeper exploration
+### Expert Network Suggestions
+- System suggests relevant domain experts
+- Scientists review and approve before contact
+- Integration with existing collaboration tools
+
+### Knowledge Repository Management
+- Scientists can provide specialized literature
+- Custom repositories supplement web search
+- Access control for proprietary information
+
+### Result Interpretation Assistance
+- Scientists can request detailed explanations
+- System provides reasoning traces
+- Multiple explanation levels available
 
 ## State Management
 
 ### Intervention State Tracking
+- All interventions are logged with timestamp
+- Full context preserved for each intervention
+- Reversibility for non-critical interventions
 
-The system maintains awareness of:
+### Session Continuity
+- Interventions can span multiple sessions
+- State restored on reconnection
+- Partial results preserved during interruptions
 
-```
-InterventionState:
-  pending_requests: List[InterventionRequest]
-  completed_interventions: List[CompletedIntervention]
-  scientist_availability: AvailabilityStatus
-  intervention_history: TimeSeriesLog
-  preference_patterns: LearnedPreferences
-```
-
-### Pause and Resume Capability
-
-Scientists can:
-
-- **Pause**: Halt system operation at any point
-- **Inspect**: Review current state and pending actions
-- **Modify**: Adjust parameters before resuming
-- **Resume**: Continue with same or modified configuration
-
-### Context Preservation
-
-All interventions maintain:
-
-- **Full History**: Complete record of scientist inputs
-- **Decision Rationale**: Reasoning behind each intervention
-- **Impact Tracking**: How interventions affected outcomes
-- **Learning Integration**: Patterns used to improve future interactions
-
-## Quality Assurance
-
-### Intervention Effectiveness
-
-The system ensures:
-
-- **Clear Requests**: Unambiguous intervention prompts
-- **Minimal Disruption**: Efficient use of scientist time
-- **Impact Visibility**: Clear indication of intervention effects
-- **Feedback Loops**: Confirmation that input was understood
-
-### Scientist Burden Management
-
-The system optimizes:
-
-- **Batch Operations**: Group similar interventions
-- **Priority Filtering**: Only escalate critical decisions
-- **Smart Defaults**: Reduce need for routine interventions
-- **Learned Preferences**: Anticipate scientist choices
-
-## Example Intervention Flows
-
-### Example 1: Mid-Research Pivot
-```
-Scientist observes unexpected pattern in early results
-→ Initiates research redirection intervention
-→ System summarizes current state and implications
-→ Scientist provides new focus area via chat
-→ System adjusts all agent behaviors
-→ Research continues in new direction with full context
-```
-
-### Example 2: Safety-Critical Override
-```
-System flags hypothesis as potentially unsafe
-→ Escalates to scientist with detailed reasoning
-→ Scientist reviews domain-specific context
-→ Determines research is safe with specific precautions
-→ Provides override with safety protocols
-→ System proceeds with enhanced monitoring
-```
-
-### Example 3: Collaborative Hypothesis Refinement
-```
-Scientist has novel insight based on system output
-→ Submits custom hypothesis building on AI suggestion
-→ Requests system evolution of the concept
-→ System generates variations and improvements
-→ Scientist selects most promising for lab validation
-→ Selected hypotheses fast-tracked for experimental protocols
-```
+### Checkpoint Creation
+- Scientists can create named checkpoints
+- Easy rollback to previous states
+- Branching for exploring alternatives
 
 ## Integration Requirements
 
 ### With Natural Language Interface
-- All interventions use natural language as primary modality
-- Structured inputs translated from conversational interactions
-- Multi-turn dialogues supported for complex interventions
-- Context maintained across intervention sessions
+- All intervention points accessible via chat
+- Structured forms for complex inputs
+- Voice input support where appropriate
 
 ### With Supervisor Agent
-- Intervention requests routed through Supervisor
-- Resource allocation adjusted based on scientist guidance
-- Task priorities modified per scientist direction
-- Intervention impacts propagated to all agents
+- Interventions route through supervisor
+- Priority handling for safety overrides
+- Resource allocation considers human availability
 
 ### With Context Memory
-- All interventions persistently stored
-- Patterns extracted for system improvement
-- Preference learning enables anticipation
-- Full audit trail maintained
+- All interventions stored in context
+- Pattern learning from intervention history
+- Preference modeling over time
 
-### With Safety Mechanisms
-- Safety overrides logged with special prominence
-- Patterns of overrides trigger system review
-- Enhanced monitoring after safety interventions
-- Regular safety status reports to scientist
+## Error Handling
 
-## Behavioral Guarantees
+### Ambiguous Interventions
+- System requests clarification
+- Provides examples of valid inputs
+- Suggests closest matching actions
 
-The system MUST:
-- Never proceed with critical decisions without scientist approval
-- Always provide clear rationale for intervention requests
-- Maintain full record of all scientist inputs and their impacts
-- Respect scientist time by batching non-critical interventions
-- Learn from intervention patterns to reduce future burden
+### Conflicting Interventions
+- System identifies conflicts
+- Presents options for resolution
+- Maintains consistency across interventions
 
-The system MUST NOT:
-- Make autonomous decisions on safety-critical matters
-- Ignore or deprioritize scientist-provided guidance
-- Proceed with resource-intensive operations without approval
-- Generate hypotheses outside scientist-defined boundaries
-- Claim credit for scientist-contributed insights
+### Timeout Handling
+- Configurable timeout for human responses
+- Graceful degradation to safe defaults
+- Clear notification of automated decisions
 
-This specification ensures the AI Co-Scientist remains a truly collaborative system where human expertise guides and enhances AI capabilities throughout the scientific discovery process.
+## Examples
+
+### Example 1: Research Goal Refinement
+```
+Scientist: "Focus on small molecule inhibitors only, exclude biologics"
+System: "Updating research scope. This will affect 15 existing hypotheses. 
+         8 will be excluded, 7 will be re-evaluated. Proceed?"
+Scientist: "Yes, proceed"
+System: "Research scope updated. Generation agent notified of new constraints."
+```
+
+### Example 2: Hypothesis Override
+```
+System: "Top ranked hypothesis: [Compound X for Target Y]"
+Scientist: "Override - this target has known toxicity issues in humans"
+System: "Noted. Hypothesis moved to rejected list with safety flag. 
+         Would you like me to exclude all hypotheses targeting Y?"
+Scientist: "Yes, and add a note about the specific toxicity"
+System: "All Y-targeting hypotheses flagged. Safety note added to context."
+```
+
+### Example 3: Custom Hypothesis Submission
+```
+Scientist: "Add hypothesis: Combination of Drug A and Drug B for AML treatment"
+System: "Hypothesis added to pool. Initial assessment:
+         - Novelty: High (no prior combination studies found)
+         - Safety: Medium (both drugs FDA approved separately)
+         - Testability: High (standard cell line assays applicable)
+         Adding to tournament queue."
+```
+
+## Success Metrics
+
+- Intervention response time < 2 seconds
+- Clarification requests < 10% of interventions
+- Expert satisfaction score > 4.5/5
+- Successful integration rate > 95%
+- State recovery success rate = 100%
+
+## Safety Boundaries
+
+- No automated actions without explicit approval for:
+  - Experimental execution
+  - External communications
+  - Resource commitments
+  - Safety-critical decisions
+
+- Mandatory human review for:
+  - Hypotheses with safety flags
+  - High-cost experiments
+  - Novel mechanism proposals
+  - Ethical boundary cases
