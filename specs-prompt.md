@@ -21,13 +21,21 @@ CLEANROOM specifications (implementation-free behavioral specs).
    - guidelines.md for specification patterns
 3. Review any existing specs in specs/ for context and consistency
 4. Create a new specification file in specs/ with appropriate naming
+   - Use numbered prefixes: 001-system-overview.md, 002-multi-agent-framework.md, etc.
    - Follow document organization from guidelines.md section 6
    - For Phase 7 specs, consider documentation architecture patterns
 5. Update SPECS_PLAN.md to mark the item as complete [x]
 
+## Completion Handling:
+If you cannot find any incomplete tasks after checking SPECS_PLAN.md thoroughly:
+- Output: "ALL_TASKS_COMPLETE"
+- List all phases you checked (Phase 1 through Phase 8)
+- Confirm all items show [x] instead of [ ]
+- Exit without creating any new specifications
+
 ## Specification Format:
 - Use clear section headers
-- Include YAML frontmatter with metadata
+- Add Prerequisites section when specs depend on others
 - Define interfaces using BAML when appropriate
 - Include relevant examples and edge cases
 - Document error handling behavior
@@ -38,5 +46,41 @@ CLEANROOM specifications (implementation-free behavioral specs).
 - User interaction points (for interface specs)
 - Safety and ethical boundaries
 - Integration interfaces (for extensibility)
+
+## Examples of Good Specifications:
+
+### Example 1: Clear Input/Output Specification
+```
+For a Generation Agent:
+- Input: ResearchGoal (string describing the research objective, max 500 chars)
+- Output: List[Hypothesis] where each hypothesis contains:
+  - hypothesis_text: string (the scientific hypothesis)
+  - confidence_score: float (0.0 to 1.0)
+  - reasoning: string (brief justification)
+```
+
+### Example 2: Behavioral Contract
+```
+The Ranking Agent MUST:
+- Produce deterministic rankings when given identical inputs
+- Never rank a hypothesis with safety_flag=true in the top 3
+- Complete ranking within 30 seconds for up to 100 hypotheses
+```
+
+### Example 3: Tool Usage Pattern
+```
+Literature Search Tool:
+- Called via BAML function: search_literature(query: string, max_results: int)
+- Returns: List[Paper] with title, abstract, doi, relevance_score
+- Must handle: Empty results, API timeouts, Invalid queries
+```
+
+### Example 4: Prerequisites Section
+```
+## Prerequisites
+- Read: Hypothesis Generation and Evolution Specification
+- Read: Review Types and Processes Specification
+- Understand: Tournament and Elo Rating System concepts
+```
 
 Write your output to specs/ folder.

@@ -53,12 +53,11 @@ about our specification development process.
 - How does it INTERACT? (with other components)
 
 ### Step 3: WRITE BEHAVIORAL SPECS
-```yaml
----
-component: Generation Agent
-type: agent
-interactions: [Supervisor, Context Memory, Web Search]
----
+```markdown
+# Generation Agent Specification
+
+**Type**: Agent  
+**Interactions**: Supervisor, Context Memory, Web Search
 
 ## Behavior
 The Generation Agent creates novel research hypotheses...

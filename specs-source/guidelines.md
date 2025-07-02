@@ -31,12 +31,22 @@
 
 ### 4. **Specification Structure**
 Each spec should include:
+- Prerequisites section (when the spec depends on understanding other specs)
 - Input/Output specifications
 - Behavioral contracts
 - Error handling behavior
 - Quality requirements
 - Natural language examples
 - Session management patterns from references/ai-that-works
+
+**Prerequisites Section**:
+When a specification depends on concepts from other specs, add a Prerequisites section near the top:
+```markdown
+## Prerequisites
+- Read: [Required spec name] (for understanding X concept)
+- Understand: [Key concept] from [Source spec]
+```
+This helps readers know what context they need before diving into the spec.
 
 ### 5. **Technology Decisions**
 For AI Co-Scientist:
@@ -58,6 +68,11 @@ Create separate specs for:
 4. Advanced features (scientist interaction, feedback loops)
 5. Data flow and formats (hypothesis structure, review formats, tournament results)
 6. Workflow specifications (end-to-end research process, iteration cycles)
+
+**File Naming Convention**:
+- Use numbered prefixes for ordering: `001-system-overview.md`, `002-multi-agent-framework.md`
+- Numbers help maintain logical reading order
+- Use descriptive names after the number
 
 ### 7. **Key Questions to Answer**
 - What agents exist and what do they do?
