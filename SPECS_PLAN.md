@@ -29,8 +29,8 @@ This document outlines the phased approach for creating CLEANROOM specifications
 - [x] 016-external-tools.md - AlphaFold, other specialized models
 
 ## Phase 6: User Interaction
-- [ ] 017-natural-language-interface.md - Research goal specification
-- [ ] 018-expert-intervention-points.md - Where humans can guide the system
+- [x] 017-natural-language-interface.md - Research goal specification
+- [x] 018-expert-intervention-points.md - Where humans can guide the system
 - [ ] 019-output-formats.md - NIH Specific Aims, research proposals
 
 ## Phase 7: Safety and Validation
