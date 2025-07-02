@@ -34,6 +34,11 @@ AI Co-Scientist is a multi-agent system for scientific hypothesis generation:
 - Expert-in-the-loop design
 - Natural language interface
 
+## Resources for Multi-Agent Research
+When using AI assistants to help create specs, the Claude Code subagent pattern 
+can be effective. This is NOT about the AI Co-Scientist's architecture, but 
+about our specification development process.
+
 ## 🔄 THE SPEC WORKFLOW THAT WORKS
 
 ### Step 1: UNDERSTAND THE COMPLETE SYSTEM

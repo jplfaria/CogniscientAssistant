@@ -17,6 +17,9 @@
   - Examples/usage agent
 - Synthesize findings AFTER all complete
 - Wait for ALL agents before proceeding
+- Example: Use Claude's Task tool to spawn parallel research agents
+- Each agent should have a clear, focused prompt
+- Gather all results before synthesizing into specs
 
 ### 3. **CLEANROOM Principles**
 - NO implementation details
