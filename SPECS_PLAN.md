@@ -34,7 +34,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 - [x] 019-output-formats.md - NIH Specific Aims, research proposals
 
 ## Phase 7: Safety and Validation
-- [ ] 020-safety-mechanisms.md - Goal review, hypothesis filtering
+- [x] 020-safety-mechanisms.md - Goal review, hypothesis filtering
 - [ ] 021-validation-criteria.md - Novelty, testability, alignment
 - [ ] 022-monitoring-logging.md - System observability
 
