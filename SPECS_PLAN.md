@@ -19,7 +19,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 - [x] 010-evolution-agent.md - Hypothesis refinement strategies
 
 ## Phase 4: Supporting Agents
-- [ ] 011-proximity-agent.md - Similarity calculation and clustering
+- [x] 011-proximity-agent.md - Similarity calculation and clustering
 - [ ] 012-meta-review-agent.md - Feedback synthesis and adaptation
 - [ ] 013-agent-interaction-protocols.md - How agents communicate
 
