@@ -2,7 +2,7 @@
 
 Read all materials in specs-source/ and any existing work in specs/.
 
-Your task: Implement the FIRST UNCHECKED item from SPECS_PLAN.md by creating
+Your task: Implement the FIRST UNCHECKED item from SPECS_PLAN_hybrid.md by creating
 CLEANROOM specifications (implementation-free behavioral specs).
 
 ## Requirements:
@@ -14,13 +14,7 @@ CLEANROOM specifications (implementation-free behavioral specs).
 - Consider the scientific method and research workflow
 
 ## Process:
-1. Read SPECS_PLAN.md
-   - If it contains "Nothing here yet" or is empty:
-     a. Study ALL materials in specs-source/ thoroughly  
-     b. CREATE a comprehensive specification plan with phases and checkboxes
-     c. Save this plan to SPECS_PLAN.md
-     d. Exit with message: "PLAN_CREATED - Please run again to start creating specs"
-   - Otherwise, find the first unchecked [ ] item
+1. Read SPECS_PLAN_hybrid.md to find the first unchecked [ ] item
 2. Study all relevant materials in specs-source/, including:
    - ai-coscientist-blog.md and ai-coscientist-paper.md
    - All figure images (AICoScientist-*.png)
@@ -30,10 +24,10 @@ CLEANROOM specifications (implementation-free behavioral specs).
    - Use numbered prefixes: 001-system-overview.md, 002-multi-agent-framework.md, etc.
    - Follow document organization from guidelines.md section 6
    - For Phase 7 specs, consider documentation architecture patterns
-5. Update SPECS_PLAN.md to mark the item as complete [x]
+5. Update SPECS_PLAN_hybrid.md to mark the item as complete [x]
 
 ## Completion Handling:
-If you cannot find any incomplete tasks after checking SPECS_PLAN.md thoroughly:
+If you cannot find any incomplete tasks after checking SPECS_PLAN_hybrid.md thoroughly:
 - Output: "ALL_TASKS_COMPLETE"
 - List all phases you checked (Phase 1 through Phase 8)
 - Confirm all items show [x] instead of [ ]

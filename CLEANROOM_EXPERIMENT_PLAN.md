@@ -125,7 +125,7 @@ By investing time in creating this framework, we've:
 We're now testing two different approaches to see how AI agents create specifications:
 
 #### 1. Empty Approach (spec-loop-empty branch)
-- **SPECS_PLAN.md**: Contains only "Nothing here yet"
+- **Uses**: SPECS_PLAN.md (contains only "Nothing here yet")
 - **Goal**: Let the AI agent read all source materials and create its own plan from scratch
 - **Benefits**: 
   - Tests if the agent truly understands the system
@@ -134,13 +134,19 @@ We're now testing two different approaches to see how AI agents create specifica
   - No human bias in the structure
 
 #### 2. Hybrid Approach (spec-loop-hybrid branch)
-- **SPECS_PLAN.md**: Contains our 8-phase plan with "Feel free to reorganize or add items"
+- **Uses**: SPECS_PLAN_hybrid.md (contains our 8-phase plan with flexibility note)
+- **specs-prompt.md modified**: Points to SPECS_PLAN_hybrid.md instead of SPECS_PLAN.md
 - **Goal**: Provide guidance while allowing flexibility
 - **Benefits**:
   - Ensures critical specs aren't missed
   - Provides proven structure
   - Still allows agent creativity
   - Faster to complete
+
+### Branch File Differences
+- **main branch**: Contains both SPECS_PLAN.md and SPECS_PLAN_hybrid.md for reference
+- **spec-loop-empty**: Uses SPECS_PLAN.md (empty version)
+- **spec-loop-hybrid**: Uses SPECS_PLAN_hybrid.md (all references updated to use this file)
 
 ### The Experiment Process
 
