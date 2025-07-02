@@ -14,7 +14,13 @@ CLEANROOM specifications (implementation-free behavioral specs).
 - Consider the scientific method and research workflow
 
 ## Process:
-1. Read SPECS_PLAN.md to find the first unchecked [ ] item
+1. Read SPECS_PLAN.md
+   - If it contains "Nothing here yet" or is empty:
+     a. Study ALL materials in specs-source/ thoroughly  
+     b. CREATE a comprehensive specification plan with phases and checkboxes
+     c. Save this plan to SPECS_PLAN.md
+     d. Exit with message: "PLAN_CREATED - Please run again to start creating specs"
+   - Otherwise, find the first unchecked [ ] item
 2. Study all relevant materials in specs-source/, including:
    - ai-coscientist-blog.md and ai-coscientist-paper.md
    - All figure images (AICoScientist-*.png)
