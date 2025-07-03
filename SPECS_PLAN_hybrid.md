@@ -21,7 +21,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Natural Language Interface Specification
 - [x] Expert-in-the-Loop Interaction Specification
 - [x] Tool Integration Specification (Web Search, AI Models)
-- [ ] Research Goal Configuration Specification
+- [x] Research Goal Configuration Specification
 
 ## Phase 4: Core Functionality Specifications
 - [ ] Hypothesis Generation and Evolution Specification
