@@ -49,5 +49,5 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Validation Criteria Specification
 - [x] Reference Test Cases Specification (from paper)
 - [x] Simplified Test Cases Specification (attainable)
-- [ ] Success Metrics Specification
+- [x] Success Metrics Specification
 - [ ] Acceptance Testing Specification
