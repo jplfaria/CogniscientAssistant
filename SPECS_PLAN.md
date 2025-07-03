@@ -41,7 +41,7 @@ This document outlines the phased approach for creating CLEANROOM specifications
 ## Phase 8: Extension and Integration
 - [x] 023-llm-abstraction.md - Model-agnostic design via BAML
 - [x] 024-argo-gateway-integration.md - Multi-model orchestration
-- [ ] 025-deployment-patterns.md - Scaling and resource management
+- [x] 025-deployment-patterns.md - Scaling and resource management
 
 ## Notes on Specification Development
 
