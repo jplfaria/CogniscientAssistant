@@ -46,7 +46,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Example/Tutorial Planning Specification
 
 ## Phase 8: Validation Framework
-- [ ] Validation Criteria Specification
+- [x] Validation Criteria Specification
 - [ ] Reference Test Cases Specification (from paper)
 - [ ] Simplified Test Cases Specification (attainable)
 - [ ] Success Metrics Specification
