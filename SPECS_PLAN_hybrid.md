@@ -48,6 +48,6 @@ Feel free to reorganize or add items based on your reading of the source materia
 ## Phase 8: Validation Framework
 - [x] Validation Criteria Specification
 - [x] Reference Test Cases Specification (from paper)
-- [ ] Simplified Test Cases Specification (attainable)
+- [x] Simplified Test Cases Specification (attainable)
 - [ ] Success Metrics Specification
 - [ ] Acceptance Testing Specification
