@@ -36,7 +36,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 
 ## Phase 6: Quality and Safety
 - [x] Safety Mechanisms Specification
-- [ ] Evaluation Metrics Specification
+- [x] Evaluation Metrics Specification
 - [ ] Factuality and Grounding Specification
 
 ## Phase 7: Documentation Planning
