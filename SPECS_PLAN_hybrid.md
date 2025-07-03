@@ -43,7 +43,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Documentation Architecture Specification
 - [x] User Journey Documentation Specification
 - [x] API Documentation Strategy Specification
-- [ ] Example/Tutorial Planning Specification
+- [x] Example/Tutorial Planning Specification
 
 ## Phase 8: Validation Framework
 - [ ] Validation Criteria Specification
