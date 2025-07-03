@@ -31,7 +31,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 
 ## Phase 5: Storage and Persistence
 - [x] Event Storage Specification
-- [ ] Session Management Specification
+- [x] Session Management Specification
 - [ ] Research History Tracking Specification
 
 ## Phase 6: Quality and Safety
