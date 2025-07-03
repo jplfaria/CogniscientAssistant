@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Check for --letitrip flag
+LETITRIP=false
+if [[ "$1" == "--letitrip" ]]; then
+    LETITRIP=true
+fi
+
 # Color codes for better visibility
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -10,7 +16,11 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== AI Co-Scientist Spec Creation Loop (Hybrid) ===${NC}"
-echo -e "${YELLOW}This will run until all specs are complete, pausing between each for review.${NC}"
+if [ "$LETITRIP" = true ]; then
+    echo -e "${YELLOW}Running in continuous mode (--letitrip). Will run until all specs are complete.${NC}"
+else
+    echo -e "${YELLOW}This will run until all specs are complete, pausing between each for review.${NC}"
+fi
 echo -e "${CYAN}Full thought process will be captured and displayed.${NC}"
 echo -e "${YELLOW}Press Ctrl+C at any time to stop.${NC}\n"
 
@@ -75,9 +85,14 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     # Cleanup temp file
     rm -f "$TEMP_OUTPUT"
     
-    # Pause for review
-    echo -e "\n${CYAN}Press Enter to continue to next iteration, or Ctrl+C to stop...${NC}"
-    read -r
+    # Pause for review unless --letitrip is set
+    if [ "$LETITRIP" = false ]; then
+        echo -e "\n${CYAN}Press Enter to continue to next iteration, or Ctrl+C to stop...${NC}"
+        read -r
+    else
+        echo -e "\n${CYAN}Continuing automatically in 2 seconds...${NC}"
+        sleep 2
+    fi
 done
 
 if [ $ITERATION -eq $MAX_ITERATIONS ]; then

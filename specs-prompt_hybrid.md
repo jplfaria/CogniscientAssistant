@@ -25,6 +25,10 @@ CLEANROOM specifications (implementation-free behavioral specs).
    - Follow document organization from guidelines.md section 6
    - For Phase 7 specs, consider documentation architecture patterns
 5. Update SPECS_PLAN_hybrid.md to mark the item as complete [x]
+6. Commit your changes with a descriptive message:
+   - Use: git add specs_hybrid/[new-spec].md SPECS_PLAN_hybrid.md
+   - Use: git commit -m "spec: add [component] specification"
+   - One spec per commit to maintain clear history
 
 ## Completion Handling:
 If you cannot find any incomplete tasks after checking SPECS_PLAN_hybrid.md thoroughly:
