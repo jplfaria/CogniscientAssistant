@@ -20,7 +20,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 ## Phase 3: Interaction and Interface Specifications
 - [x] Natural Language Interface Specification
 - [x] Expert-in-the-Loop Interaction Specification
-- [ ] Tool Integration Specification (Web Search, AI Models)
+- [x] Tool Integration Specification (Web Search, AI Models)
 - [ ] Research Goal Configuration Specification
 
 ## Phase 4: Core Functionality Specifications
