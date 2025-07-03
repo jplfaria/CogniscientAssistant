@@ -30,7 +30,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Research Proposal Format Specification
 
 ## Phase 5: Storage and Persistence
-- [ ] Event Storage Specification
+- [x] Event Storage Specification
 - [ ] Session Management Specification
 - [ ] Research History Tracking Specification
 
