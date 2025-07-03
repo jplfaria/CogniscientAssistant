@@ -13,7 +13,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Reflection Agent Specification  
 - [x] Ranking Agent Specification
 - [x] Evolution Agent Specification
-- [ ] Proximity Agent Specification
+- [x] Proximity Agent Specification
 - [ ] Meta-review Agent Specification
 - [ ] Supervisor Agent Specification
 
