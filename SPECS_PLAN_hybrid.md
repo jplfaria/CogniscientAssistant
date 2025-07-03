@@ -18,7 +18,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Supervisor Agent Specification
 
 ## Phase 3: Interaction and Interface Specifications
-- [ ] Natural Language Interface Specification
+- [x] Natural Language Interface Specification
 - [ ] Expert-in-the-Loop Interaction Specification
 - [ ] Tool Integration Specification (Web Search, AI Models)
 - [ ] Research Goal Configuration Specification
