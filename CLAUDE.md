@@ -17,11 +17,11 @@ Read the ENTIRE blog post, paper, and examine ALL figures. Every AI that skims t
 
 ```markdown
 ## Current TODO List for [Spec Name]
-1. [ ] Find first unchecked item in SPECS_PLAN.md
+1. [ ] Find first unchecked item in SPECS_PLAN_hybrid.md
 2. [ ] Read all source materials completely (blog, paper, figures)
 3. [ ] Identify behaviors, inputs, outputs, interactions
 4. [ ] Write the specification following guidelines
-5. [ ] Update SPECS_PLAN.md and commit
+5. [ ] Update SPECS_PLAN_hybrid.md and commit
 ```
 
 ## Project Context
@@ -126,7 +126,7 @@ Other AIs skim and guess. You read completely and specify precisely.
 ## 🔄 COMMIT EACH SPEC INDIVIDUALLY
 
 ```bash
-git add specs/[new-spec].md SPECS_PLAN.md
+git add specs_hybrid/[new-spec].md SPECS_PLAN_hybrid.md
 git commit -m "spec: add [component] specification"
 ```
 
