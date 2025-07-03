@@ -50,4 +50,4 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Reference Test Cases Specification (from paper)
 - [x] Simplified Test Cases Specification (attainable)
 - [x] Success Metrics Specification
-- [ ] Acceptance Testing Specification
+- [x] Acceptance Testing Specification
