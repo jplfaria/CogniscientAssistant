@@ -25,7 +25,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 
 ## Phase 4: Core Functionality Specifications
 - [x] Hypothesis Generation and Evolution Specification
-- [ ] Tournament and Elo Rating System Specification
+- [x] Tournament and Elo Rating System Specification
 - [ ] Review Types and Processes Specification
 - [ ] Research Proposal Format Specification
 
