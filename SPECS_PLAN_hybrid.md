@@ -10,7 +10,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 
 ## Phase 2: Agent Specifications
 - [x] Generation Agent Specification
-- [ ] Reflection Agent Specification  
+- [x] Reflection Agent Specification  
 - [ ] Ranking Agent Specification
 - [ ] Evolution Agent Specification
 - [ ] Proximity Agent Specification
