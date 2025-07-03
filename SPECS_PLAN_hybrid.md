@@ -35,7 +35,7 @@ Feel free to reorganize or add items based on your reading of the source materia
 - [x] Research History Tracking Specification
 
 ## Phase 6: Quality and Safety
-- [ ] Safety Mechanisms Specification
+- [x] Safety Mechanisms Specification
 - [ ] Evaluation Metrics Specification
 - [ ] Factuality and Grounding Specification
 
