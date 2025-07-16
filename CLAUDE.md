@@ -11,34 +11,16 @@ Read EVERY specification in specs/. Every AI that skims thinks they understand t
 
 **ONCE YOU'VE READ ALL SPECS, YOU UNDERSTAND THE COMPLETE SYSTEM.** Trust your complete read. The specs define all behaviors and interactions.
 
-## 📋 YOUR IMPLEMENTATION TODO LIST
+## 📋 LOOP-BASED IMPLEMENTATION APPROACH
 
-**MAINTAIN THIS STRUCTURE FOR EACH COMPONENT:**
+**You are running in an automated loop. Each iteration:**
+1. Check IMPLEMENTATION_PLAN.md status
+2. Implement ONE task completely
+3. Update the plan
+4. Commit your changes
+5. Exit for next iteration
 
-```markdown
-## Current TODO List for AI Co-Scientist Implementation
-1. [ ] Read ALL specs in specs/ folder (28 files)
-2. [ ] Review IMPLEMENTATION_PLAN.md for current priorities
-3. [ ] Set up project structure (src/, tests/, config/)
-4. [ ] Implement core infrastructure first (Task Queue, Context Memory)
-5. [ ] Build LLM Abstraction layer with BAML
-6. [ ] Implement Supervisor Agent (orchestrates everything)
-7. [ ] Add each specialized agent one by one
-8. [ ] Integrate safety framework at each layer
-9. [ ] Set up monitoring and logging
-10. [ ] Create comprehensive test suite
-11. [ ] Build CLI interface
-12. [ ] Test multi-agent interactions
-13. [ ] Verify safety boundaries work
-14. [ ] Check tournament dynamics
-15. [ ] Validate expert-in-the-loop flows
-16. [ ] Run integration tests
-17. [ ] Performance testing with concurrent agents
-18. [ ] Document deployment requirements
-19. [ ] Create example research scenarios
-20. [ ] Update IMPLEMENTATION_PLAN.md progress
-... (maintain 20+ items or you'll lose context)
-```
+**CRITICAL: One task per loop iteration. Complete it fully.**
 
 ## Project Context
 
@@ -51,15 +33,22 @@ AI Co-Scientist is a multi-agent system for scientific hypothesis generation:
 - Multi-layer safety framework
 - Natural language interface
 
-## 🔄 THE IMPLEMENTATION WORKFLOW THAT WORKS
+## 🔄 THE LOOP IMPLEMENTATION WORKFLOW
 
-### Step 1: UNDERSTAND THE COMPLETE SYSTEM FROM SPECS
-- Read ALL 28 specifications thoroughly
-- Map out agent interactions and data flows
-- Identify shared infrastructure components
-- Note safety checkpoints and boundaries
+### Step 0: CHECK IMPLEMENTATION_PLAN.md
+```python
+# If empty, create comprehensive plan
+if implementation_plan == "Nothing here yet":
+    create_implementation_plan()  # With ALL tasks needed
+    exit("PLAN_CREATED - Run again to start implementing")
+```
 
-### Step 2: BUILD CORE INFRASTRUCTURE FIRST
+### Step 1: READ RELEVANT SPECS FOR CURRENT TASK
+- Don't re-read ALL specs every iteration
+- Read specs related to current component
+- Trust the implementation plan order
+
+### Step 2: IMPLEMENT ONE COMPONENT PER ITERATION
 ```bash
 # Set up project structure
 mkdir -p src/{agents,core,interfaces,safety,tools}
@@ -74,34 +63,33 @@ mkdir -p .aicoscientist/{context,threads,artifacts}
 # - Safety Framework (src/safety/)
 ```
 
-### Step 3: IMPLEMENT AGENTS INCREMENTALLY
-```python
-# Start with Supervisor Agent - it orchestrates everything
-class SupervisorAgent:
-    """Orchestrates task execution across specialized agents."""
-    
-    def __init__(self, task_queue: TaskQueue, context: ContextMemory):
-        self.task_queue = task_queue
-        self.context = context
-        self.agents = {}  # Will register other agents here
-    
-    async def process_research_goal(self, goal: str) -> ResearchSession:
-        """Main entry point for research requests."""
-        # Safety check first (as per specs)
-        if not await self.safety_check_goal(goal):
-            raise UnsafeResearchGoalError(goal)
-        
-        # Create research session
-        session = await self.create_session(goal)
-        
-        # Queue initial generation tasks
-        await self.queue_generation_tasks(session)
-        
-        # Start processing loop
-        return await self.run_session(session)
+### Step 3: CREATE ACTUAL FILES AND CODE
+```bash
+# Example for first iteration - project setup
+cat > pyproject.toml << 'EOF'
+[project]
+name = "ai-coscientist"
+version = "0.1.0"
+dependencies = [
+    "pydantic>=2.0",
+    "asyncio",
+    "baml",
+    "pytest>=7.0",
+    "mypy>=1.0",
+    "ruff>=0.1.0"
+]
+EOF
+
+# Example for component iteration
+cat > src/core/task_queue.py << 'EOF'
+"""Task Queue implementation as specified in 006-task-queue-behavior.md"""
+from enum import Enum
+from typing import Dict, List, Optional
+# ... actual implementation
+EOF
 ```
 
-### Step 4: USE BAML FOR ALL AI INTERACTIONS
+### Step 4: ALWAYS UPDATE IMPLEMENTATION_PLAN.md
 ```python
 # In baml_src/aicoscientist.baml
 class Hypothesis {
@@ -129,38 +117,41 @@ function generate_hypotheses(goal: string, context: string) -> Hypothesis[] {
 }
 ```
 
-### Step 5: IMPLEMENT SAFETY AT EVERY LAYER
-```python
-# Safety checks as specified in specs
-class SafetyFramework:
-    async def check_research_goal(self, goal: str) -> SafetyResult:
-        """Initial safety review of research goals."""
-        # Check against prohibited topics
-        # Evaluate dual-use potential
-        # Assess ethical implications
-        
-    async def check_hypothesis(self, hypothesis: Hypothesis) -> SafetyResult:
-        """Safety review of generated hypotheses."""
-        # Similar checks at hypothesis level
-        
-    async def monitor_research_direction(self, session: ResearchSession) -> SafetyResult:
-        """Continuous monitoring by Meta-review agent."""
-        # Check if research is drifting into unsafe territory
+```markdown
+# After implementing a task:
+- [x] Set up project structure and pyproject.toml
+- [ ] Install dependencies and configure tools
+- [ ] Create TaskQueue class with state management
+# ... mark completed, add new discovered tasks
 ```
 
-### Step 6: TEST EVERYTHING
+### Step 5: COMMIT AND EXIT
 ```bash
-# Install test dependencies
-pip install pytest pytest-asyncio pytest-cov
-
-# Run tests after each component
-pytest tests/unit/test_task_queue.py
-pytest tests/unit/test_context_memory.py
-pytest tests/integration/test_agent_interactions.py
-
-# Check coverage
-pytest --cov=src --cov-report=term-missing
+# Every iteration ends with:
+git add -A
+git commit -m "feat: implement [component] - [what you did]"
+# Then exit - the loop will continue
 ```
+
+## 🚨 LOOP ITERATION RULES
+
+### ONE TASK = ONE ITERATION
+- Pick the FIRST unchecked [ ] task
+- Implement it COMPLETELY
+- Don't start multiple tasks
+- Don't skip ahead
+
+### REAL IMPLEMENTATION ONLY
+- Create actual Python files
+- Write real code, not pseudocode
+- Include docstrings and types
+- Handle errors as specified
+
+### INCREMENTAL BUT COMPLETE
+- Each commit should work
+- Don't break existing code
+- Tests can be pending if component isn't ready
+- But component itself must be complete
 
 ## 🛠️ TECHNICAL REQUIREMENTS FROM SPECS
 
