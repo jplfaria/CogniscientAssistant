@@ -4,6 +4,8 @@
 
 **Core Philosophy: IMPLEMENT FROM SPECS. Build behavior exactly as specified.**
 
+**Secondary Philosophy: ALWAYS DELETE MORE THAN YOU ADD. Complexity compounds into disasters.**
+
 ## 🚨 THE COMPLETE SPEC READ RULE - THIS IS NOT OPTIONAL
 
 ### READ ALL SPECS BEFORE IMPLEMENTING ANYTHING
@@ -11,16 +13,46 @@ Read EVERY specification in specs/. Every AI that skims thinks they understand t
 
 **ONCE YOU'VE READ ALL SPECS, YOU UNDERSTAND THE COMPLETE SYSTEM.** Trust your complete read. The specs define all behaviors and interactions.
 
-## 📋 LOOP-BASED IMPLEMENTATION APPROACH
+## 🚨 THE COMPLETE READ RULE - THIS IS NOT OPTIONAL
 
-**You are running in an automated loop. Each iteration:**
-1. Check IMPLEMENTATION_PLAN.md status
-2. Implement ONE task completely
-3. Update the plan
-4. Commit your changes
-5. Exit for next iteration
+### READ DEEPLY BEFORE CHANGING
+Once implementation begins and files exist:
+- **New file**: Read the ENTIRE file first
+- **Small file (<500 lines)**: Read it ALL
+- **Large file (500+ lines)**: Read at least 500 lines of context
+- **UNDERSTAND before you MODIFY**
 
-**CRITICAL: One task per loop iteration. Complete it fully.**
+**Why?** Every AI that does partial reads DUPLICATES FUNCTIONALITY that already exists deeper in the file. You're better than that.
+
+## 📋 WORKING MEMORY TODO LIST (Yes, even in loops!)
+
+**Maintain this between iterations (especially without --letitrip):**
+
+```markdown
+## Current TODO List for AI Co-Scientist
+1. [ ] Current task from IMPLEMENTATION_PLAN.md
+2. [ ] Files I need to read fully before modifying
+3. [ ] Tests that need to be written
+4. [ ] Integration points to verify
+5. [ ] Refactoring opportunities spotted
+6. [ ] Duplicate code to remove
+7. [ ] Complex abstractions to simplify
+8. [ ] Safety checks to add
+9. [ ] Error handling gaps
+10. [ ] Performance bottlenecks noted
+... (keep adding as you discover issues)
+```
+
+## 🗑️ THE DELETION REQUIREMENT
+
+**Starting from iteration 10+, every file you touch should get SMALLER:**
+- Remove duplicate implementations
+- Consolidate similar functions
+- Delete commented-out code
+- Eliminate over-engineered abstractions
+- Simplify complex logic
+
+**Can't find anything to delete?** You're not looking hard enough.
 
 ## Project Context
 
@@ -152,6 +184,31 @@ git commit -m "feat: implement [component] - [what you did]"
 - Don't break existing code
 - Tests can be pending if component isn't ready
 - But component itself must be complete
+
+### COMPLEXITY MANAGEMENT (After iteration 10)
+- Count lines added vs deleted
+- Aim for negative line count changes
+- Question every abstraction
+- Merge similar functionality
+- Choose simple over clever
+
+## 📖 READING RULES BY ITERATION
+
+### Iterations 1-5: Building Foundation
+- Read relevant specs completely
+- No existing code to read yet
+- Focus on correct implementation
+
+### Iterations 6-15: Integration Phase
+- Read EVERY file you're about to modify
+- Read related files for context
+- Start identifying duplication
+
+### Iterations 16+: Simplification Phase
+- Read with deletion in mind
+- Every file should get smaller
+- Consolidate and refactor
+- Remove complexity debt
 
 ## 🛠️ TECHNICAL REQUIREMENTS FROM SPECS
 
