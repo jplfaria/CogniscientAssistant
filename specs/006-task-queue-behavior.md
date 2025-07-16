@@ -285,22 +285,222 @@ QueueConfig {
 4. Incomplete tasks reassigned to workers
 5. Processing continues from last checkpoint
 
+## Error Recovery Behaviors
+
+### Task Failure Recovery
+
+```yaml
+task_failure_handling:
+  immediate_response:
+    - "Log failure details with full context"
+    - "Update task state to FAILED"
+    - "Notify Supervisor of failure"
+    - "Check retry policy eligibility"
+    
+  retry_decision:
+    retryable_failures:
+      - "Worker timeout"
+      - "Temporary resource unavailable"
+      - "Network errors"
+      - "Transient API failures"
+      
+    non_retryable_failures:
+      - "Invalid task parameters"
+      - "Safety violation"
+      - "Permanent resource errors"
+      - "Maximum retries exceeded"
+      
+  retry_execution:
+    backoff_strategy: "Exponential: 5s, 30s, 120s"
+    priority_adjustment: "Maintain original priority"
+    context_preservation: "Include failure history"
+    worker_selection: "Prefer different worker"
+```
+
+### Worker Failure Recovery
+
+```yaml
+worker_failure_handling:
+  detection:
+    heartbeat_timeout: "30 seconds"
+    task_timeout: "Agent-specific + buffer"
+    health_check_failure: "3 consecutive failures"
+    
+  immediate_actions:
+    - "Mark worker as FAILED"
+    - "Reassign in-flight tasks"
+    - "Update worker pool metrics"
+    - "Alert monitoring system"
+    
+  task_reassignment:
+    - "Return task to PENDING state"
+    - "Increment failure count"
+    - "Add worker failure note"
+    - "Prioritize for quick reassignment"
+    
+  worker_replacement:
+    - "Spawn replacement if below minimum"
+    - "Rebalance load across remaining"
+    - "Update capacity planning"
+```
+
+### Queue Overflow Recovery
+
+```yaml
+overflow_handling:
+  prevention:
+    warning_at: "80% capacity"
+    critical_at: "95% capacity"
+    
+  overflow_response:
+    preservation_priority:
+      1: "High priority tasks"
+      2: "Tasks with dependencies"
+      3: "Recently created tasks"
+      4: "Tasks with retry history"
+      
+    displacement_strategy:
+      - "Move low priority to dead letter queue"
+      - "Notify Supervisor of displaced tasks"
+      - "Log displacement events"
+      - "Attempt resubmission when space available"
+```
+
+### Dependency Failure Handling
+
+```yaml
+dependency_failures:
+  detection:
+    - "Monitor dependent task states"
+    - "Check for circular dependencies"
+    - "Timeout on dependency wait"
+    
+  resolution_strategies:
+    missing_dependency:
+      - "Wait up to timeout period"
+      - "Mark as blocked if timeout"
+      - "Notify Supervisor"
+      
+    failed_dependency:
+      - "Cancel dependent task"
+      - "Notify task creator"
+      - "Optional: retry entire chain"
+      
+    circular_dependency:
+      - "Detect cycle at submission"
+      - "Reject task with error"
+      - "Log dependency graph"
+```
+
+## Temporal Behavior Specifications
+
+### Queue Operation Timing
+
+```yaml
+queue_timing:
+  task_operations:
+    submission_processing: "< 10ms"
+    assignment_latency: "< 100ms"
+    state_update: "< 5ms"
+    query_response: "< 50ms"
+    
+  maintenance_operations:
+    dead_letter_processing: "Every 5 minutes"
+    metric_calculation: "Every 30 seconds"
+    state_checkpoint: "Every 60 seconds"
+    stale_task_cleanup: "Every 10 minutes"
+    
+  timeout_behaviors:
+    worker_acknowledgment: "5 seconds"
+    task_execution: "Agent-specific + 20%"
+    dependency_wait: "Maximum 5 minutes"
+    queue_operation: "30 seconds absolute max"
+```
+
+### Priority Escalation Timing
+
+```yaml
+priority_timing:
+  starvation_prevention:
+    low_priority_wait: "10 minutes"
+    escalation_increment: "Medium after 10min, High after 20min"
+    
+  age_based_boost:
+    threshold: "5 minutes in queue"
+    boost_factor: "+10% priority score per minute"
+    
+  deadline_awareness:
+    urgent_threshold: "< 2 minutes to deadline"
+    immediate_execution: "Preempt lower priority"
+```
+
+## Conflict Resolution Protocols
+
+### Concurrent Task Submission
+
+```yaml
+submission_conflicts:
+  duplicate_detection:
+    - "Hash task parameters"
+    - "Check within time window"
+    - "Merge or reject duplicates"
+    
+  ordering_guarantees:
+    - "Total order via timestamp"
+    - "Tie-breaker using task ID"
+    - "Preserve submission order per agent"
+    
+  batch_submission:
+    - "Atomic batch operations"
+    - "All-or-nothing acceptance"
+    - "Transactional semantics"
+```
+
+### Worker Assignment Conflicts
+
+```yaml
+assignment_conflicts:
+  double_assignment_prevention:
+    - "Exclusive task locking"
+    - "Worker must confirm receipt"
+    - "Automatic unlock on timeout"
+    
+  worker_preference:
+    - "Affinity for similar tasks"
+    - "Load balancing override"
+    - "Failure isolation groups"
+    
+  race_condition_handling:
+    - "Compare-and-swap assignment"
+    - "Version numbers on tasks"
+    - "Conflict logged for analysis"
+```
+
 ## Quality Requirements
 
-### Correctness
+### Enhanced Requirements
+
+#### Correctness
 - Never lose or duplicate tasks
 - Maintain strict priority ordering
 - Honor all task dependencies
 - Accurately track task states
+- **Guarantee exactly-once execution**
+- **Preserve task ordering within agent**
 
-### Performance
+#### Performance
 - Sub-second task assignment latency
 - Linear scaling with worker count
 - Minimal memory overhead per task
 - Efficient priority queue operations
+- **< 10ms conflict resolution**
+- **< 1s recovery from worker failure**
 
-### Reliability
+#### Reliability
 - Graceful degradation under load
 - Automatic recovery from transient failures
 - Clear failure reporting
 - Comprehensive audit trail
+- **99.99% task completion guarantee**
+- **Zero task loss during recovery**
+- **Automatic healing from partial failures**

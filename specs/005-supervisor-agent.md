@@ -322,7 +322,199 @@ Behavior:
 5. Request additional resources if available
 ```
 
+## Error Recovery Behaviors
+
+### Agent Chain Failures
+
+When a sequence of agents fails (e.g., Generation → Reflection → Ranking):
+
+```yaml
+chain_failure_recovery:
+  detection:
+    - "Monitor task dependencies"
+    - "Track failure propagation"
+    - "Identify affected downstream tasks"
+    
+  immediate_actions:
+    - "Pause dependent task creation"
+    - "Mark in-flight dependent tasks as 'at-risk'"
+    - "Checkpoint current system state"
+    
+  recovery_strategy:
+    partial_results_available:
+      - "Process completed portions"
+      - "Skip failed agent in chain"
+      - "Route to alternative workflow"
+      
+    no_partial_results:
+      - "Rollback to last checkpoint"
+      - "Retry entire chain with reduced scope"
+      - "Escalate to user if critical"
+```
+
+### Resource Exhaustion Recovery
+
+```yaml
+resource_exhaustion_handling:
+  memory_exhaustion:
+    - "Trigger emergency archival"
+    - "Pause non-critical agents"
+    - "Complete critical tasks only"
+    - "Notify user of degraded mode"
+    
+  compute_exhaustion:
+    - "Reduce parallelism to 1"
+    - "Increase all timeouts by 2x"
+    - "Skip optional processing steps"
+    - "Focus on result compilation"
+    
+  queue_overflow:
+    - "Reject new low-priority tasks"
+    - "Merge duplicate requests"
+    - "Increase worker pool if possible"
+    - "Apply backpressure to generators"
+```
+
+### Cascade Failure Prevention
+
+```yaml
+cascade_prevention:
+  circuit_breaker:
+    failure_threshold: "3 failures in 5 minutes"
+    break_duration: "60 seconds"
+    half_open_test: "Single task probe"
+    
+  bulkhead_isolation:
+    - "Separate queues per agent type"
+    - "Independent resource pools"
+    - "Failure domain boundaries"
+    
+  timeout_escalation:
+    - "Increase timeouts on retries"
+    - "Skip timeout-prone operations"
+    - "Prefer partial over no results"
+```
+
+## Conflict Resolution Protocols
+
+### Concurrent Task Conflicts
+
+```yaml
+task_conflict_resolution:
+  duplicate_task_detection:
+    - "Hash task parameters"
+    - "Check for in-flight duplicates"
+    - "Merge results if both complete"
+    - "Cancel redundant execution"
+    
+  resource_contention:
+    priority_rules:
+      1: "Safety-critical tasks"
+      2: "User-initiated tasks"
+      3: "High-Elo hypothesis tasks"
+      4: "Standard workflow tasks"
+      5: "Background optimization"
+      
+    starvation_prevention:
+      - "Age-based priority boost"
+      - "Guaranteed slots per priority"
+      - "Fairness queue rotation"
+```
+
+### State Synchronization Conflicts
+
+```yaml
+state_conflict_handling:
+  context_memory_conflicts:
+    - "Version number comparison"
+    - "Timestamp-based ordering"
+    - "Merge non-conflicting updates"
+    - "Queue conflicts for resolution"
+    
+  statistic_update_conflicts:
+    - "Aggregate concurrent updates"
+    - "Apply updates in timestamp order"
+    - "Recalculate derived metrics"
+    - "Log conflict occurrences"
+    
+  agent_weight_conflicts:
+    - "Lock during update"
+    - "Apply incremental changes"
+    - "Bounded adjustment per cycle"
+    - "Convergence damping factor"
+```
+
+### Worker Assignment Conflicts
+
+```yaml
+worker_conflict_resolution:
+  double_assignment_prevention:
+    - "Atomic worker claiming"
+    - "Lease-based assignment"
+    - "Heartbeat confirmation"
+    - "Automatic lease expiry"
+    
+  worker_failure_handling:
+    - "Detect missing heartbeats"
+    - "Reclaim abandoned tasks"
+    - "Reassign to healthy workers"
+    - "Update task history"
+```
+
+## Temporal Behavior Specifications
+
+### Periodic Operations
+
+```yaml
+supervisor_timing:
+  statistics_calculation:
+    interval: "Every iteration completion"
+    timeout: "10 seconds"
+    includes:
+      - "Hypothesis count by state"
+      - "Agent effectiveness metrics"
+      - "Resource utilization"
+      - "Progress toward termination"
+      
+  checkpoint_creation:
+    interval: "Every 5 minutes OR 50 tasks"
+    timeout: "30 seconds"
+    includes:
+      - "Complete task queue state"
+      - "Agent weight history"
+      - "Resource allocations"
+      - "In-flight task status"
+      
+  health_monitoring:
+    interval: "Every 30 seconds"
+    timeout: "5 seconds"
+    checks:
+      - "Worker process health"
+      - "Queue depth trends"
+      - "Memory usage patterns"
+      - "Error rate thresholds"
+```
+
+### Timeout Behaviors
+
+```yaml
+timeout_handling:
+  task_assignment_timeout:
+    duration: "30 seconds"
+    action: "Requeue with higher priority"
+    
+  worker_response_timeout:
+    duration: "Agent-specific + 20%"
+    action: "Mark failed, trigger recovery"
+    
+  termination_detection_timeout:
+    duration: "5 minutes without progress"
+    action: "Evaluate force termination"
+```
+
 ## Quality Requirements
+
+### Enhanced Requirements
 
 The Supervisor Agent ensures:
 
@@ -331,5 +523,8 @@ The Supervisor Agent ensures:
 - **Efficiency**: <5% overhead on task execution
 - **Responsiveness**: <1 second queue operations
 - **Recoverability**: Full restart in <30 seconds
+- **Conflict Resolution**: <100ms resolution time
+- **Error Recovery**: <60s to stable state after failure
+- **Cascade Prevention**: No failure affects >10% of tasks
 
-These requirements ensure the AI Co-Scientist system operates smoothly, scales effectively, and achieves research goals reliably through intelligent orchestration.
+These requirements ensure the AI Co-Scientist system operates smoothly, scales effectively, and achieves research goals reliably through intelligent orchestration with robust error handling and conflict resolution.

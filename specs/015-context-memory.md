@@ -326,6 +326,221 @@ Behavior:
 - **Backup Frequency**: Configurable redundancy
 - **Validation Checks**: Checksums on all writes
 
+## Conflict Resolution Protocols
+
+### Concurrent Write Conflicts
+
+```yaml
+write_conflict_handling:
+  detection_mechanism:
+    - "Version number on each record"
+    - "Timestamp with microsecond precision"
+    - "Writer identification (agent_type + task_id)"
+    
+  resolution_strategies:
+    hypothesis_updates:
+      strategy: "Merge non-conflicting fields"
+      conflicts: "Last-write-wins with version increment"
+      notification: "Log conflict for audit"
+      
+    statistical_aggregates:
+      strategy: "Accumulate all updates"
+      conflicts: "Sum or max as appropriate"
+      recalculation: "Trigger after batch"
+      
+    checkpoint_data:
+      strategy: "Exclusive lock during write"
+      timeout: "30 seconds maximum"
+      failure: "Retry with exponential backoff"
+```
+
+### Read-Write Consistency
+
+```yaml
+consistency_guarantees:
+  read_consistency:
+    - "Snapshot isolation for queries"
+    - "Read-your-writes guarantee"
+    - "Monotonic read consistency"
+    
+  write_ordering:
+    - "Total order based on timestamp"
+    - "Causal consistency within session"
+    - "Atomic batch operations"
+    
+  eventual_consistency:
+    window: "5 seconds maximum"
+    reconciliation: "Background process"
+    conflict_logs: "Available for analysis"
+```
+
+### Multi-Agent Coordination
+
+```yaml
+agent_coordination:
+  write_slots:
+    - "Reserved write windows per agent type"
+    - "Priority-based slot allocation"
+    - "Overflow handling with queueing"
+    
+  bulk_operations:
+    - "Batch writes within transaction"
+    - "All-or-nothing semantics"
+    - "Rollback on partial failure"
+    
+  notification_system:
+    - "Publish write completion events"
+    - "Subscribe to relevant updates"
+    - "Efficient change propagation"
+```
+
+## Temporal Behavior Specifications
+
+### Periodic Operations
+
+```yaml
+context_memory_timing:
+  checkpoint_creation:
+    trigger: "BOTH"
+    interval: "5 minutes OR 50 completed tasks"
+    duration: "30 seconds maximum"
+    includes:
+      - "Full system state snapshot"
+      - "In-flight task registry"
+      - "Agent state summaries"
+      - "Resource utilization"
+      
+  archive_rotation:
+    trigger: "TIME"
+    interval: "Every 24 hours"
+    actions:
+      - "Compress iterations > 7 days old"
+      - "Move to cold storage > 30 days"
+      - "Update retrieval indices"
+      
+  garbage_collection:
+    trigger: "THRESHOLD"
+    condition: "Storage > 80% capacity"
+    actions:
+      - "Remove orphaned records"
+      - "Compact fragmented storage"
+      - "Archive completed sessions"
+```
+
+### Access Time Guarantees
+
+```yaml
+performance_sla:
+  write_operations:
+    small_update: "< 100ms"
+    bulk_write: "< 1 second"
+    checkpoint: "< 30 seconds"
+    
+  read_operations:
+    recent_data: "< 50ms"
+    historical_query: "< 500ms"
+    complex_aggregation: "< 2 seconds"
+    
+  recovery_operations:
+    checkpoint_load: "< 30 seconds"
+    session_restore: "< 60 seconds"
+    full_recovery: "< 5 minutes"
+```
+
+## Resource Boundary Behaviors
+
+### Storage Overflow Handling
+
+```yaml
+storage_boundaries:
+  warning_threshold: "80% capacity"
+  critical_threshold: "95% capacity"
+  
+  at_warning:
+    - "Increase compression ratio"
+    - "Accelerate archival schedule"
+    - "Alert system operators"
+    
+  at_critical:
+    - "Reject non-essential writes"
+    - "Force immediate archival"
+    - "Preserve checkpoint data only"
+    - "Enter read-mostly mode"
+    
+  overflow_prevention:
+    - "Predictive capacity planning"
+    - "Automatic old data pruning"
+    - "Tiered storage migration"
+```
+
+### Memory Pressure Response
+
+```yaml
+memory_management:
+  cache_sizing:
+    normal: "20% of available memory"
+    constrained: "5% minimum cache"
+    
+  eviction_policy:
+    - "LRU for general cache"
+    - "Priority hold for checkpoints"
+    - "Immediate flush of bulk data"
+    
+  degradation_sequence:
+    1: "Reduce cache size"
+    2: "Disable read-ahead"
+    3: "Synchronous writes only"
+    4: "Essential operations only"
+```
+
+## Error Recovery Behaviors
+
+### Corruption Recovery
+
+```yaml
+corruption_handling:
+  detection:
+    - "Checksum validation on read"
+    - "Periodic integrity scans"
+    - "Cross-reference redundant copies"
+    
+  recovery_actions:
+    single_record:
+      - "Use redundant copy"
+      - "Reconstruct from log"
+      - "Mark as corrupted"
+      
+    checkpoint_corruption:
+      - "Fallback to previous checkpoint"
+      - "Rebuild from transaction log"
+      - "Partial recovery if possible"
+      
+    systemic_corruption:
+      - "Emergency shutdown"
+      - "Full integrity check"
+      - "Restore from backup"
+```
+
+### Cascading Failure Prevention
+
+```yaml
+failure_isolation:
+  component_boundaries:
+    - "Independent storage per component"
+    - "Failure domains for agent types"
+    - "Isolated checkpoint storage"
+    
+  circuit_breakers:
+    - "Disable writes after 5 failures"
+    - "Fallback to read-only mode"
+    - "Gradual recovery testing"
+    
+  backup_strategies:
+    - "Continuous replication"
+    - "Point-in-time snapshots"
+    - "Geographic distribution"
+```
+
 ## Boundary Conditions
 
 ### Storage Limits
@@ -342,4 +557,4 @@ Behavior:
 - **Partial Failures**: Isolated component recovery
 - **Data Loss Prevention**: Redundant storage paths
 
-These specifications ensure Context Memory provides reliable, performant state management enabling the AI Co-Scientist's iterative research process and continuous improvement capabilities.
+These specifications ensure Context Memory provides reliable, performant state management with robust conflict resolution, temporal guarantees, and error recovery, enabling the AI Co-Scientist's iterative research process and continuous improvement capabilities.

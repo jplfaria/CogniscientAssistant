@@ -43,6 +43,11 @@ This document outlines the phased approach for creating CLEANROOM specifications
 - [x] 024-argo-gateway-integration.md - Multi-model orchestration
 - [x] 025-deployment-patterns.md - Scaling and resource management
 
+## Phase 9: System Completeness
+- [x] 026-temporal-behaviors.md - Timing, intervals, and periodic operations
+- [x] 027-resource-boundaries.md - Overflow handling and graceful degradation
+- [x] 028-system-states-and-transitions.md - State machines and lifecycles
+
 ## Notes on Specification Development
 
 Each specification should:
