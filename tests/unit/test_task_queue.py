@@ -179,7 +179,7 @@ class TestTaskQueueBasicOperations:
             payload={"priority": "low"}
         )
         medium_task = Task(
-            task_type=TaskType.REVIEW_HYPOTHESIS,
+            task_type=TaskType.REFLECT_ON_HYPOTHESIS,
             priority=2,  # Medium
             payload={"priority": "medium"}
         )

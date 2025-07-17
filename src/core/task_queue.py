@@ -3,11 +3,11 @@
 import asyncio
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Dict, Optional, Any, Set
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Any, Set, Tuple
 from uuid import uuid4
 
-from src.core.models import Task, TaskState
+from src.core.models import Task, TaskState, TaskType
 
 
 @dataclass
@@ -33,6 +33,7 @@ class QueueConfig:
     retry_policy: Dict[str, Any] = None
     persistence_interval: int = 60
     starvation_threshold: int = 3600
+    acknowledgment_timeout: int = 5
     
     def __post_init__(self):
         """Initialize and validate configuration."""
@@ -93,11 +94,21 @@ class TaskQueue:
         # Task tracking
         self._tasks: Dict[str, Task] = {}
         self._task_states: Dict[str, TaskState] = {}
+        self._task_retry_counts: Dict[str, int] = {}
+        self._task_failure_history: Dict[str, list] = {}
         
         # Worker tracking
         self._workers: Set[str] = set()
         self._active_workers: Set[str] = set()
         self._worker_info: Dict[str, WorkerInfo] = {}
+        
+        # Assignment tracking
+        self._active_assignments: Dict[str, TaskAssignment] = {}
+        self._assignment_to_task: Dict[str, str] = {}
+        self._assignment_to_worker: Dict[str, str] = {}
+        
+        # Capability matching
+        self._capability_matching_enabled = False
         
         # Lock for thread-safe operations
         self._lock = asyncio.Lock()
@@ -181,12 +192,30 @@ class TaskQueue:
                     state="idle"
                 )
             
-            # Find highest priority task
+            # Find highest priority task that worker can handle
             for priority in [3, 2, 1]:  # High to low
                 queue = self._queues[priority]
-                if queue:
+                
+                # Look through tasks in this priority level
+                tasks_to_requeue = []
+                found_task = None
+                
+                while queue and not found_task:
                     task_id = queue.popleft()
-                    task = self._tasks[task_id]
+                    task = self._tasks.get(task_id)
+                    
+                    if task and self._can_worker_handle_task(worker_id, task):
+                        found_task = (task_id, task)
+                    else:
+                        # Worker can't handle this task, save for requeue
+                        tasks_to_requeue.append(task_id)
+                
+                # Requeue tasks that weren't suitable
+                for tid in tasks_to_requeue:
+                    queue.append(tid)
+                
+                if found_task:
+                    task_id, task = found_task
                     
                     # Update task state
                     task.assign(worker_id)
@@ -201,12 +230,18 @@ class TaskQueue:
                     
                     # Create assignment
                     now = datetime.utcnow().timestamp()
+                    assignment_id = str(uuid4())
                     assignment = TaskAssignment(
                         task=task,
-                        assignment_id=str(uuid4()),
+                        assignment_id=assignment_id,
                         deadline=now + self.config.worker_timeout,
-                        acknowledgment_required_by=now + 5  # 5 seconds to acknowledge
+                        acknowledgment_required_by=now + self.config.acknowledgment_timeout
                     )
+                    
+                    # Track assignment
+                    self._active_assignments[assignment_id] = assignment
+                    self._assignment_to_task[assignment_id] = task_id
+                    self._assignment_to_worker[assignment_id] = worker_id
                     
                     return assignment
             
@@ -361,3 +396,237 @@ class TaskQueue:
                 if capability in agent_types:
                     result.add(worker_id)
             return result
+    
+    async def enable_capability_matching(self) -> None:
+        """Enable capability-based task matching."""
+        async with self._lock:
+            self._capability_matching_enabled = True
+    
+    async def disable_capability_matching(self) -> None:
+        """Disable capability-based task matching."""
+        async with self._lock:
+            self._capability_matching_enabled = False
+    
+    def _can_worker_handle_task(self, worker_id: str, task: Task) -> bool:
+        """Check if worker can handle the given task type.
+        
+        Args:
+            worker_id: Worker to check
+            task: Task to check compatibility
+            
+        Returns:
+            True if worker can handle task type
+        """
+        if not self._capability_matching_enabled:
+            return True
+        
+        worker_info = self._worker_info.get(worker_id)
+        if not worker_info:
+            return False
+        
+        # Map task type to required agent type
+        task_to_agent_mapping = {
+            TaskType.GENERATE_HYPOTHESIS: "Generation",
+            TaskType.REFLECT_ON_HYPOTHESIS: "Reflection",
+            TaskType.RANK_HYPOTHESES: "Ranking",
+            TaskType.EVOLVE_HYPOTHESIS: "Evolution",
+            TaskType.FIND_SIMILAR_HYPOTHESES: "Proximity",
+            TaskType.META_REVIEW: "MetaReview"
+        }
+        
+        required_agent_type = task_to_agent_mapping.get(task.task_type)
+        if not required_agent_type:
+            return True  # Unknown task type, allow any worker
+        
+        agent_types = worker_info.capabilities.get("agent_types", [])
+        return required_agent_type in agent_types
+    
+    async def acknowledge_task(self, worker_id: str, assignment_id: str) -> bool:
+        """Acknowledge task assignment.
+        
+        Args:
+            worker_id: Worker acknowledging
+            assignment_id: Assignment to acknowledge
+            
+        Returns:
+            True if acknowledgment successful
+        """
+        async with self._lock:
+            # Check assignment exists and belongs to worker
+            if assignment_id not in self._active_assignments:
+                return False
+            
+            if self._assignment_to_worker.get(assignment_id) != worker_id:
+                return False
+            
+            # Update task state to executing
+            task_id = self._assignment_to_task.get(assignment_id)
+            if task_id and task_id in self._task_states:
+                self._task_states[task_id] = TaskState.EXECUTING
+                return True
+            
+            return False
+    
+    async def complete_task(self, worker_id: str, task_id: str, result: Dict[str, Any]) -> bool:
+        """Mark task as completed.
+        
+        Args:
+            worker_id: Worker completing the task
+            task_id: Task to complete
+            result: Task execution result
+            
+        Returns:
+            True if completion successful
+        """
+        async with self._lock:
+            # Verify worker has this task
+            task = self._tasks.get(task_id)
+            if not task or task.assigned_to != worker_id:
+                return False
+            
+            # Update task state
+            self._task_states[task_id] = TaskState.COMPLETED
+            
+            # Clear assignment
+            for assignment_id, tid in self._assignment_to_task.items():
+                if tid == task_id:
+                    del self._active_assignments[assignment_id]
+                    del self._assignment_to_task[assignment_id]
+                    del self._assignment_to_worker[assignment_id]
+                    break
+            
+            # Update worker state
+            if worker_id in self._worker_info:
+                self._worker_info[worker_id].state = "idle"
+                self._worker_info[worker_id].assigned_task = None
+                self._active_workers.discard(worker_id)
+            
+            return True
+    
+    async def fail_task(self, worker_id: str, task_id: str, error: Dict[str, Any]) -> bool:
+        """Mark task as failed.
+        
+        Args:
+            worker_id: Worker reporting failure
+            task_id: Task that failed
+            error: Error details including retryable flag
+            
+        Returns:
+            True if failure recorded successfully
+        """
+        async with self._lock:
+            # Verify worker has this task
+            task = self._tasks.get(task_id)
+            if not task or task.assigned_to != worker_id:
+                return False
+            
+            # Record failure
+            if task_id not in self._task_failure_history:
+                self._task_failure_history[task_id] = []
+            self._task_failure_history[task_id].append({
+                "worker_id": worker_id,
+                "error": error,
+                "timestamp": datetime.utcnow()
+            })
+            
+            # Clear assignment
+            for assignment_id, tid in self._assignment_to_task.items():
+                if tid == task_id:
+                    del self._active_assignments[assignment_id]
+                    del self._assignment_to_task[assignment_id]
+                    del self._assignment_to_worker[assignment_id]
+                    break
+            
+            # Update worker state
+            if worker_id in self._worker_info:
+                self._worker_info[worker_id].state = "idle"
+                self._worker_info[worker_id].assigned_task = None
+                self._active_workers.discard(worker_id)
+            
+            # Handle retry logic
+            retry_count = self._task_retry_counts.get(task_id, 0)
+            max_retries = self.config.retry_policy.get("max_attempts", 3)
+            
+            if error.get("retryable", False) and retry_count < max_retries:
+                # Reset task for retry
+                task.state = TaskState.PENDING
+                task.assigned_to = None
+                task.assigned_at = None
+                self._task_states[task_id] = TaskState.PENDING
+                self._task_retry_counts[task_id] = retry_count + 1
+                
+                # Re-queue the task
+                priority_queue = self._queues.get(task.priority)
+                if priority_queue is not None:
+                    priority_queue.append(task_id)
+            else:
+                # Permanent failure
+                self._task_states[task_id] = TaskState.FAILED
+            
+            return True
+    
+    async def check_assignment_timeouts(self) -> None:
+        """Check for timed out task assignments."""
+        async with self._lock:
+            now = datetime.utcnow().timestamp()
+            timed_out_assignments = []
+            
+            # Find timed out assignments
+            for assignment_id, assignment in self._active_assignments.items():
+                if assignment.acknowledgment_required_by < now:
+                    # Assignment not acknowledged in time
+                    task_id = self._assignment_to_task.get(assignment_id)
+                    if task_id and self._task_states.get(task_id) == TaskState.ASSIGNED:
+                        timed_out_assignments.append((assignment_id, task_id))
+            
+            # Process timeouts
+            for assignment_id, task_id in timed_out_assignments:
+                task = self._tasks.get(task_id)
+                if task:
+                    # Reset task state
+                    task.state = TaskState.PENDING
+                    task.assigned_to = None
+                    task.assigned_at = None
+                    self._task_states[task_id] = TaskState.PENDING
+                    
+                    # Re-queue the task
+                    priority_queue = self._queues.get(task.priority)
+                    if priority_queue is not None:
+                        priority_queue.append(task_id)
+                    
+                    # Clear assignment
+                    worker_id = self._assignment_to_worker.get(assignment_id)
+                    del self._active_assignments[assignment_id]
+                    del self._assignment_to_task[assignment_id]
+                    del self._assignment_to_worker[assignment_id]
+                    
+                    # Update worker state
+                    if worker_id and worker_id in self._worker_info:
+                        self._worker_info[worker_id].state = "idle"
+                        self._worker_info[worker_id].assigned_task = None
+                        self._active_workers.discard(worker_id)
+    
+    async def get_task_info(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get detailed information about a task.
+        
+        Args:
+            task_id: Task to get info for
+            
+        Returns:
+            Task information dict or None if not found
+        """
+        async with self._lock:
+            task = self._tasks.get(task_id)
+            if not task:
+                return None
+            
+            return {
+                "id": task_id,
+                "type": task.task_type.value,
+                "priority": task.priority,
+                "state": self._task_states.get(task_id, TaskState.PENDING).value,
+                "assigned_to": task.assigned_to,
+                "assigned_at": task.assigned_at,
+                "retry_count": self._task_retry_counts.get(task_id, 0),
+                "failure_history": self._task_failure_history.get(task_id, [])
+            }

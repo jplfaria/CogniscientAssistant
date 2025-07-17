@@ -35,10 +35,10 @@ class TestTaskType:
         """Test that TaskType has expected values."""
         # These should be defined based on the specs
         assert hasattr(TaskType, "GENERATE_HYPOTHESIS")
-        assert hasattr(TaskType, "REVIEW_HYPOTHESIS")
+        assert hasattr(TaskType, "REFLECT_ON_HYPOTHESIS")
         assert hasattr(TaskType, "RANK_HYPOTHESES")
         assert hasattr(TaskType, "EVOLVE_HYPOTHESIS")
-        assert hasattr(TaskType, "CALCULATE_PROXIMITY")
+        assert hasattr(TaskType, "FIND_SIMILAR_HYPOTHESES")
         assert hasattr(TaskType, "META_REVIEW")
 
 
@@ -70,7 +70,7 @@ class TestTaskModel:
         task_id = UUID("12345678-1234-5678-1234-567812345678")
         task = Task(
             id=task_id,
-            task_type=TaskType.REVIEW_HYPOTHESIS,
+            task_type=TaskType.REFLECT_ON_HYPOTHESIS,
             priority=2,
             payload={"hypothesis_id": "h123"}
         )

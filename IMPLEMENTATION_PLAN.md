@@ -45,8 +45,8 @@ This plan breaks down the implementation into atomic, testable units following T
 ### Worker Management
 - [x] Add worker registration methods
 - [x] Write tests for worker registration
-- [ ] Implement task assignment logic
-- [ ] Write tests for task assignment
+- [x] Implement task assignment logic
+- [x] Write tests for task assignment
 - [ ] Add worker heartbeat tracking
 - [ ] Write tests for heartbeat tracking
 - [ ] Implement failure detection and recovery

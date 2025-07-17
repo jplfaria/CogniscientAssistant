@@ -22,10 +22,10 @@ class TaskType(str, Enum):
     """Types of tasks in the system."""
     
     GENERATE_HYPOTHESIS = "generate_hypothesis"
-    REVIEW_HYPOTHESIS = "review_hypothesis"
+    REFLECT_ON_HYPOTHESIS = "reflect_on_hypothesis"
     RANK_HYPOTHESES = "rank_hypotheses"
     EVOLVE_HYPOTHESIS = "evolve_hypothesis"
-    CALCULATE_PROXIMITY = "calculate_proximity"
+    FIND_SIMILAR_HYPOTHESES = "find_similar_hypotheses"
     META_REVIEW = "meta_review"
 
 
