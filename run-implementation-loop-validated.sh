@@ -31,6 +31,78 @@ check_pytest() {
     return 0
 }
 
+# Function to detect current implementation phase
+detect_implementation_phase() {
+    if [ ! -f "IMPLEMENTATION_PLAN.md" ]; then
+        echo "0"
+        return
+    fi
+    
+    # Check which phase we're in based on uncompleted tasks
+    if grep -A30 "## Phase 4: Context Memory" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "4"
+    elif grep -A30 "## Phase 3: Task Queue" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "3"
+    elif grep -A30 "## Phase 5: Safety Framework" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "5"
+    elif grep -A30 "## Phase 6: LLM Abstraction" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "6"
+    elif grep -A30 "## Phase 7: Supervisor Agent" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "7"
+    elif grep -A30 "## Phase 8:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "8"
+    elif grep -A30 "## Phase 9:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "9"
+    elif grep -A30 "## Phase 10:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "10"
+    elif grep -A30 "## Phase 11:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+        echo "11"
+    else
+        # Check if any phase 3 tasks are still pending
+        if grep -A30 "## Phase 3: Task Queue" IMPLEMENTATION_PLAN.md | grep -q "^\- \[x\]"; then
+            echo "3"  # Phase 3 completed
+        else
+            echo "0"  # Unknown or no phase detected
+        fi
+    fi
+}
+
+# Function to run phase-specific integration tests
+run_phase_integration_tests() {
+    local current_phase=$(detect_implementation_phase)
+    
+    echo -e "\n${BLUE}=== Phase Integration Testing ===${NC}"
+    
+    # Only run integration tests if we have completed phases
+    if [ "$current_phase" -ge "3" ] && [ -d "tests/integration" ]; then
+        # Find integration test files for current or previous phases
+        local test_files=""
+        for phase in $(seq 3 $current_phase); do
+            if ls tests/integration/phase${phase}_*.py 2>/dev/null | grep -q .; then
+                test_files="$test_files tests/integration/phase${phase}_*.py"
+            fi
+        done
+        
+        if [ -n "$test_files" ]; then
+            echo -e "${CYAN}Running integration tests for completed phases...${NC}"
+            echo -e "${CYAN}Current implementation phase: $current_phase${NC}"
+            
+            # Run the integration tests
+            if pytest $test_files -v --tb=short; then
+                echo -e "${GREEN}✅ Integration tests passed${NC}"
+            else
+                echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
+                echo -e "${CYAN}This helps identify integration issues early${NC}"
+                echo -e "${CYAN}These failures are non-blocking but should be investigated${NC}"
+            fi
+        else
+            echo -e "${CYAN}No integration tests available for phase $current_phase yet${NC}"
+        fi
+    else
+        echo -e "${CYAN}Skipping integration tests - implementation not at testable phase yet${NC}"
+    fi
+}
+
 # Function to run quality gates
 run_quality_gates() {
     local iteration=$1
@@ -82,6 +154,9 @@ run_quality_gates() {
                 echo -e "${YELLOW}⚠️  Linting issues detected (non-blocking)${NC}"
             fi
         fi
+        
+        # 5. Run phase-specific integration tests
+        run_phase_integration_tests
     else
         echo -e "${CYAN}No Python files to test yet - skipping quality gates${NC}"
     fi
@@ -153,6 +228,7 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
         echo -e "  ${CYAN}Check coverage:${NC} pytest --cov=src --cov-report=term-missing"
         echo -e "  ${CYAN}Type check:${NC} mypy src/"
         echo -e "  ${CYAN}Lint:${NC} ruff check src/ tests/"
+        echo -e "  ${CYAN}Integration tests:${NC} pytest tests/integration/ -v"
         
         rm -f "$TEMP_OUTPUT"
         exit 1
