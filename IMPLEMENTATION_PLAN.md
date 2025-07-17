@@ -47,10 +47,10 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for worker registration
 - [x] Implement task assignment logic
 - [x] Write tests for task assignment
-- [ ] Add worker heartbeat tracking
-- [ ] Write tests for heartbeat tracking
-- [ ] Implement failure detection and recovery
-- [ ] Write tests for failure scenarios
+- [x] Add worker heartbeat tracking
+- [x] Write tests for heartbeat tracking
+- [x] Implement failure detection and recovery
+- [x] Write tests for failure scenarios
 
 ### Queue State Management
 - [ ] Add queue statistics methods
