@@ -55,8 +55,8 @@ This plan breaks down the implementation into atomic, testable units following T
 ### Queue State Management
 - [x] Add queue statistics methods
 - [x] Write tests for statistics
-- [ ] Implement queue persistence
-- [ ] Write tests for persistence
+- [x] Implement queue persistence
+- [x] Write tests for persistence
 - [ ] Add queue recovery on startup
 - [ ] Write tests for recovery
 

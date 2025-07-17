@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any, Set, Tuple
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from src.core.models import Task, TaskState, TaskType
 
@@ -34,6 +34,7 @@ class QueueConfig:
     heartbeat_check_interval: int = 15  # How often to check for dead workers
     retry_policy: Dict[str, Any] = None
     persistence_interval: int = 60
+    persistence_path: Optional[str] = None  # Path to save queue state
     starvation_threshold: int = 3600
     acknowledgment_timeout: int = 5
     
@@ -118,6 +119,11 @@ class TaskQueue:
         
         # Task progress tracking
         self._task_progress: Dict[str, Dict[str, Any]] = {}
+        
+        # Persistence
+        self._persistence_task: Optional[asyncio.Task] = None
+        self._persistence_stopped = False
+        self._persistence_version = "1.0.0"
         
         # Lock for thread-safe operations
         self._lock = asyncio.Lock()
@@ -1055,3 +1061,244 @@ class TaskQueue:
                         metrics[agent_type]["capable_workers"] += 1
             
             return metrics
+    
+    async def save_state(self) -> None:
+        """Save current queue state to disk.
+        
+        Raises:
+            IOError: If unable to write state file
+        """
+        if not self.config.persistence_path:
+            return
+        
+        async with self._lock:
+            # Prepare state for serialization
+            state = {
+                "version": self._persistence_version,
+                "timestamp": datetime.utcnow().isoformat(),
+                "queues": {
+                    "high": list(self._queues[3]),
+                    "medium": list(self._queues[2]),
+                    "low": list(self._queues[1])
+                },
+                "tasks": {},
+                "task_states": {},
+                "task_retry_counts": dict(self._task_retry_counts),
+                "task_failure_history": {},
+                "task_progress": dict(self._task_progress),
+                "workers": {},
+                "assignments": {},
+                "capability_matching_enabled": self._capability_matching_enabled
+            }
+            
+            # Serialize tasks
+            for task_id, task in self._tasks.items():
+                state["tasks"][task_id] = {
+                    "id": str(task.id),
+                    "task_type": task.task_type.value,
+                    "priority": task.priority,
+                    "state": task.state.value,
+                    "payload": task.payload,
+                    "assigned_to": task.assigned_to,
+                    "result": task.result,
+                    "error": task.error,
+                    "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "assigned_at": task.assigned_at.isoformat() if task.assigned_at else None,
+                    "completed_at": task.completed_at.isoformat() if task.completed_at else None
+                }
+            
+            # Serialize task states
+            for task_id, task_state in self._task_states.items():
+                state["task_states"][task_id] = task_state.value
+            
+            # Serialize failure history with datetime conversion
+            for task_id, failures in self._task_failure_history.items():
+                serialized_failures = []
+                for failure in failures:
+                    serialized_failure = failure.copy()
+                    if 'timestamp' in serialized_failure and isinstance(serialized_failure['timestamp'], datetime):
+                        serialized_failure['timestamp'] = serialized_failure['timestamp'].isoformat()
+                    serialized_failures.append(serialized_failure)
+                state["task_failure_history"][task_id] = serialized_failures
+            
+            # Serialize workers
+            for worker_id, worker_info in self._worker_info.items():
+                state["workers"][worker_id] = {
+                    "id": worker_info.id,
+                    "capabilities": worker_info.capabilities,
+                    "state": worker_info.state,
+                    "last_heartbeat": worker_info.last_heartbeat.isoformat(),
+                    "assigned_task": worker_info.assigned_task,
+                    "registration_time": worker_info.registration_time.isoformat()
+                }
+                
+            # Serialize active assignments
+            for assignment_id, assignment in self._active_assignments.items():
+                state["assignments"][assignment_id] = {
+                    "task_id": str(assignment.task.id),
+                    "assignment_id": assignment.assignment_id,
+                    "deadline": assignment.deadline,
+                    "acknowledgment_required_by": assignment.acknowledgment_required_by,
+                    "worker_id": self._assignment_to_worker.get(assignment_id)
+                }
+            
+            # Write to file atomically
+            import json
+            import os
+            temp_path = f"{self.config.persistence_path}.tmp"
+            
+            with open(temp_path, 'w') as f:
+                json.dump(state, f, indent=2)
+            
+            # Atomic rename
+            os.replace(temp_path, self.config.persistence_path)
+    
+    async def load_state(self) -> None:
+        """Load queue state from disk.
+        
+        Raises:
+            IOError: If unable to read state file
+            ValueError: If state file version is incompatible
+            json.JSONDecodeError: If state file is corrupted
+        """
+        if not self.config.persistence_path:
+            return
+        
+        import os
+        if not os.path.exists(self.config.persistence_path):
+            # No state to load
+            return
+        
+        import json
+        with open(self.config.persistence_path, 'r') as f:
+            state = json.load(f)
+        
+        # Check version compatibility
+        if state.get("version") != self._persistence_version:
+            raise ValueError(f"Incompatible persistence version: {state.get('version')}")
+        
+        async with self._lock:
+            # Clear current state
+            self._queues = {3: deque(), 2: deque(), 1: deque()}
+            self._tasks.clear()
+            self._task_states.clear()
+            self._task_retry_counts.clear()
+            self._task_failure_history.clear()
+            self._task_progress.clear()
+            self._workers.clear()
+            self._active_workers.clear()
+            self._worker_info.clear()
+            self._active_assignments.clear()
+            self._assignment_to_task.clear()
+            self._assignment_to_worker.clear()
+            
+            # Restore tasks
+            for task_id, task_data in state.get("tasks", {}).items():
+                task = Task(
+                    id=UUID(task_data["id"]),
+                    task_type=TaskType(task_data["task_type"]),
+                    priority=task_data["priority"],
+                    state=TaskState(task_data["state"]),
+                    payload=task_data["payload"],
+                    assigned_to=task_data["assigned_to"],
+                    result=task_data["result"],
+                    error=task_data["error"],
+                    created_at=datetime.fromisoformat(task_data["created_at"]) if task_data["created_at"] else None,
+                    assigned_at=datetime.fromisoformat(task_data["assigned_at"]) if task_data["assigned_at"] else None,
+                    completed_at=datetime.fromisoformat(task_data["completed_at"]) if task_data["completed_at"] else None
+                )
+                self._tasks[task_id] = task
+            
+            # Restore task states
+            for task_id, task_state in state.get("task_states", {}).items():
+                self._task_states[task_id] = TaskState(task_state)
+            
+            # Restore queues
+            for priority_name, task_ids in state.get("queues", {}).items():
+                priority = {"high": 3, "medium": 2, "low": 1}.get(priority_name)
+                if priority:
+                    self._queues[priority].extend(task_ids)
+            
+            # Restore retry counts and failure history
+            self._task_retry_counts.update(state.get("task_retry_counts", {}))
+            
+            # Restore failure history with datetime conversion
+            for task_id, failures in state.get("task_failure_history", {}).items():
+                deserialized_failures = []
+                for failure in failures:
+                    deserialized_failure = failure.copy()
+                    if 'timestamp' in deserialized_failure and isinstance(deserialized_failure['timestamp'], str):
+                        deserialized_failure['timestamp'] = datetime.fromisoformat(deserialized_failure['timestamp'])
+                    deserialized_failures.append(deserialized_failure)
+                self._task_failure_history[task_id] = deserialized_failures
+                
+            self._task_progress.update(state.get("task_progress", {}))
+            
+            # Restore workers
+            for worker_id, worker_data in state.get("workers", {}).items():
+                worker_info = WorkerInfo(
+                    id=worker_data["id"],
+                    capabilities=worker_data["capabilities"],
+                    state=worker_data["state"],
+                    last_heartbeat=datetime.fromisoformat(worker_data["last_heartbeat"]),
+                    assigned_task=worker_data["assigned_task"],
+                    registration_time=datetime.fromisoformat(worker_data["registration_time"])
+                )
+                self._worker_info[worker_id] = worker_info
+                self._workers.add(worker_id)
+                
+                if worker_info.state == "active" and worker_info.assigned_task:
+                    self._active_workers.add(worker_id)
+            
+            # Restore assignments
+            for assignment_id, assignment_data in state.get("assignments", {}).items():
+                task_id = assignment_data["task_id"]
+                task = self._tasks.get(task_id)
+                if task:
+                    assignment = TaskAssignment(
+                        task=task,
+                        assignment_id=assignment_data["assignment_id"],
+                        deadline=assignment_data["deadline"],
+                        acknowledgment_required_by=assignment_data["acknowledgment_required_by"]
+                    )
+                    self._active_assignments[assignment_id] = assignment
+                    self._assignment_to_task[assignment_id] = task_id
+                    self._assignment_to_worker[assignment_id] = assignment_data["worker_id"]
+            
+            # Restore other settings
+            self._capability_matching_enabled = state.get("capability_matching_enabled", False)
+    
+    async def start_persistence(self) -> None:
+        """Start automatic periodic persistence."""
+        if not self.config.persistence_path:
+            return
+        
+        if self._persistence_task and not self._persistence_task.done():
+            return  # Already running
+        
+        self._persistence_stopped = False
+        self._persistence_task = asyncio.create_task(self._run_persistence())
+    
+    async def stop_persistence(self) -> None:
+        """Stop automatic periodic persistence."""
+        self._persistence_stopped = True
+        
+        if self._persistence_task:
+            self._persistence_task.cancel()
+            try:
+                await self._persistence_task
+            except asyncio.CancelledError:
+                pass
+            self._persistence_task = None
+    
+    async def _run_persistence(self) -> None:
+        """Background task for automatic persistence."""
+        while not self._persistence_stopped:
+            try:
+                await asyncio.sleep(self.config.persistence_interval)
+                await self.save_state()
+            except Exception as e:
+                # Log error but continue
+                print(f"Error in persistence: {e}")
+                import traceback
+                traceback.print_exc()
