@@ -34,13 +34,13 @@ This plan breaks down the implementation into atomic, testable units following T
 ## Phase 3: Task Queue Implementation
 
 ### Basic Queue Operations
-- [ ] Create TaskQueue class with basic structure
-- [ ] Implement enqueue method
-- [ ] Write tests for enqueue
-- [ ] Implement dequeue method with priority handling
-- [ ] Write tests for dequeue
-- [ ] Implement peek method
-- [ ] Write tests for peek
+- [x] Create TaskQueue class with basic structure
+- [x] Implement enqueue method
+- [x] Write tests for enqueue
+- [x] Implement dequeue method with priority handling
+- [x] Write tests for dequeue
+- [x] Implement peek method
+- [x] Write tests for peek
 
 ### Worker Management
 - [ ] Add worker registration methods
@@ -126,7 +126,44 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Implement failover mechanism
 - [ ] Write tests for failover
 
-## Phase 7: Supervisor Agent
+## Phase 7: BAML Infrastructure Setup
+
+### Core BAML Configuration
+- [ ] Set up baml_src directory structure
+- [ ] Create clients.baml with Argo Gateway configuration
+- [ ] Write tests for client connectivity
+- [ ] Create generators.baml with retry logic
+- [ ] Add environment variable configuration
+
+### Agent BAML Schemas
+- [ ] Create models.baml with core data types
+- [ ] Define Hypothesis schema in BAML
+- [ ] Define Review schema in BAML
+- [ ] Define Task schema in BAML
+- [ ] Write BAML tests for schema validation
+
+### Base Agent Functions
+- [ ] Create supervisor.baml with orchestration functions
+- [ ] Create generation.baml with hypothesis generation
+- [ ] Create reflection.baml with review functions
+- [ ] Create ranking.baml with tournament functions
+- [ ] Write BAML test blocks for each function
+
+### Thread and Event System
+- [ ] Implement thread-based state management
+- [ ] Create event serialization format
+- [ ] Write tests for thread persistence
+- [ ] Add event replay functionality
+- [ ] Write tests for event replay
+
+### Integration Layer
+- [ ] Create Python BAML wrapper functions
+- [ ] Write integration tests with TaskQueue
+- [ ] Add error handling and retries
+- [ ] Write tests for error scenarios
+- [ ] Implement logging and monitoring
+
+## Phase 8: Supervisor Agent
 
 ### Agent Structure
 - [ ] Create SupervisorAgent class
@@ -149,7 +186,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add recovery mechanisms
 - [ ] Write tests for recovery
 
-## Phase 8: Generation Agent
+## Phase 9: Generation Agent
 
 ### Agent Structure
 - [ ] Create GenerationAgent class
@@ -172,7 +209,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add safety checks to generation
 - [ ] Write tests for safety integration
 
-## Phase 9: Reflection Agent
+## Phase 10: Reflection Agent
 
 ### Agent Structure
 - [ ] Create ReflectionAgent class
@@ -193,7 +230,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add tournament review
 - [ ] Write tests for tournament review
 
-## Phase 10: Ranking Agent
+## Phase 11: Ranking Agent
 
 ### Agent Structure
 - [ ] Create RankingAgent class
@@ -208,7 +245,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Implement convergence detection
 - [ ] Write tests for convergence
 
-## Phase 11: Evolution Agent
+## Phase 12: Evolution Agent
 
 ### Agent Structure
 - [ ] Create EvolutionAgent class
@@ -224,7 +261,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add paradigm shift strategy
 - [ ] Write tests for paradigm shifts
 
-## Phase 12: Proximity Agent
+## Phase 13: Proximity Agent
 
 ### Agent Structure
 - [ ] Create ProximityAgent class
@@ -236,7 +273,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add clustering logic
 - [ ] Write tests for clustering
 
-## Phase 13: Meta-Review Agent
+## Phase 14: Meta-Review Agent
 
 ### Agent Structure
 - [ ] Create MetaReviewAgent class
@@ -250,7 +287,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Implement research overview
 - [ ] Write tests for overview
 
-## Phase 14: Natural Language Interface
+## Phase 15: Natural Language Interface
 
 ### CLI Interface
 - [ ] Create main CLI entry point
@@ -265,7 +302,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Implement constraint handling
 - [ ] Write tests for constraints
 
-## Phase 15: Integration and Polish
+## Phase 16: Integration and Polish
 
 ### System Integration
 - [ ] Create full system integration tests
@@ -285,7 +322,7 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write deployment guide
 - [ ] Create example workflows
 
-## Phase 16: Final Validation
+## Phase 17: Final Validation
 
 - [ ] Run full system tests
 - [ ] Verify ≥80% test coverage

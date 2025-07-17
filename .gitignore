@@ -1,5 +1,8 @@
 # Argo Gateway API Documentation (contains internal information)
-specs-source/references/Argo Gateway API Documentation.mdspecs-source/references/ai-that-works/
+specs-source/references/Argo Gateway API Documentation.md
+
+# External references (managed separately)
+specs-source/references/ai-that-works/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

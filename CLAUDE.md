@@ -251,6 +251,43 @@ git commit -m "feat: implement [component] - [what you did]"
 4. **Safety Framework** - Multi-layer protection
 5. **Worker Pool** - Concurrent agent execution
 
+## 🏗️ REQUIRED PATTERNS FROM AI-THAT-WORKS
+
+### BAML Implementation Pattern
+- All AI interactions through BAML (no direct API calls)
+- See: specs-source/references/ai-that-works/2025-07-01-ai-content-pipeline-2/backend/baml_src/
+- Client configuration for Argo Gateway with proper error handling
+- Structured agent functions with strong typing and validation
+- BAML test files for each agent function
+
+### 12-Factor Agent Architecture  
+- Thread-based conversation state management
+- Event-driven agent communication pattern
+- See: specs-source/references/ai-that-works/2025-04-22-twelve-factor-agents/
+- Persistent state management between agent calls
+- Proper separation of configuration from code
+- Disposable agents with shared nothing architecture
+
+### Storage Patterns
+- File-based context memory in .aicoscientist/
+- Thread events stored as JSON with timestamps
+- See: ai-that-works/2025-07-15-decaying-resolution-memory/ for memory patterns
+- Versioned storage for hypothesis evolution tracking
+- Atomic file operations to prevent corruption
+
+### Agent Communication Patterns
+- Async message passing via task queue
+- No direct agent-to-agent communication
+- All coordination through Supervisor agent
+- Event sourcing for audit trails
+- See: ai-that-works async agent examples
+
+### Testing Patterns
+- BAML test blocks for all AI functions
+- Mock responses for deterministic testing
+- Integration tests with real LLM calls
+- See: ai-that-works test examples in baml_src directories
+
 ### Agent Implementation Order:
 1. Supervisor Agent (orchestrator)
 2. Generation Agent (hypothesis creation)
