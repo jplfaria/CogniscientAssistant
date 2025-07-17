@@ -352,6 +352,7 @@ user = "jplfaria"  # NEVER hardcode usernames
 
 ## 🧪 INTEGRATION TEST FAILURES
 
+### REGRESSION FAILURES
 **When you see "INTEGRATION_REGRESSION=true" in .implementation_flags:**
 1. **STOP** - Do not implement new features
 2. **INVESTIGATE** - Review recent changes that could affect integration
@@ -359,20 +360,35 @@ user = "jplfaria"  # NEVER hardcode usernames
 4. **VERIFY** - Ensure integration tests for COMPLETED phases pass
 5. **CLEAR FLAG** - Remove .implementation_flags after fixing
 
-**Check for regression at start of each iteration:**
+### IMPLEMENTATION ERRORS (NEW!)
+**When you see "IMPLEMENTATION_ERROR=true" in .implementation_flags:**
+1. **STOP** - The implementation doesn't match specifications
+2. **READ** - Review the failing integration test to understand expected behavior
+3. **ANALYZE** - Compare your implementation against the spec
+4. **FIX** - Correct the implementation to match specifications
+5. **VERIFY** - Ensure the integration test now passes
+6. **CLEAR FLAG** - Remove .implementation_flags after fixing
+
+**Check for errors at start of each iteration:**
 ```bash
-if [ -f ".implementation_flags" ] && grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
-    echo "❌ CRITICAL: Integration test regression detected!"
-    # Fix the regression first
-    # After fixing: rm .implementation_flags
+if [ -f ".implementation_flags" ]; then
+    if grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
+        echo "❌ CRITICAL: Integration test regression detected!"
+        # Fix the regression first
+    elif grep -q "IMPLEMENTATION_ERROR=true" .implementation_flags; then
+        echo "❌ CRITICAL: Implementation doesn't match specifications!"
+        # Fix the implementation to match specs
+    fi
+    # After fixing either issue: rm .implementation_flags
 fi
 ```
 
-**Integration Test Rules:**
-- Tests for completed phases MUST pass
-- Regressions indicate broken functionality
-- Fix regressions before new implementation
-- Non-regression failures are informational only
+**Integration Test Categories:**
+- **✅ Pass**: Implementation works correctly
+- **⚠️ Expected Failure**: Missing future components (use @pytest.mark.skip)
+- **❌ Regression**: Previously passing test now fails
+- **❌ Implementation Error**: First-run failure indicates spec mismatch
+- **ℹ️ Informational**: Non-blocking issues to investigate later
 
 ## 📊 VERIFICATION AGAINST SPECS
 

@@ -87,14 +87,30 @@ run_phase_integration_tests() {
             echo -e "${CYAN}Running integration tests for completed phases...${NC}"
             echo -e "${CYAN}Current implementation phase: $current_phase${NC}"
             
-            # Run the integration tests
-            if pytest $test_files -v --tb=short; then
+            # Save test output to analyze failures
+            INTEGRATION_TEST_OUTPUT=".integration-test-output-$$.tmp"
+            
+            # Run the integration tests and capture output
+            if pytest $test_files -v --tb=short 2>&1 | tee "$INTEGRATION_TEST_OUTPUT"; then
                 echo -e "${GREEN}✅ Integration tests passed${NC}"
                 # Save success state
                 echo "LAST_INTEGRATION_STATUS=passed" > .integration_test_state
                 echo "LAST_PASSING_PHASE=$current_phase" >> .integration_test_state
                 echo "LAST_PASSING_TIMESTAMP=$(date -Iseconds)" >> .integration_test_state
             else
+                # Analyze the failure type
+                local skip_count=$(grep -c "SKIPPED" "$INTEGRATION_TEST_OUTPUT" || echo "0")
+                local xfail_count=$(grep -c "XFAIL" "$INTEGRATION_TEST_OUTPUT" || echo "0")
+                local fail_count=$(grep -c "FAILED" "$INTEGRATION_TEST_OUTPUT" || echo "0")
+                local error_count=$(grep -c "ERROR" "$INTEGRATION_TEST_OUTPUT" || echo "0")
+                
+                # Check if this test file has run before for this phase
+                local test_history_file=".integration_test_history_phase${current_phase}"
+                local is_first_run=true
+                if [ -f "$test_history_file" ]; then
+                    is_first_run=false
+                fi
+                
                 # Check if this is a regression
                 if [ -f ".integration_test_state" ] && grep -q "LAST_INTEGRATION_STATUS=passed" .integration_test_state; then
                     echo -e "${RED}❌ REGRESSION DETECTED: Integration tests that were passing now fail!${NC}"
@@ -105,17 +121,46 @@ run_phase_integration_tests() {
                     echo "INTEGRATION_REGRESSION=true" > .implementation_flags
                     echo "REGRESSION_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
                     echo "REGRESSION_PHASE=$current_phase" >> .implementation_flags
+                # Check if this is an implementation error (first run failure, not marked as skip/xfail)
+                elif [ "$is_first_run" = true ] && [ "$fail_count" -gt 0 -o "$error_count" -gt 0 ] && [ "$skip_count" -eq 0 ] && [ "$xfail_count" -eq 0 ]; then
+                    echo -e "${RED}❌ IMPLEMENTATION ERROR: New integration test failed on first run!${NC}"
+                    echo -e "${YELLOW}This indicates the implementation doesn't match specifications.${NC}"
+                    echo -e "${CYAN}The implementation needs to be fixed before proceeding.${NC}"
+                    echo -e "${CYAN}Failed tests: $fail_count, Errors: $error_count${NC}"
+                    
+                    # Set implementation error flag
+                    echo "IMPLEMENTATION_ERROR=true" > .implementation_flags
+                    echo "ERROR_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
+                    echo "ERROR_PHASE=$current_phase" >> .implementation_flags
+                    echo "FAILED_TESTS=$fail_count" >> .implementation_flags
+                    echo "ERROR_TESTS=$error_count" >> .implementation_flags
+                    
+                    # Clean up and exit to force fix
+                    rm -f "$INTEGRATION_TEST_OUTPUT"
+                    return 2  # Special return code for implementation error
                 else
                     echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
                     echo -e "${CYAN}This helps identify integration issues early${NC}"
                     echo -e "${CYAN}These failures are non-blocking but should be investigated${NC}"
+                    if [ "$skip_count" -gt 0 ]; then
+                        echo -e "${CYAN}Skipped tests: $skip_count (expected - waiting for future components)${NC}"
+                    fi
+                    if [ "$xfail_count" -gt 0 ]; then
+                        echo -e "${CYAN}Expected failures: $xfail_count${NC}"
+                    fi
                 fi
+                
+                # Mark that we've run tests for this phase
+                echo "FIRST_RUN_AT=$(date -Iseconds)" > "$test_history_file"
                 
                 # Save failure state
                 echo "LAST_INTEGRATION_STATUS=failed" > .integration_test_state
                 echo "LAST_FAILING_PHASE=$current_phase" >> .integration_test_state
                 echo "LAST_FAILING_TIMESTAMP=$(date -Iseconds)" >> .integration_test_state
             fi
+            
+            # Clean up temp file
+            rm -f "$INTEGRATION_TEST_OUTPUT"
         else
             echo -e "${CYAN}No integration tests available for phase $current_phase yet${NC}"
         fi
@@ -178,6 +223,15 @@ run_quality_gates() {
         
         # 5. Run phase-specific integration tests
         run_phase_integration_tests
+        local integration_result=$?
+        
+        # Check if integration tests found implementation errors
+        if [ $integration_result -eq 2 ]; then
+            echo -e "\n${RED}❌ Implementation error detected in integration tests!${NC}"
+            echo -e "${YELLOW}The implementation doesn't match the specifications.${NC}"
+            echo -e "${CYAN}Fix the implementation to match the expected behavior before continuing.${NC}"
+            return 1  # Fail quality gates to stop the loop
+        fi
     else
         echo -e "${CYAN}No Python files to test yet - skipping quality gates${NC}"
     fi

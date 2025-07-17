@@ -70,8 +70,8 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for key-value operations
 
 ### Hierarchical Organization
-- [ ] Implement iteration tracking
-- [ ] Write tests for iteration management
+- [x] Implement iteration tracking
+- [x] Write tests for iteration management
 - [ ] Add checkpoint functionality
 - [ ] Write tests for checkpoints
 - [ ] Implement aggregate storage

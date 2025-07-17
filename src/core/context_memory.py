@@ -275,8 +275,13 @@ class ContextMemory:
     async def store_state_update(self, state_update: StateUpdate) -> StorageResult:
         """Store a state update from the Supervisor Agent."""
         try:
-            # Determine iteration directory
-            current_iteration = self._get_current_iteration()
+            # Use active iteration if available, otherwise current
+            active_iter = await self.get_active_iteration()
+            if active_iter is not None:
+                current_iteration = f"iteration_{active_iter:03d}"
+            else:
+                current_iteration = self._get_current_iteration()
+            
             iteration_dir = self.storage_path / "iterations" / current_iteration
             iteration_dir.mkdir(exist_ok=True)
             
@@ -308,8 +313,13 @@ class ContextMemory:
     async def store_agent_output(self, agent_output: AgentOutput) -> StorageResult:
         """Store output from a specialized agent."""
         try:
-            # Determine iteration and agent directory
-            current_iteration = self._get_current_iteration()
+            # Use active iteration if available, otherwise current
+            active_iter = await self.get_active_iteration()
+            if active_iter is not None:
+                current_iteration = f"iteration_{active_iter:03d}"
+            else:
+                current_iteration = self._get_current_iteration()
+            
             agent_dir = self.storage_path / "iterations" / current_iteration / "agent_outputs"
             agent_dir.mkdir(parents=True, exist_ok=True)
             
@@ -455,6 +465,28 @@ class ContextMemory:
             with open(checkpoint_file, 'w') as f:
                 json.dump(checkpoint_data, f, indent=2)
             
+            # Update active iteration's checkpoint list
+            active_iter = await self.get_active_iteration()
+            if active_iter is not None:
+                iter_name = f"iteration_{active_iter:03d}"
+                metadata_file = self.storage_path / "iterations" / iter_name / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        # Load metadata
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                        
+                        # Add checkpoint to list
+                        if "checkpoints" not in metadata:
+                            metadata["checkpoints"] = []
+                        metadata["checkpoints"].append(checkpoint_id)
+                        
+                        # Save updated metadata
+                        with open(metadata_file, 'w') as f:
+                            json.dump(metadata, f, indent=2)
+                    except Exception as e:
+                        logger.warning(f"Failed to update iteration metadata with checkpoint: {e}")
+            
             logger.info(f"Created checkpoint {checkpoint_id}")
             return checkpoint_id
             
@@ -498,6 +530,214 @@ class ContextMemory:
         # Find the highest iteration number
         latest_num = max(int(d.name.split("_")[1]) for d in existing_iterations)
         return f"iteration_{latest_num:03d}"
+    
+    async def get_current_iteration_number(self) -> int:
+        """Get the current iteration number."""
+        iterations_dir = self.storage_path / "iterations"
+        if not iterations_dir.exists():
+            return 1
+        
+        existing_iterations = [d for d in iterations_dir.iterdir() if d.is_dir() and d.name.startswith("iteration_")]
+        
+        if not existing_iterations:
+            return 1
+        
+        # Find the highest iteration number and return next
+        latest_num = max(int(d.name.split("_")[1]) for d in existing_iterations)
+        return latest_num + 1
+    
+    async def get_active_iteration(self) -> Optional[int]:
+        """Get the currently active iteration number, if any."""
+        iterations_dir = self.storage_path / "iterations"
+        if not iterations_dir.exists():
+            return None
+        
+        # Check each iteration's metadata for active status
+        for iter_dir in iterations_dir.iterdir():
+            if iter_dir.is_dir() and iter_dir.name.startswith("iteration_"):
+                metadata_file = iter_dir / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                            if metadata.get("status") == "active":
+                                return metadata["iteration_number"]
+                    except Exception:
+                        continue
+        
+        return None
+    
+    async def start_new_iteration(self) -> int:
+        """Start a new iteration and return its number."""
+        # Check if there's already an active iteration
+        active = await self.get_active_iteration()
+        if active is not None:
+            raise RuntimeError(f"Cannot start new iteration: there is already an active iteration ({active})")
+        
+        # Get the next iteration number
+        iteration_num = await self.get_current_iteration_number()
+        iter_name = f"iteration_{iteration_num:03d}"
+        iter_dir = self.storage_path / "iterations" / iter_name
+        
+        # Create iteration directory structure
+        iter_dir.mkdir(parents=True, exist_ok=True)
+        (iter_dir / "agent_outputs").mkdir(exist_ok=True)
+        (iter_dir / "tournament_data").mkdir(exist_ok=True)
+        
+        # Create iteration metadata
+        metadata = {
+            "iteration_number": iteration_num,
+            "started_at": datetime.now().isoformat(),
+            "status": "active",
+            "checkpoints": []
+        }
+        
+        metadata_file = iter_dir / "metadata.json"
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        logger.info(f"Started new iteration {iteration_num}")
+        return iteration_num
+    
+    async def complete_iteration(self, iteration_number: int, summary: Dict[str, Any]) -> bool:
+        """Complete an iteration with summary data."""
+        iter_name = f"iteration_{iteration_number:03d}"
+        iter_dir = self.storage_path / "iterations" / iter_name
+        metadata_file = iter_dir / "metadata.json"
+        
+        if not metadata_file.exists():
+            logger.error(f"Cannot complete iteration {iteration_number}: metadata file not found")
+            return False
+        
+        try:
+            # Load existing metadata
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+            
+            # Calculate duration
+            started_at = datetime.fromisoformat(metadata["started_at"])
+            completed_at = datetime.now()
+            duration_seconds = (completed_at - started_at).total_seconds()
+            
+            # Update metadata
+            metadata["status"] = "completed"
+            metadata["completed_at"] = completed_at.isoformat()
+            metadata["duration_seconds"] = duration_seconds
+            metadata["summary"] = summary
+            
+            # Save updated metadata
+            with open(metadata_file, 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            logger.info(f"Completed iteration {iteration_number}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to complete iteration {iteration_number}: {e}")
+            return False
+    
+    async def get_iteration_info(self, iteration_number: int) -> Optional[Dict[str, Any]]:
+        """Get information about a specific iteration."""
+        iter_name = f"iteration_{iteration_number:03d}"
+        iter_dir = self.storage_path / "iterations" / iter_name
+        metadata_file = iter_dir / "metadata.json"
+        
+        if not metadata_file.exists():
+            return None
+        
+        try:
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+            
+            # Add duration if completed
+            if metadata["status"] == "completed" and "started_at" in metadata and "completed_at" in metadata:
+                started = datetime.fromisoformat(metadata["started_at"])
+                completed = datetime.fromisoformat(metadata["completed_at"])
+                metadata["duration_seconds"] = (completed - started).total_seconds()
+            
+            return metadata
+            
+        except Exception as e:
+            logger.error(f"Failed to get iteration info for {iteration_number}: {e}")
+            return None
+    
+    async def list_iterations(self) -> List[Dict[str, Any]]:
+        """List all iterations with their basic info."""
+        iterations = []
+        iterations_dir = self.storage_path / "iterations"
+        
+        if not iterations_dir.exists():
+            return iterations
+        
+        for iter_dir in sorted(iterations_dir.iterdir()):
+            if iter_dir.is_dir() and iter_dir.name.startswith("iteration_"):
+                try:
+                    iter_num = int(iter_dir.name.split("_")[1])
+                    info = await self.get_iteration_info(iter_num)
+                    if info:
+                        iterations.append(info)
+                except Exception:
+                    continue
+        
+        # Sort by iteration number
+        iterations.sort(key=lambda x: x["iteration_number"])
+        return iterations
+    
+    async def get_iteration_statistics(self, iteration_number: int) -> Optional[Dict[str, Any]]:
+        """Get detailed statistics for an iteration."""
+        iter_name = f"iteration_{iteration_number:03d}"
+        iter_dir = self.storage_path / "iterations" / iter_name
+        
+        if not iter_dir.exists():
+            return None
+        
+        stats = {
+            "state_updates_count": 0,
+            "agent_outputs_count": 0,
+            "has_meta_review": False,
+            "storage_size_bytes": 0,
+            "agent_type_breakdown": {}
+        }
+        
+        # Count state updates
+        for file in iter_dir.glob("system_state_*.json"):
+            stats["state_updates_count"] += 1
+            stats["storage_size_bytes"] += file.stat().st_size
+        
+        # Old format state file
+        old_state_file = iter_dir / "system_state.json"
+        if old_state_file.exists():
+            stats["state_updates_count"] += 1
+            stats["storage_size_bytes"] += old_state_file.stat().st_size
+        
+        # Count agent outputs and breakdown by type
+        agent_outputs_dir = iter_dir / "agent_outputs"
+        if agent_outputs_dir.exists():
+            for output_file in agent_outputs_dir.glob("*.json"):
+                stats["agent_outputs_count"] += 1
+                stats["storage_size_bytes"] += output_file.stat().st_size
+                
+                # Get agent type from file content
+                try:
+                    with open(output_file, 'r') as f:
+                        data = json.load(f)
+                        agent_type = data.get("agent_type", "unknown")
+                        stats["agent_type_breakdown"][agent_type] = stats["agent_type_breakdown"].get(agent_type, 0) + 1
+                except Exception:
+                    pass
+        
+        # Check for meta review
+        meta_review_file = iter_dir / "meta_review.json"
+        if meta_review_file.exists():
+            stats["has_meta_review"] = True
+            stats["storage_size_bytes"] += meta_review_file.stat().st_size
+        
+        # Add metadata file size
+        metadata_file = iter_dir / "metadata.json"
+        if metadata_file.exists():
+            stats["storage_size_bytes"] += metadata_file.stat().st_size
+        
+        return stats
     
     # Key-Value Store Methods
     

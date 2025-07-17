@@ -164,7 +164,8 @@ Integration tests run automatically in `run-implementation-loop-validated.sh` af
 ### Test Output Interpretation
 - **✅ Green**: Integration working as expected
 - **⚠️ Yellow**: Non-blocking issues found (informational)
-- **❌ Red**: Critical integration failure
+- **❌ Red (Regression)**: Previously passing test now fails
+- **❌ Red (Implementation Error)**: New test fails on first run - implementation doesn't match spec
 
 ## Writing New Integration Tests
 
@@ -193,6 +194,30 @@ class TestPhaseXIntegration:
 3. **Avoid Mocking**: Use real components when possible
 4. **Document Intent**: Clear test names and docstrings
 5. **Check Side Effects**: Verify all expected changes
+6. **Mark Expected Failures**: Use pytest markers for tests that need future components
+
+### Handling Missing Components
+When writing integration tests that require components not yet implemented:
+
+```python
+@pytest.mark.skip(reason="Requires Evolution Agent from Phase 8")
+async def test_hypothesis_evolution_tracking():
+    """Test that hypothesis evolution is tracked through memory."""
+    # This test will be skipped until Evolution Agent is implemented
+    pass
+
+@pytest.mark.xfail(reason="Ranking Agent not implemented yet")
+async def test_tournament_workflow():
+    """Test tournament-based hypothesis ranking."""
+    # This test is expected to fail until Ranking Agent exists
+    # But we can still write and run it to see progress
+    pass
+```
+
+This ensures:
+- Tests waiting for future components don't block the implementation loop
+- Clear documentation of dependencies
+- Easy to enable tests once components are ready
 
 ## Maintenance
 

@@ -5,6 +5,13 @@ specs-source/references/argo-api-documentation.md
 # External references (managed separately)
 specs-source/references/ai-that-works/
 
+# Implementation loop tracking files
+.implementation_flags
+.integration_test_state
+.integration_test_history_phase*
+.integration-test-output-*.tmp
+.claude-implementation-output-*.tmp
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
