@@ -72,7 +72,7 @@ AI Co-Scientist is a multi-agent system for scientific hypothesis generation:
 # If empty, create comprehensive plan
 if implementation_plan == "Nothing here yet":
     create_implementation_plan()  # With ALL tasks needed
-    exit("PLAN_CREATED - Run again to start implementing")
+    # Continue immediately to implementation - no exit
 ```
 
 ### Step 1: READ RELEVANT SPECS FOR CURRENT TASK
@@ -80,7 +80,19 @@ if implementation_plan == "Nothing here yet":
 - Read specs related to current component
 - Trust the implementation plan order
 
-### Step 2: IMPLEMENT ONE COMPONENT PER ITERATION
+### Step 2: IMPLEMENT ONE ATOMIC FEATURE PER ITERATION
+
+**IMPORTANT: Break components into smallest testable units:**
+- Don't implement entire TaskQueue in one iteration
+- Example breakdown for TaskQueue:
+  - Iteration 1: Task model class only
+  - Iteration 2: Tests for Task model
+  - Iteration 3: Basic enqueue method
+  - Iteration 4: Tests for enqueue
+  - Iteration 5: Basic dequeue method
+  - Iteration 6: Tests for dequeue
+  - etc.
+
 ```bash
 # Set up project structure
 mkdir -p src/{agents,core,interfaces,safety,tools}
@@ -157,9 +169,15 @@ function generate_hypotheses(goal: string, context: string) -> Hypothesis[] {
 # ... mark completed, add new discovered tasks
 ```
 
-### Step 5: COMMIT AND EXIT
+### Step 5: QUALITY CHECK AND COMMIT
 ```bash
-# Every iteration ends with:
+# Before committing, ALWAYS:
+# 1. Run tests - MUST pass
+pytest
+# 2. Check coverage - MUST be ≥80%
+pytest --cov=src --cov-report=term-missing
+
+# Only if both pass:
 git add -A
 git commit -m "feat: implement [component] - [what you did]"
 # Then exit - the loop will continue
@@ -173,6 +191,12 @@ git commit -m "feat: implement [component] - [what you did]"
 - Don't start multiple tasks
 - Don't skip ahead
 
+### TEST-FIRST DEVELOPMENT
+- Write failing tests BEFORE implementation
+- Implement minimal code to make tests pass
+- Refactor only after tests are green
+- Each iteration MUST have passing tests before commit
+
 ### REAL IMPLEMENTATION ONLY
 - Create actual Python files
 - Write real code, not pseudocode
@@ -182,8 +206,9 @@ git commit -m "feat: implement [component] - [what you did]"
 ### INCREMENTAL BUT COMPLETE
 - Each commit should work
 - Don't break existing code
-- Tests can be pending if component isn't ready
-- But component itself must be complete
+- ALL tests must pass before commit
+- Coverage must meet 80% threshold
+- Component must be complete with tests
 
 ### COMPLEXITY MANAGEMENT (After iteration 10)
 - Count lines added vs deleted
