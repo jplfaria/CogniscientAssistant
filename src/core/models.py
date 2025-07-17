@@ -230,3 +230,128 @@ class Hypothesis(BaseModel):
                 "Begin experimental validation"
             ]
         )
+
+
+class ReviewType(str, Enum):
+    """Types of reviews that can be performed on hypotheses."""
+    
+    INITIAL = "initial"
+    FULL = "full"
+    DEEP_VERIFICATION = "deep_verification"
+    OBSERVATION = "observation"
+    SIMULATION = "simulation"
+    TOURNAMENT = "tournament"
+
+
+class ReviewDecision(str, Enum):
+    """Possible review decisions."""
+    
+    ACCEPT = "accept"
+    REJECT = "reject"
+    REVISE = "revise"
+
+
+class ReviewScores(BaseModel):
+    """Scoring dimensions for hypothesis reviews."""
+    
+    correctness: float = Field(ge=0.0, le=1.0)
+    quality: float = Field(ge=0.0, le=1.0)
+    novelty: float = Field(ge=0.0, le=1.0)
+    safety: float = Field(ge=0.0, le=1.0)
+    feasibility: float = Field(ge=0.0, le=1.0)
+    
+    def average_score(self) -> float:
+        """Calculate the average of all scores."""
+        return (
+            self.correctness + 
+            self.quality + 
+            self.novelty + 
+            self.safety + 
+            self.feasibility
+        ) / 5
+
+
+class AssumptionDecomposition(BaseModel):
+    """Decomposition of assumptions for deep verification reviews."""
+    
+    assumption: str
+    validity: str = Field(pattern="^(valid|questionable|invalid)$")
+    evidence: str
+    criticality: str = Field(pattern="^(fundamental|peripheral)$")
+
+
+class FailurePoint(BaseModel):
+    """Potential failure point in a simulated mechanism."""
+    
+    step: str
+    probability: float = Field(ge=0.0, le=1.0)
+    impact: str
+
+
+class SimulationResults(BaseModel):
+    """Results from simulating a hypothesis mechanism."""
+    
+    mechanism_steps: List[str] = Field(min_length=1)
+    failure_points: List[FailurePoint]
+    predicted_outcomes: List[str] = Field(min_length=1)
+
+
+class Review(BaseModel):
+    """Review of a hypothesis by an agent."""
+    
+    id: UUID = Field(default_factory=uuid4)
+    hypothesis_id: UUID
+    reviewer_agent_id: str
+    review_type: ReviewType
+    decision: ReviewDecision
+    scores: ReviewScores
+    
+    # Narrative components
+    narrative_feedback: str
+    key_strengths: List[str] = Field(min_length=1)
+    key_weaknesses: List[str] = Field(min_length=1)
+    improvement_suggestions: List[str] = Field(min_length=1)
+    confidence_level: str = Field(pattern="^(high|medium|low)$")
+    
+    # Optional review-type specific data
+    assumption_decomposition: Optional[List[AssumptionDecomposition]] = None
+    simulation_results: Optional[SimulationResults] = None
+    literature_citations: Optional[List[Citation]] = None
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    time_spent_seconds: Optional[float] = Field(default=None, ge=0)
+    
+    model_config = ConfigDict()
+    
+    @field_serializer("id", "hypothesis_id")
+    def serialize_uuid(self, value: UUID) -> str:
+        """Serialize UUID to string."""
+        return str(value)
+    
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        """Serialize datetime to ISO format string."""
+        return value.isoformat()
+    
+    @field_validator("assumption_decomposition")
+    @classmethod
+    def validate_assumption_decomposition(
+        cls, v: Optional[List[AssumptionDecomposition]], info
+    ) -> Optional[List[AssumptionDecomposition]]:
+        """Ensure assumption decomposition is provided for deep verification reviews."""
+        review_type = info.data.get("review_type")
+        if review_type == ReviewType.DEEP_VERIFICATION and not v:
+            raise ValueError("Deep verification reviews must include assumption decomposition")
+        return v
+    
+    @field_validator("simulation_results")
+    @classmethod 
+    def validate_simulation_results(
+        cls, v: Optional[SimulationResults], info
+    ) -> Optional[SimulationResults]:
+        """Ensure simulation results are provided for simulation reviews."""
+        review_type = info.data.get("review_type")
+        if review_type == ReviewType.SIMULATION and not v:
+            raise ValueError("Simulation reviews must include simulation results")
+        return v

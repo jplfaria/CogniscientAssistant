@@ -26,10 +26,10 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for Hypothesis model
 
 ### Review Model
-- [ ] Create Review dataclass for storing agent reviews
-- [ ] Add review type enum
-- [ ] Add review scoring methods
-- [ ] Write tests for Review model
+- [x] Create Review dataclass for storing agent reviews
+- [x] Add review type enum
+- [x] Add review scoring methods
+- [x] Write tests for Review model
 
 ## Phase 3: Task Queue Implementation
 
