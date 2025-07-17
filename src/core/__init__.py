@@ -17,6 +17,16 @@ from .models import (
     TaskState,
     TaskType,
 )
+from .context_memory import (
+    ContextMemory,
+    StateUpdate,
+    AgentOutput,
+    MetaReviewStorage,
+    StorageResult,
+    RetrievedState,
+    FeedbackData,
+    RecoveryState,
+)
 
 __all__ = [
     "Task",
@@ -34,4 +44,12 @@ __all__ = [
     "AssumptionDecomposition",
     "FailurePoint",
     "SimulationResults",
+    "ContextMemory",
+    "StateUpdate",
+    "AgentOutput",
+    "MetaReviewStorage",
+    "StorageResult",
+    "RetrievedState",
+    "FeedbackData",
+    "RecoveryState",
 ]
