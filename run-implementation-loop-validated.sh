@@ -67,6 +67,69 @@ detect_implementation_phase() {
     fi
 }
 
+# Function to analyze test failures against expectations
+analyze_test_failures() {
+    local phase=$1
+    local test_output_file=$2
+    local expectations_file="tests/integration/test_expectations.json"
+    
+    # Check if expectations file exists
+    if [ ! -f "$expectations_file" ]; then
+        return 1  # No expectations defined, use default behavior
+    fi
+    
+    # Extract test names that failed
+    local failed_tests=$(grep -E "FAILED|ERROR" "$test_output_file" | grep -oE "test_[a-zA-Z0-9_]+" | sort -u)
+    
+    # Get expectations for this phase using python for JSON parsing
+    local must_pass_tests=$(python3 -c "
+import json
+with open('$expectations_file') as f:
+    data = json.load(f)
+    phase_key = 'phase_$phase'
+    if phase_key in data:
+        print(' '.join(data[phase_key].get('must_pass', [])))
+" 2>/dev/null || echo "")
+    
+    local may_fail_tests=$(python3 -c "
+import json
+with open('$expectations_file') as f:
+    data = json.load(f)
+    phase_key = 'phase_$phase'
+    if phase_key in data:
+        print(' '.join(data[phase_key].get('may_fail', [])))
+" 2>/dev/null || echo "")
+    
+    # Check if any must_pass tests failed
+    local critical_failures=""
+    for test in $failed_tests; do
+        if echo "$must_pass_tests" | grep -q "$test"; then
+            critical_failures="$critical_failures $test"
+        fi
+    done
+    
+    if [ -n "$critical_failures" ]; then
+        echo "CRITICAL"
+        echo "$critical_failures"
+    else
+        # Check if failures are in may_fail list
+        local unexpected_failures=""
+        for test in $failed_tests; do
+            if ! echo "$may_fail_tests" | grep -q "$test"; then
+                unexpected_failures="$unexpected_failures $test"
+            fi
+        done
+        
+        if [ -n "$unexpected_failures" ]; then
+            echo "UNEXPECTED"
+            echo "$unexpected_failures"
+        else
+            echo "EXPECTED"
+            echo "$failed_tests"
+        fi
+    fi
+}
+
 # Function to run phase-specific integration tests
 run_phase_integration_tests() {
     local current_phase=$(detect_implementation_phase)
@@ -111,6 +174,11 @@ run_phase_integration_tests() {
                     is_first_run=false
                 fi
                 
+                # Analyze failures against expectations
+                local failure_analysis=$(analyze_test_failures "$current_phase" "$INTEGRATION_TEST_OUTPUT")
+                local failure_type=$(echo "$failure_analysis" | head -1)
+                local failed_test_names=$(echo "$failure_analysis" | tail -n +2)
+                
                 # Check if this is a regression
                 if [ -f ".integration_test_state" ] && grep -q "LAST_INTEGRATION_STATUS=passed" .integration_test_state; then
                     echo -e "${RED}❌ REGRESSION DETECTED: Integration tests that were passing now fail!${NC}"
@@ -121,27 +189,47 @@ run_phase_integration_tests() {
                     echo "INTEGRATION_REGRESSION=true" > .implementation_flags
                     echo "REGRESSION_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
                     echo "REGRESSION_PHASE=$current_phase" >> .implementation_flags
-                # Check if this is an implementation error (first run failure, not marked as skip/xfail)
-                elif [ "$is_first_run" = true ] && [ "$fail_count" -gt 0 -o "$error_count" -gt 0 ] && [ "$skip_count" -eq 0 ] && [ "$xfail_count" -eq 0 ]; then
-                    echo -e "${RED}❌ IMPLEMENTATION ERROR: New integration test failed on first run!${NC}"
-                    echo -e "${YELLOW}This indicates the implementation doesn't match specifications.${NC}"
-                    echo -e "${CYAN}The implementation needs to be fixed before proceeding.${NC}"
-                    echo -e "${CYAN}Failed tests: $fail_count, Errors: $error_count${NC}"
+                # Check if critical tests failed (must_pass tests)
+                elif [ "$failure_type" = "CRITICAL" ]; then
+                    echo -e "${RED}❌ CRITICAL TEST FAILURE: Required tests for Phase $current_phase failed!${NC}"
+                    echo -e "${YELLOW}Failed critical tests:${NC}$failed_test_names"
+                    echo -e "${CYAN}These tests MUST pass according to test_expectations.json${NC}"
+                    echo -e "${CYAN}Fix the implementation to make these tests pass before proceeding.${NC}"
                     
                     # Set implementation error flag
                     echo "IMPLEMENTATION_ERROR=true" > .implementation_flags
                     echo "ERROR_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
                     echo "ERROR_PHASE=$current_phase" >> .implementation_flags
-                    echo "FAILED_TESTS=$fail_count" >> .implementation_flags
-                    echo "ERROR_TESTS=$error_count" >> .implementation_flags
+                    echo "CRITICAL_TESTS_FAILED=$failed_test_names" >> .implementation_flags
+                    
+                    # Clean up and exit to force fix
+                    rm -f "$INTEGRATION_TEST_OUTPUT"
+                    return 2  # Special return code for implementation error
+                # Check for unexpected failures
+                elif [ "$failure_type" = "UNEXPECTED" ] && [ "$is_first_run" = true ]; then
+                    echo -e "${RED}❌ UNEXPECTED TEST FAILURE: Tests not in may_fail list failed!${NC}"
+                    echo -e "${YELLOW}Unexpected failures:${NC}$failed_test_names"
+                    echo -e "${CYAN}Either fix the implementation or update test_expectations.json${NC}"
+                    
+                    # Set implementation error flag
+                    echo "IMPLEMENTATION_ERROR=true" > .implementation_flags
+                    echo "ERROR_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
+                    echo "ERROR_PHASE=$current_phase" >> .implementation_flags
+                    echo "UNEXPECTED_TESTS_FAILED=$failed_test_names" >> .implementation_flags
                     
                     # Clean up and exit to force fix
                     rm -f "$INTEGRATION_TEST_OUTPUT"
                     return 2  # Special return code for implementation error
                 else
-                    echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
+                    # Expected failures or informational
+                    if [ "$failure_type" = "EXPECTED" ]; then
+                        echo -e "${YELLOW}⚠️  Integration tests failed (expected - in may_fail list)${NC}"
+                        echo -e "${CYAN}Failed tests that are allowed to fail:${NC}$failed_test_names"
+                    else
+                        echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
+                    fi
                     echo -e "${CYAN}This helps identify integration issues early${NC}"
-                    echo -e "${CYAN}These failures are non-blocking but should be investigated${NC}"
+                    echo -e "${CYAN}These failures are non-blocking${NC}"
                     if [ "$skip_count" -gt 0 ]; then
                         echo -e "${CYAN}Skipped tests: $skip_count (expected - waiting for future components)${NC}"
                     fi

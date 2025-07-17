@@ -17,6 +17,16 @@ This document outlines the integration testing strategy for the AI Co-Scientist 
   def get_test_statistics():  # DON'T DO THIS
   ```
 
+### 2. Test Expectations Configuration
+The file `tests/integration/test_expectations.json` defines test requirements for each phase:
+- **must_pass**: Tests that MUST pass for the phase to be considered complete
+- **may_fail**: Tests that are allowed to fail (usually waiting for future components)
+
+This allows the validation loop to distinguish between:
+- Critical failures that block progress
+- Expected failures that are informational only
+- Unexpected failures that need investigation
+
 ### 2. Phase-Aligned Testing
 - Tests are organized by implementation phase
 - Only test functionality that has been implemented

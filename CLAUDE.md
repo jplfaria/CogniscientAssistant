@@ -385,10 +385,27 @@ fi
 
 **Integration Test Categories:**
 - **✅ Pass**: Implementation works correctly
-- **⚠️ Expected Failure**: Missing future components (use @pytest.mark.skip)
+- **⚠️ Expected Failure**: Tests in `may_fail` list or marked with @pytest.mark.skip
 - **❌ Regression**: Previously passing test now fails
-- **❌ Implementation Error**: First-run failure indicates spec mismatch
-- **ℹ️ Informational**: Non-blocking issues to investigate later
+- **❌ Critical Failure**: Tests in `must_pass` list failed - blocks progress
+- **❌ Unexpected Failure**: Tests not in `may_fail` list failed - blocks progress
+- **ℹ️ Informational**: Non-critical failures to investigate later
+
+**Test Expectations System:**
+The file `tests/integration/test_expectations.json` defines which tests MUST pass vs MAY fail for each phase:
+```json
+{
+  "phase_4": {
+    "must_pass": ["test_memory_storage_and_retrieval"],  // Critical tests
+    "may_fail": ["test_agent_memory_integration"]       // Can fail if agents not ready
+  }
+}
+```
+
+When integration tests fail:
+1. **must_pass** failures → Implementation error, must fix
+2. **may_fail** failures → Expected, non-blocking
+3. Unlisted failures → Unexpected error, must fix or update expectations
 
 ## 📊 VERIFICATION AGAINST SPECS
 
