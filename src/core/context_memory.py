@@ -82,6 +82,8 @@ class ContextMemory:
     
     Provides storage, retrieval, and management of system state across
     iterations, supporting recovery, feedback loops, and performance tracking.
+    
+    Includes a key-value store for flexible data storage needs.
     """
     
     def __init__(
@@ -113,6 +115,10 @@ class ContextMemory:
         self._pattern_index: Dict[str, List[Path]] = {}
         self._performance_index: Dict[str, List[Path]] = {}
         
+        # Key-value store in-memory cache
+        self._kv_cache: Dict[str, Any] = {}
+        self._kv_dirty: Set[str] = set()  # Track modified keys for persistence
+        
         # Create directory structure
         self._initialize_storage()
         
@@ -136,7 +142,8 @@ class ContextMemory:
                 self.storage_path / "iterations",
                 self.storage_path / "checkpoints", 
                 self.storage_path / "aggregates",
-                self.storage_path / "configuration"
+                self.storage_path / "configuration",
+                self.storage_path / "kv_store"  # Key-value store directory
             ]
             
             for directory in directories:
@@ -204,6 +211,9 @@ class ContextMemory:
         try:
             # Load existing indices
             await self._load_indices()
+            
+            # Load key-value cache
+            await self._load_kv_cache()
             
             # Validate storage integrity
             await self._validate_storage_integrity()
@@ -488,3 +498,248 @@ class ContextMemory:
         # Find the highest iteration number
         latest_num = max(int(d.name.split("_")[1]) for d in existing_iterations)
         return f"iteration_{latest_num:03d}"
+    
+    # Key-Value Store Methods
+    
+    def _validate_key(self, key: Any) -> str:
+        """Validate and return a key for the key-value store."""
+        if not isinstance(key, str):
+            raise TypeError(f"Key must be a string, got {type(key)}")
+        
+        if not key or key.isspace():
+            raise ValueError("Key cannot be empty or whitespace")
+        
+        # Check for invalid characters
+        invalid_chars = [' ', '/', '\\', ':', '*', '?', '|']
+        for char in invalid_chars:
+            if char in key:
+                raise ValueError(f"Key cannot contain '{char}'")
+        
+        return key
+    
+    def _get_kv_file_path(self, key: str) -> Path:
+        """Get the file path for a key in the key-value store."""
+        # Use a simple file-per-key approach for persistence
+        return self.storage_path / "kv_store" / f"{key}.json"
+    
+    async def _load_kv_cache(self):
+        """Load key-value pairs from storage into cache."""
+        kv_dir = self.storage_path / "kv_store"
+        if kv_dir.exists():
+            for kv_file in kv_dir.glob("*.json"):
+                key = kv_file.stem
+                try:
+                    with open(kv_file, 'r') as f:
+                        self._kv_cache[key] = json.load(f)
+                except Exception as e:
+                    logger.warning(f"Failed to load key-value pair {key}: {e}")
+    
+    async def _persist_kv_changes(self):
+        """Persist modified key-value pairs to storage."""
+        for key in self._kv_dirty:
+            if key in self._kv_cache:
+                # Key exists, save it
+                file_path = self._get_kv_file_path(key)
+                try:
+                    with open(file_path, 'w') as f:
+                        json.dump(self._kv_cache[key], f, indent=2)
+                except Exception as e:
+                    logger.error(f"Failed to persist key {key}: {e}")
+            else:
+                # Key was deleted, remove file
+                file_path = self._get_kv_file_path(key)
+                if file_path.exists():
+                    file_path.unlink()
+        
+        self._kv_dirty.clear()
+    
+    async def set(self, key: str, value: Any) -> bool:
+        """Set a key-value pair in the store."""
+        try:
+            key = self._validate_key(key)
+            
+            # Ensure value is JSON serializable
+            json.dumps(value)
+            
+            self._kv_cache[key] = value
+            self._kv_dirty.add(key)
+            
+            # Persist immediately for consistency
+            await self._persist_kv_changes()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to set key {key}: {e}")
+            if isinstance(e, (TypeError, ValueError)):
+                raise
+            return False
+    
+    async def get(self, key: str) -> Optional[Any]:
+        """Get a value from the key-value store."""
+        try:
+            key = self._validate_key(key)
+            
+            # Check cache first
+            if key in self._kv_cache:
+                return self._kv_cache[key]
+            
+            # Try loading from disk if not in cache
+            file_path = self._get_kv_file_path(key)
+            if file_path.exists():
+                with open(file_path, 'r') as f:
+                    value = json.load(f)
+                    self._kv_cache[key] = value
+                    return value
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to get key {key}: {e}")
+            return None
+    
+    async def delete(self, key: str) -> bool:
+        """Delete a key-value pair from the store."""
+        try:
+            key = self._validate_key(key)
+            
+            if key not in self._kv_cache:
+                # Check if it exists on disk
+                file_path = self._get_kv_file_path(key)
+                if not file_path.exists():
+                    return False
+            
+            # Remove from cache
+            if key in self._kv_cache:
+                del self._kv_cache[key]
+            
+            # Mark for deletion
+            self._kv_dirty.add(key)
+            
+            # Persist deletion
+            await self._persist_kv_changes()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to delete key {key}: {e}")
+            return False
+    
+    async def exists(self, key: str) -> bool:
+        """Check if a key exists in the store."""
+        try:
+            key = self._validate_key(key)
+            
+            # Check cache first
+            if key in self._kv_cache:
+                return True
+            
+            # Check disk
+            file_path = self._get_kv_file_path(key)
+            return file_path.exists()
+            
+        except Exception as e:
+            logger.error(f"Failed to check existence of key {key}: {e}")
+            return False
+    
+    async def list_keys(self, prefix: Optional[str] = None) -> List[str]:
+        """List all keys in the store, optionally filtered by prefix."""
+        try:
+            # Get keys from cache
+            cache_keys = set(self._kv_cache.keys())
+            
+            # Get keys from disk
+            disk_keys = set()
+            kv_dir = self.storage_path / "kv_store"
+            if kv_dir.exists():
+                for kv_file in kv_dir.glob("*.json"):
+                    disk_keys.add(kv_file.stem)
+            
+            # Combine all keys
+            all_keys = cache_keys | disk_keys
+            
+            # Filter by prefix if provided
+            if prefix:
+                filtered_keys = [k for k in all_keys if k.startswith(prefix)]
+            else:
+                filtered_keys = list(all_keys)
+            
+            return sorted(filtered_keys)
+            
+        except Exception as e:
+            logger.error(f"Failed to list keys: {e}")
+            return []
+    
+    async def batch_set(self, data: Dict[str, Any]) -> bool:
+        """Set multiple key-value pairs at once."""
+        try:
+            # Validate all keys first
+            for key in data.keys():
+                self._validate_key(key)
+            
+            # Ensure all values are JSON serializable
+            json.dumps(data)
+            
+            # Update cache
+            self._kv_cache.update(data)
+            self._kv_dirty.update(data.keys())
+            
+            # Persist changes
+            await self._persist_kv_changes()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to batch set: {e}")
+            if isinstance(e, (TypeError, ValueError)):
+                raise
+            return False
+    
+    async def batch_get(self, keys: List[str]) -> Dict[str, Optional[Any]]:
+        """Get multiple values at once."""
+        results = {}
+        
+        for key in keys:
+            try:
+                value = await self.get(key)
+                results[key] = value
+            except Exception:
+                results[key] = None
+        
+        return results
+    
+    async def clear(self) -> bool:
+        """Clear all key-value pairs from the store."""
+        try:
+            # Clear cache
+            self._kv_cache.clear()
+            
+            # Remove all files from disk
+            kv_dir = self.storage_path / "kv_store"
+            if kv_dir.exists():
+                for kv_file in kv_dir.glob("*.json"):
+                    kv_file.unlink()
+            
+            self._kv_dirty.clear()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to clear key-value store: {e}")
+            return False
+    
+    async def get_kv_storage_size(self) -> int:
+        """Get the total storage size of the key-value store in bytes."""
+        try:
+            total_size = 0
+            kv_dir = self.storage_path / "kv_store"
+            
+            if kv_dir.exists():
+                for kv_file in kv_dir.glob("*.json"):
+                    total_size += kv_file.stat().st_size
+            
+            return total_size
+            
+        except Exception as e:
+            logger.error(f"Failed to get storage size: {e}")
+            return 0

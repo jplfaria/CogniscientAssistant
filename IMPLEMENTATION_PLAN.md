@@ -66,8 +66,8 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Create ContextMemory class structure
 - [x] Implement file-based storage backend
 - [x] Write tests for storage operations
-- [ ] Add key-value store methods
-- [ ] Write tests for key-value operations
+- [x] Add key-value store methods
+- [x] Write tests for key-value operations
 
 ### Hierarchical Organization
 - [ ] Implement iteration tracking
