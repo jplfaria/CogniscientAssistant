@@ -14,10 +14,10 @@ This plan breaks down the implementation into atomic, testable units following T
 ## Phase 2: Core Data Models
 
 ### Task Model
-- [ ] Create Task dataclass with id, type, priority fields
-- [ ] Add Task state enum (Pending, Assigned, Executing, Completed, Failed)
-- [ ] Add Task validation methods
-- [ ] Write comprehensive tests for Task model
+- [x] Create Task dataclass with id, type, priority fields
+- [x] Add Task state enum (Pending, Assigned, Executing, Completed, Failed)
+- [x] Add Task validation methods
+- [x] Write comprehensive tests for Task model
 
 ### Hypothesis Model
 - [ ] Create Hypothesis dataclass with required fields from specs
