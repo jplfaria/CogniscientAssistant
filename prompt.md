@@ -2,6 +2,24 @@
 
 Read all specifications in specs/ and implement the AI Co-Scientist system according to the IMPLEMENTATION_PLAN.md.
 
+## CRITICAL: Check for Integration Test Regressions
+
+```bash
+if [ -f ".implementation_flags" ] && grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
+    echo "❌ CRITICAL: Integration test regression detected!"
+    echo "Previously passing integration tests are now failing."
+    echo "This indicates broken functionality in completed components."
+    echo ""
+    echo "REQUIRED ACTIONS:"
+    echo "1. Run integration tests to see failures: pytest tests/integration/ -v"
+    echo "2. Review recent changes that could have broken functionality"
+    echo "3. Fix the regression before implementing new features"
+    echo "4. After fixing, remove flag: rm .implementation_flags"
+    echo ""
+    echo "DO NOT PROCEED WITH NEW IMPLEMENTATION UNTIL FIXED!"
+fi
+```
+
 ## Your Task:
 
 1. Check IMPLEMENTATION_PLAN.md:

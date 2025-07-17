@@ -1,0 +1,110 @@
+{
+  "phase_3": {
+    "name": "Task Queue Implementation",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_priority_based_processing",
+      "test_worker_capability_matching",
+      "test_queue_persistence_and_recovery"
+    ],
+    "may_fail": [],
+    "description": "Core task queue functionality must work correctly"
+  },
+  "phase_4": {
+    "name": "Context Memory Implementation",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_memory_storage_and_retrieval",
+      "test_context_thread_isolation"
+    ],
+    "may_fail": [
+      "test_agent_memory_integration"
+    ],
+    "description": "Memory must integrate with task queue"
+  },
+  "phase_5": {
+    "name": "Safety Framework",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_memory_storage_and_retrieval",
+      "test_safety_boundaries"
+    ],
+    "may_fail": [
+      "test_llm_safety_integration"
+    ],
+    "description": "Safety checks must be enforced"
+  },
+  "phase_6": {
+    "name": "LLM Abstraction & BAML",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_baml_schema_compilation",
+      "test_llm_mock_responses"
+    ],
+    "may_fail": [
+      "test_real_llm_calls"
+    ],
+    "description": "BAML infrastructure must function"
+  },
+  "phase_7": {
+    "name": "Supervisor Agent",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_supervisor_task_creation",
+      "test_supervisor_orchestration"
+    ],
+    "may_fail": [
+      "test_full_research_cycle"
+    ],
+    "description": "Supervisor must create and manage tasks"
+  },
+  "phase_8": {
+    "name": "Generation & Reflection Agents",
+    "must_pass": [
+      "test_full_task_lifecycle",
+      "test_supervisor_orchestration",
+      "test_hypothesis_generation",
+      "test_hypothesis_reflection"
+    ],
+    "may_fail": [
+      "test_ranking_tournament"
+    ],
+    "description": "Basic hypothesis workflow must function"
+  },
+  "phase_9": {
+    "name": "Ranking Agent",
+    "must_pass": [
+      "test_hypothesis_generation",
+      "test_hypothesis_reflection",
+      "test_ranking_tournament",
+      "test_elo_calculations"
+    ],
+    "may_fail": [
+      "test_evolution_enhancement"
+    ],
+    "description": "Tournament ranking system must work"
+  },
+  "phase_10": {
+    "name": "Evolution & Proximity Agents",
+    "must_pass": [
+      "test_hypothesis_generation",
+      "test_ranking_tournament",
+      "test_evolution_enhancement",
+      "test_similarity_clustering"
+    ],
+    "may_fail": [
+      "test_meta_review"
+    ],
+    "description": "Hypothesis improvement must function"
+  },
+  "phase_11": {
+    "name": "Meta-Review & CLI",
+    "must_pass": [
+      "test_full_research_cycle",
+      "test_meta_review_synthesis",
+      "test_cli_commands"
+    ],
+    "may_fail": [],
+    "description": "Complete system must work end-to-end"
+  }
+}

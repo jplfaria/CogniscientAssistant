@@ -153,3 +153,7 @@ cython_debug/
 # Project specific
 *.tmp
 .claude-*
+
+# Integration test tracking files
+.integration_test_state
+.implementation_flags

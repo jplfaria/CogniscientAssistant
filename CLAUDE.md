@@ -350,6 +350,30 @@ user = "jplfaria"  # NEVER hardcode usernames
 - Proxy runs locally on your machine (localhost:8050)
 - All LLM calls go through the local proxy
 
+## 🧪 INTEGRATION TEST FAILURES
+
+**When you see "INTEGRATION_REGRESSION=true" in .implementation_flags:**
+1. **STOP** - Do not implement new features
+2. **INVESTIGATE** - Review recent changes that could affect integration
+3. **FIX** - Repair the regression before proceeding
+4. **VERIFY** - Ensure integration tests for COMPLETED phases pass
+5. **CLEAR FLAG** - Remove .implementation_flags after fixing
+
+**Check for regression at start of each iteration:**
+```bash
+if [ -f ".implementation_flags" ] && grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
+    echo "❌ CRITICAL: Integration test regression detected!"
+    # Fix the regression first
+    # After fixing: rm .implementation_flags
+fi
+```
+
+**Integration Test Rules:**
+- Tests for completed phases MUST pass
+- Regressions indicate broken functionality
+- Fix regressions before new implementation
+- Non-regression failures are informational only
+
 ## 📊 VERIFICATION AGAINST SPECS
 
 **After implementing each component:**
@@ -360,6 +384,7 @@ user = "jplfaria"  # NEVER hardcode usernames
 - [ ] Validate safety boundaries
 - [ ] Confirm integration points
 - [ ] Update IMPLEMENTATION_PLAN.md
+- [ ] Run integration tests if available
 
 ## ✅ IMPLEMENTATION CHECKLIST
 

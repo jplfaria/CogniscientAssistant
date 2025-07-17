@@ -90,10 +90,31 @@ run_phase_integration_tests() {
             # Run the integration tests
             if pytest $test_files -v --tb=short; then
                 echo -e "${GREEN}✅ Integration tests passed${NC}"
+                # Save success state
+                echo "LAST_INTEGRATION_STATUS=passed" > .integration_test_state
+                echo "LAST_PASSING_PHASE=$current_phase" >> .integration_test_state
+                echo "LAST_PASSING_TIMESTAMP=$(date -Iseconds)" >> .integration_test_state
             else
-                echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
-                echo -e "${CYAN}This helps identify integration issues early${NC}"
-                echo -e "${CYAN}These failures are non-blocking but should be investigated${NC}"
+                # Check if this is a regression
+                if [ -f ".integration_test_state" ] && grep -q "LAST_INTEGRATION_STATUS=passed" .integration_test_state; then
+                    echo -e "${RED}❌ REGRESSION DETECTED: Integration tests that were passing now fail!${NC}"
+                    echo -e "${YELLOW}This indicates broken functionality in completed components.${NC}"
+                    echo -e "${CYAN}This needs immediate attention before proceeding.${NC}"
+                    
+                    # Set regression flag for Claude to see
+                    echo "INTEGRATION_REGRESSION=true" > .implementation_flags
+                    echo "REGRESSION_DETECTED_AT=$(date -Iseconds)" >> .implementation_flags
+                    echo "REGRESSION_PHASE=$current_phase" >> .implementation_flags
+                else
+                    echo -e "${YELLOW}⚠️  Integration tests failed (informational)${NC}"
+                    echo -e "${CYAN}This helps identify integration issues early${NC}"
+                    echo -e "${CYAN}These failures are non-blocking but should be investigated${NC}"
+                fi
+                
+                # Save failure state
+                echo "LAST_INTEGRATION_STATUS=failed" > .integration_test_state
+                echo "LAST_FAILING_PHASE=$current_phase" >> .integration_test_state
+                echo "LAST_FAILING_TIMESTAMP=$(date -Iseconds)" >> .integration_test_state
             fi
         else
             echo -e "${CYAN}No integration tests available for phase $current_phase yet${NC}"
