@@ -493,8 +493,11 @@ class TaskQueue:
             if not task or task.assigned_to != worker_id:
                 return False
             
-            # Update task state
+            # Update task state and result
             self._task_states[task_id] = TaskState.COMPLETED
+            task.state = TaskState.COMPLETED
+            task.result = result
+            task.completed_at = datetime.utcnow()
             
             # Clear assignment
             for assignment_id, tid in self._assignment_to_task.items():
@@ -767,3 +770,288 @@ class TaskQueue:
                 "failure_history": self._task_failure_history.get(task_id, []),
                 "progress": self._task_progress.get(task_id, {})
             }
+    
+    async def get_queue_statistics(self) -> Dict[str, Any]:
+        """Get overall queue statistics.
+        
+        Returns:
+            Dictionary with queue statistics
+        """
+        async with self._lock:
+            # Count tasks by priority
+            depth_by_priority = {
+                "high": len(self._queues[3]),
+                "medium": len(self._queues[2]),
+                "low": len(self._queues[1])
+            }
+            
+            # Count tasks by state
+            task_states = {
+                "pending": 0,
+                "assigned": 0,
+                "executing": 0,
+                "completed": 0,
+                "failed": 0
+            }
+            
+            for state in self._task_states.values():
+                task_states[state.value] += 1
+            
+            # Count workers by state
+            worker_stats = {
+                "total": len(self._workers),
+                "idle": len(self._workers - self._active_workers),
+                "active": len(self._active_workers),
+                "failed": sum(1 for info in self._worker_info.values() if info.state == "failed")
+            }
+            
+            return {
+                "total_tasks": self.size(),
+                "depth_by_priority": depth_by_priority,
+                "task_states": task_states,
+                "worker_stats": worker_stats,
+                "active_assignments": len(self._active_assignments)
+            }
+    
+    async def get_throughput_metrics(self) -> Dict[str, Any]:
+        """Calculate task throughput metrics.
+        
+        Returns:
+            Dictionary with throughput metrics
+        """
+        async with self._lock:
+            now = datetime.utcnow()
+            one_minute_ago = now - timedelta(minutes=1)
+            one_hour_ago = now - timedelta(hours=1)
+            
+            # Count completed tasks
+            completed_last_minute = 0
+            completed_last_hour = 0
+            
+            for task_id, task in self._tasks.items():
+                if task.completed_at:
+                    if task.completed_at >= one_minute_ago:
+                        completed_last_minute += 1
+                    if task.completed_at >= one_hour_ago:
+                        completed_last_hour += 1
+            
+            throughput_per_minute = completed_last_minute
+            
+            return {
+                "completed_last_minute": completed_last_minute,
+                "completed_last_hour": completed_last_hour,
+                "throughput_per_minute": throughput_per_minute,
+                "active_tasks": len(self._active_assignments)
+            }
+    
+    async def get_wait_time_statistics(self) -> Dict[str, Any]:
+        """Calculate average task wait times.
+        
+        Returns:
+            Dictionary with wait time statistics
+        """
+        async with self._lock:
+            wait_times = []
+            wait_times_by_priority = {"high": [], "medium": [], "low": []}
+            
+            for task_id, task in self._tasks.items():
+                if task.assigned_at and task.created_at:
+                    wait_time = (task.assigned_at - task.created_at).total_seconds()
+                    wait_times.append(wait_time)
+                    
+                    priority_name = {1: "low", 2: "medium", 3: "high"}.get(task.priority)
+                    if priority_name:
+                        wait_times_by_priority[priority_name].append(wait_time)
+            
+            # Calculate averages
+            avg_overall = sum(wait_times) / len(wait_times) if wait_times else 0
+            avg_by_priority = {}
+            
+            for priority, times in wait_times_by_priority.items():
+                avg_by_priority[priority] = sum(times) / len(times) if times else 0
+            
+            return {
+                "average_wait_time": {
+                    "overall": avg_overall,
+                    "by_priority": avg_by_priority
+                },
+                "sample_size": len(wait_times)
+            }
+    
+    async def get_retry_statistics(self) -> Dict[str, Any]:
+        """Get statistics on task retries.
+        
+        Returns:
+            Dictionary with retry statistics
+        """
+        async with self._lock:
+            total_retries = sum(self._task_retry_counts.values())
+            tasks_with_retries = len(self._task_retry_counts)
+            max_retry_count = max(self._task_retry_counts.values()) if self._task_retry_counts else 0
+            
+            # Count retries by task type
+            retry_by_type = defaultdict(int)
+            for task_id, retry_count in self._task_retry_counts.items():
+                task = self._tasks.get(task_id)
+                if task:
+                    retry_by_type[task.task_type.value] += retry_count
+            
+            return {
+                "total_retries": total_retries,
+                "tasks_with_retries": tasks_with_retries,
+                "max_retry_count": max_retry_count,
+                "retry_by_task_type": dict(retry_by_type)
+            }
+    
+    async def get_capacity_statistics(self) -> Dict[str, Any]:
+        """Get queue capacity statistics.
+        
+        Returns:
+            Dictionary with capacity information
+        """
+        async with self._lock:
+            current_size = self.size()
+            max_capacity = self.config.max_queue_size
+            utilization = (current_size / max_capacity * 100) if max_capacity > 0 else 0
+            
+            # Capacity by priority
+            capacity_by_priority = {}
+            for priority, (name, limit) in [(3, ("high", self.config.priority_quotas["high"])),
+                                           (2, ("medium", self.config.priority_quotas["medium"])),
+                                           (1, ("low", self.config.priority_quotas["low"]))]:
+                used = len(self._queues[priority])
+                capacity_by_priority[name] = {
+                    "used": used,
+                    "limit": limit,
+                    "utilization_percent": (used / limit * 100) if limit > 0 else 0
+                }
+            
+            # Warnings
+            warnings = {
+                "near_capacity": utilization >= 80,
+                "at_capacity": utilization >= 100,
+                "priority_at_limit": any(
+                    info["utilization_percent"] >= 100 
+                    for info in capacity_by_priority.values()
+                )
+            }
+            
+            return {
+                "max_capacity": max_capacity,
+                "current_size": current_size,
+                "utilization_percent": utilization,
+                "capacity_by_priority": capacity_by_priority,
+                "warnings": warnings
+            }
+    
+    async def get_starvation_statistics(self) -> Dict[str, Any]:
+        """Get statistics on starved tasks.
+        
+        Returns:
+            Dictionary with starvation information
+        """
+        async with self._lock:
+            now = datetime.utcnow()
+            starvation_threshold = timedelta(seconds=self.config.starvation_threshold)
+            
+            starved_tasks = 0
+            starved_task_ids = []
+            oldest_task = None
+            oldest_wait_time = 0
+            
+            # Check pending tasks for starvation
+            for priority in [1, 2, 3]:  # Check all priorities
+                for task_id in self._queues[priority]:
+                    task = self._tasks.get(task_id)
+                    if task and task.created_at:
+                        wait_time = now - task.created_at
+                        if wait_time > starvation_threshold:
+                            starved_tasks += 1
+                            starved_task_ids.append(task_id)
+                        
+                        wait_seconds = wait_time.total_seconds()
+                        if wait_seconds > oldest_wait_time:
+                            oldest_wait_time = wait_seconds
+                            oldest_task = {
+                                "task_id": task_id,
+                                "priority": {1: "low", 2: "medium", 3: "high"}[priority],
+                                "wait_time": wait_seconds
+                            }
+            
+            return {
+                "starved_tasks": starved_tasks,
+                "starved_task_ids": starved_task_ids,
+                "oldest_waiting_task": oldest_task,
+                "starvation_threshold": self.config.starvation_threshold
+            }
+    
+    async def get_detailed_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive metrics about the queue.
+        
+        Returns:
+            Dictionary with all available metrics
+        """
+        metrics = {
+            "queue_statistics": await self.get_queue_statistics(),
+            "throughput_metrics": await self.get_throughput_metrics(),
+            "wait_time_statistics": await self.get_wait_time_statistics(),
+            "retry_statistics": await self.get_retry_statistics(),
+            "capacity_statistics": await self.get_capacity_statistics(),
+            "starvation_statistics": await self.get_starvation_statistics(),
+            "heartbeat_metrics": await self.get_heartbeat_metrics(),
+            "timestamp": datetime.utcnow()
+        }
+        
+        return metrics
+    
+    async def get_metrics_by_agent_type(self) -> Dict[str, Any]:
+        """Get metrics grouped by agent type.
+        
+        Returns:
+            Dictionary with metrics per agent type
+        """
+        async with self._lock:
+            metrics = {}
+            
+            # Map task types to agent types
+            task_to_agent = {
+                TaskType.GENERATE_HYPOTHESIS: "Generation",
+                TaskType.REFLECT_ON_HYPOTHESIS: "Reflection",
+                TaskType.RANK_HYPOTHESES: "Ranking",
+                TaskType.EVOLVE_HYPOTHESIS: "Evolution",
+                TaskType.FIND_SIMILAR_HYPOTHESES: "Proximity",
+                TaskType.META_REVIEW: "MetaReview"
+            }
+            
+            # Initialize metrics for each agent type
+            for agent_type in task_to_agent.values():
+                metrics[agent_type] = {
+                    "pending_tasks": 0,
+                    "executing_tasks": 0,
+                    "completed_tasks": 0,
+                    "failed_tasks": 0,
+                    "capable_workers": 0
+                }
+            
+            # Count tasks by type and state
+            for task_id, task in self._tasks.items():
+                agent_type = task_to_agent.get(task.task_type)
+                if agent_type:
+                    state = self._task_states.get(task_id, TaskState.PENDING)
+                    if state == TaskState.PENDING:
+                        metrics[agent_type]["pending_tasks"] += 1
+                    elif state == TaskState.EXECUTING:
+                        metrics[agent_type]["executing_tasks"] += 1
+                    elif state == TaskState.COMPLETED:
+                        metrics[agent_type]["completed_tasks"] += 1
+                    elif state == TaskState.FAILED:
+                        metrics[agent_type]["failed_tasks"] += 1
+            
+            # Count capable workers
+            for worker_id, info in self._worker_info.items():
+                agent_types = info.capabilities.get("agent_types", [])
+                for agent_type in agent_types:
+                    if agent_type in metrics:
+                        metrics[agent_type]["capable_workers"] += 1
+            
+            return metrics
