@@ -57,8 +57,8 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for statistics
 - [x] Implement queue persistence
 - [x] Write tests for persistence
-- [ ] Add queue recovery on startup
-- [ ] Write tests for recovery
+- [x] Add queue recovery on startup
+- [x] Write tests for recovery
 
 ## Phase 4: Context Memory Implementation
 

@@ -1,6 +1,7 @@
 """Task Queue implementation for AI Co-Scientist."""
 
 import asyncio
+import json
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -35,6 +36,9 @@ class QueueConfig:
     retry_policy: Dict[str, Any] = None
     persistence_interval: int = 60
     persistence_path: Optional[str] = None  # Path to save queue state
+    auto_recovery: bool = False  # Auto-load state on initialization
+    auto_start_persistence: bool = False  # Auto-start persistence task
+    auto_start_monitoring: bool = False  # Auto-start heartbeat monitoring
     starvation_threshold: int = 3600
     acknowledgment_timeout: int = 5
     
@@ -127,6 +131,42 @@ class TaskQueue:
         
         # Lock for thread-safe operations
         self._lock = asyncio.Lock()
+        
+        # Track initialization status
+        self._initialized = False
+    
+    async def initialize(self) -> None:
+        """Initialize the queue, optionally recovering state and starting background tasks.
+        
+        This method should be called after creating the queue if you want to:
+        - Recover state from a previous run (if auto_recovery is True)
+        - Start automatic persistence (if auto_start_persistence is True)
+        - Start heartbeat monitoring (if auto_start_monitoring is True)
+        """
+        if self._initialized:
+            return
+        
+        # Recover state if configured
+        if self.config.auto_recovery and self.config.persistence_path:
+            try:
+                await self.load_state()
+            except json.JSONDecodeError:
+                # Log error but continue with empty queue
+                print(f"Error: Corrupted state file at {self.config.persistence_path}")
+            except Exception as e:
+                # Log other errors but continue
+                print(f"Error loading state: {e}")
+        
+        # Start background tasks if configured
+        if self.config.auto_start_persistence:
+            await self.start_persistence()
+        
+        if self.config.auto_start_monitoring:
+            if not self._monitoring_task or self._monitoring_task.done():
+                self._monitoring_stopped = False
+                self._monitoring_task = asyncio.create_task(self.monitor_heartbeats())
+        
+        self._initialized = True
     
     def size(self) -> int:
         """Get total number of tasks in queue."""
@@ -769,7 +809,7 @@ class TaskQueue:
                 "id": task_id,
                 "type": task.task_type.value,
                 "priority": task.priority,
-                "state": self._task_states.get(task_id, TaskState.PENDING).value,
+                "state": self._task_states.get(task_id, task.state).value,
                 "assigned_to": task.assigned_to,
                 "assigned_at": task.assigned_at,
                 "retry_count": self._task_retry_counts.get(task_id, 0),
