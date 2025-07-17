@@ -19,20 +19,31 @@ Read all specifications in specs/ and implement the AI Co-Scientist system accor
 
 4. Select the FIRST unchecked [ ] item from IMPLEMENTATION_PLAN.md
 
-5. Implement the selected task:
+5. Implement the selected task using TEST-FIRST development:
+   - FIRST: Write failing tests for the feature
+   - THEN: Implement minimal code to make tests pass
    - For setup tasks: Create directories, install dependencies, configure tools
    - For components: Follow exact behavioral specifications from specs/
    - For agents: Use BAML for all LLM interactions
    - Always include safety checks and error handling
-   - Write tests alongside implementation
+   - Break large tasks into atomic features (one testable unit per iteration)
 
-6. Run quality checks (only after code exists):
+6. Run MANDATORY quality checks before ANY commit:
    ```bash
-   # Only run these if the tools are installed and code exists
-   pytest tests/ 2>/dev/null || echo "Tests pending"
+   # Tests MUST pass (exit code 0)
+   pytest tests/
+   
+   # Coverage MUST be ≥80%
+   pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+   
+   # Type checking (if mypy installed)
    mypy src/ 2>/dev/null || echo "Type checking pending"
+   
+   # Linting (if ruff installed)
    ruff check src/ 2>/dev/null || echo "Linting pending"
    ```
+   
+   DO NOT COMMIT if tests fail or coverage is below 80%!
 
 7. Update IMPLEMENTATION_PLAN.md:
    - Mark completed items with [x]
@@ -89,10 +100,19 @@ If ALL of the following are true, output "IMPLEMENTATION_COMPLETE":
 
 ## Remember:
 
-- ONE TASK PER ITERATION - Complete it fully before moving on
+- TEST FIRST - Write failing test, then implementation
+- ONE ATOMIC FEATURE PER ITERATION - If task is big, break it down
+- QUALITY GATES ARE MANDATORY - No commits with failing tests or low coverage
 - SPECS ARE CANONICAL - If spec says X, implement X exactly
 - CREATE REAL FILES - Don't just update the plan
-- COMMIT WORKING CODE - Each commit should leave system functional
-- INCREMENTAL PROGRESS - Small, complete changes are better
+- COMMIT ONLY PASSING CODE - Each commit must have all tests green
+- INCREMENTAL PROGRESS - Small, tested changes are better
 
-When in doubt, re-read the relevant specification. The specs define ALL required behaviors.
+Example of atomic features:
+- Bad: "Implement TaskQueue class" (too big)
+- Good: "Create Task model", "Add enqueue method", "Add dequeue method" (atomic)
+
+When in doubt:
+1. Re-read the relevant specification
+2. Check IMPLEMENTATION_RULES.md for TDD guidelines
+3. Ensure tests pass before moving on
