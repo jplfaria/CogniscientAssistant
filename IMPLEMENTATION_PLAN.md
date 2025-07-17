@@ -43,8 +43,8 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for peek
 
 ### Worker Management
-- [ ] Add worker registration methods
-- [ ] Write tests for worker registration
+- [x] Add worker registration methods
+- [x] Write tests for worker registration
 - [ ] Implement task assignment logic
 - [ ] Write tests for task assignment
 - [ ] Add worker heartbeat tracking

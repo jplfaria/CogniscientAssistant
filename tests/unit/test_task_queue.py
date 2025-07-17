@@ -232,3 +232,155 @@ class TestTaskQueueBasicOperations:
         # Should be able to dequeue the same task
         assignment = await queue.dequeue("worker-1")
         assert assignment.task.id == sample_task.id
+
+
+class TestTaskQueueWorkerManagement:
+    """Tests for TaskQueue worker management functionality."""
+    
+    @pytest.fixture
+    def queue(self):
+        """Create a TaskQueue instance for tests."""
+        return TaskQueue()
+    
+    async def test_register_worker(self, queue):
+        """Test registering a new worker."""
+        worker_id = "worker-1"
+        capabilities = {
+            "agent_types": ["Generation", "Reflection"],
+            "max_concurrent": 1,
+            "version": "1.0.0"
+        }
+        
+        result = await queue.register_worker(worker_id, capabilities)
+        
+        assert result is True
+        assert queue.is_worker_registered(worker_id) is True
+        assert worker_id in queue.get_registered_workers()
+        
+    async def test_register_duplicate_worker(self, queue):
+        """Test registering the same worker twice."""
+        worker_id = "worker-1"
+        capabilities = {"agent_types": ["Generation"]}
+        
+        # First registration should succeed
+        result1 = await queue.register_worker(worker_id, capabilities)
+        assert result1 is True
+        
+        # Second registration should update capabilities
+        new_capabilities = {"agent_types": ["Generation", "Reflection"]}
+        result2 = await queue.register_worker(worker_id, new_capabilities)
+        assert result2 is True
+        
+        # Should still only be one worker
+        registered = queue.get_registered_workers()
+        assert len(registered) == 1
+        assert worker_id in registered
+    
+    async def test_unregister_worker(self, queue):
+        """Test unregistering a worker."""
+        worker_id = "worker-1"
+        capabilities = {"agent_types": ["Generation"]}
+        
+        # Register the worker
+        await queue.register_worker(worker_id, capabilities)
+        assert queue.is_worker_registered(worker_id) is True
+        
+        # Unregister the worker
+        result = await queue.unregister_worker(worker_id)
+        assert result is True
+        assert queue.is_worker_registered(worker_id) is False
+        assert worker_id not in queue.get_registered_workers()
+    
+    async def test_unregister_nonexistent_worker(self, queue):
+        """Test unregistering a worker that doesn't exist."""
+        result = await queue.unregister_worker("nonexistent-worker")
+        assert result is False
+    
+    async def test_get_worker_status(self, queue):
+        """Test getting worker status information."""
+        worker_id = "worker-1"
+        capabilities = {"agent_types": ["Generation"]}
+        
+        # Register worker
+        await queue.register_worker(worker_id, capabilities)
+        
+        # Get status
+        status = await queue.get_worker_status(worker_id)
+        assert status is not None
+        assert status["id"] == worker_id
+        assert status["state"] == "idle"
+        assert status["capabilities"] == capabilities
+        assert status["last_heartbeat"] is not None
+        assert status["assigned_task"] is None
+    
+    async def test_get_nonexistent_worker_status(self, queue):
+        """Test getting status of nonexistent worker."""
+        status = await queue.get_worker_status("nonexistent-worker")
+        assert status is None
+    
+    async def test_list_workers_by_state(self, queue):
+        """Test listing workers by their state."""
+        # Register multiple workers
+        await queue.register_worker("worker-1", {"agent_types": ["Generation"]})
+        await queue.register_worker("worker-2", {"agent_types": ["Reflection"]})
+        await queue.register_worker("worker-3", {"agent_types": ["Ranking"]})
+        
+        # Initially all should be idle
+        idle_workers = await queue.get_workers_by_state("idle")
+        assert len(idle_workers) == 3
+        assert all(w in idle_workers for w in ["worker-1", "worker-2", "worker-3"])
+        
+        # Active workers should be empty
+        active_workers = await queue.get_workers_by_state("active")
+        assert len(active_workers) == 0
+    
+    async def test_worker_capabilities_filtering(self, queue):
+        """Test filtering workers by capabilities."""
+        # Register workers with different capabilities
+        await queue.register_worker("worker-1", {
+            "agent_types": ["Generation", "Reflection"]
+        })
+        await queue.register_worker("worker-2", {
+            "agent_types": ["Reflection", "Ranking"]
+        })
+        await queue.register_worker("worker-3", {
+            "agent_types": ["Evolution", "Proximity"]
+        })
+        
+        # Find workers capable of Reflection
+        reflection_workers = await queue.get_workers_by_capability("Reflection")
+        assert len(reflection_workers) == 2
+        assert "worker-1" in reflection_workers
+        assert "worker-2" in reflection_workers
+        assert "worker-3" not in reflection_workers
+        
+        # Find workers capable of Evolution
+        evolution_workers = await queue.get_workers_by_capability("Evolution")
+        assert len(evolution_workers) == 1
+        assert "worker-3" in evolution_workers
+    
+    async def test_worker_registration_with_task_assignment(self, queue):
+        """Test worker state changes when tasks are assigned."""
+        worker_id = "worker-1"
+        await queue.register_worker(worker_id, {"agent_types": ["Generation"]})
+        
+        # Add a task
+        task = Task(
+            task_type=TaskType.GENERATE_HYPOTHESIS,
+            priority=2,
+            payload={"test": True}
+        )
+        await queue.enqueue(task)
+        
+        # Worker should be idle before assignment
+        status_before = await queue.get_worker_status(worker_id)
+        assert status_before["state"] == "idle"
+        
+        # Dequeue task (assigns to worker)
+        assignment = await queue.dequeue(worker_id)
+        assert assignment is not None
+        
+        # Worker should now be active
+        status_after = await queue.get_worker_status(worker_id)
+        assert status_after["state"] == "active"
+        assert status_after["assigned_task"] == str(task.id)

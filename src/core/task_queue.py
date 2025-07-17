@@ -11,6 +11,18 @@ from src.core.models import Task, TaskState
 
 
 @dataclass
+class WorkerInfo:
+    """Information about a registered worker."""
+    
+    id: str
+    capabilities: Dict[str, Any]
+    state: str = "idle"  # idle, active, failed
+    last_heartbeat: datetime = field(default_factory=datetime.utcnow)
+    assigned_task: Optional[str] = None
+    registration_time: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
 class QueueConfig:
     """Configuration for TaskQueue."""
     
@@ -85,6 +97,7 @@ class TaskQueue:
         # Worker tracking
         self._workers: Set[str] = set()
         self._active_workers: Set[str] = set()
+        self._worker_info: Dict[str, WorkerInfo] = {}
         
         # Lock for thread-safe operations
         self._lock = asyncio.Lock()
@@ -159,8 +172,14 @@ class TaskQueue:
             TaskAssignment if available, None otherwise
         """
         async with self._lock:
-            # Register worker if new
-            self._workers.add(worker_id)
+            # Register worker if new (backward compatibility)
+            if worker_id not in self._workers:
+                self._workers.add(worker_id)
+                self._worker_info[worker_id] = WorkerInfo(
+                    id=worker_id,
+                    capabilities={},
+                    state="idle"
+                )
             
             # Find highest priority task
             for priority in [3, 2, 1]:  # High to low
@@ -173,6 +192,12 @@ class TaskQueue:
                     task.assign(worker_id)
                     self._task_states[task_id] = TaskState.ASSIGNED
                     self._active_workers.add(worker_id)
+                    
+                    # Update worker state
+                    if worker_id in self._worker_info:
+                        self._worker_info[worker_id].state = "active"
+                        self._worker_info[worker_id].assigned_task = task_id
+                        self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
                     
                     # Create assignment
                     now = datetime.utcnow().timestamp()
@@ -213,3 +238,126 @@ class TaskQueue:
             TaskState if task exists, None otherwise
         """
         return self._task_states.get(str(task_id))
+    
+    async def register_worker(self, worker_id: str, capabilities: Dict[str, Any]) -> bool:
+        """Register a worker with the queue.
+        
+        Args:
+            worker_id: Unique identifier for the worker
+            capabilities: Worker capabilities (agent_types, etc.)
+            
+        Returns:
+            True if registration successful
+        """
+        async with self._lock:
+            # Create or update worker info
+            self._worker_info[worker_id] = WorkerInfo(
+                id=worker_id,
+                capabilities=capabilities,
+                state="idle",
+                last_heartbeat=datetime.utcnow()
+            )
+            self._workers.add(worker_id)
+            
+            # If updating existing worker, maintain active state if applicable
+            if worker_id in self._active_workers:
+                self._worker_info[worker_id].state = "active"
+            
+            return True
+    
+    async def unregister_worker(self, worker_id: str) -> bool:
+        """Unregister a worker from the queue.
+        
+        Args:
+            worker_id: Worker to unregister
+            
+        Returns:
+            True if worker was registered and removed, False otherwise
+        """
+        async with self._lock:
+            if worker_id not in self._workers:
+                return False
+            
+            # Remove from all tracking structures
+            self._workers.discard(worker_id)
+            self._active_workers.discard(worker_id)
+            self._worker_info.pop(worker_id, None)
+            
+            # TODO: Handle any tasks assigned to this worker
+            
+            return True
+    
+    def is_worker_registered(self, worker_id: str) -> bool:
+        """Check if a worker is registered.
+        
+        Args:
+            worker_id: Worker to check
+            
+        Returns:
+            True if worker is registered
+        """
+        return worker_id in self._workers
+    
+    def get_registered_workers(self) -> Set[str]:
+        """Get set of all registered worker IDs.
+        
+        Returns:
+            Set of worker IDs
+        """
+        return self._workers.copy()
+    
+    async def get_worker_status(self, worker_id: str) -> Optional[Dict[str, Any]]:
+        """Get detailed status of a worker.
+        
+        Args:
+            worker_id: Worker to get status for
+            
+        Returns:
+            Worker status dict or None if not found
+        """
+        async with self._lock:
+            worker_info = self._worker_info.get(worker_id)
+            if not worker_info:
+                return None
+            
+            return {
+                "id": worker_info.id,
+                "state": worker_info.state,
+                "capabilities": worker_info.capabilities,
+                "last_heartbeat": worker_info.last_heartbeat,
+                "assigned_task": worker_info.assigned_task,
+                "registration_time": worker_info.registration_time
+            }
+    
+    async def get_workers_by_state(self, state: str) -> Set[str]:
+        """Get workers in a specific state.
+        
+        Args:
+            state: State to filter by (idle, active, failed)
+            
+        Returns:
+            Set of worker IDs in the specified state
+        """
+        async with self._lock:
+            return {
+                worker_id 
+                for worker_id, info in self._worker_info.items()
+                if info.state == state
+            }
+    
+    async def get_workers_by_capability(self, capability: str) -> Set[str]:
+        """Get workers with a specific capability.
+        
+        Args:
+            capability: Capability to filter by (e.g., agent type)
+            
+        Returns:
+            Set of worker IDs with the capability
+        """
+        async with self._lock:
+            result = set()
+            for worker_id, info in self._worker_info.items():
+                agent_types = info.capabilities.get("agent_types", [])
+                if capability in agent_types:
+                    result.add(worker_id)
+            return result
