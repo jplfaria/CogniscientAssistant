@@ -266,9 +266,70 @@ To use this complete workflow for another project:
 4. **Automated Documentation**: Generate docs from implementation
 5. **Continuous Deployment**: Automated deployment on quality gates
 
+## The Loop Philosophy and Memory Model
+
+### Why Loops Instead of Continuous Sessions?
+
+The loop-based approach is fundamental to achieving reliable AI-assisted development:
+
+1. **Fresh Perspective Each Iteration**
+   - Each loop creates a new AI instance with no memory of previous iterations
+   - Prevents assumption buildup and drift from specifications
+   - Forces re-reading of specs and current state each time
+
+2. **Spec-Driven Development**
+   - Every iteration starts by reading specifications
+   - Implementation decisions based on documented requirements, not memory
+   - Ensures consistency with original design
+
+3. **Quality Gates Between Iterations**
+   - Tests must pass before proceeding
+   - Coverage thresholds enforced
+   - Human review points built in
+
+### Memory Model: What Persists vs What Doesn't
+
+#### What DOESN'T Persist Between Iterations:
+- Specific implementation decisions from previous loops
+- Temporary reasoning or assumptions
+- Any "learning" from previous attempts
+- Context about why certain choices were made
+
+#### What DOES Persist (Via Files):
+- **Git History**: Complete record of all changes
+- **IMPLEMENTATION_PLAN.md**: Progress tracking with checkboxes
+- **Source Code**: All created/modified files
+- **Tests**: Documented expected behavior
+- **Comments/Docstrings**: Implementation context
+
+### The Workflow in Practice
+
+```bash
+# 1. Exit current Claude Code session
+# 2. Run implementation loop
+./run-implementation-loop-validated.sh
+
+# 3. After iteration completes, restart Claude Code to:
+#    - Review what was implemented
+#    - Run tests manually  
+#    - Debug any issues
+#    - Understand the code
+
+# 4. Continue loop or fix issues
+# 5. Repeat until complete
+```
+
+### Why This Works Better Than Continuous Sessions
+
+1. **Prevents Drift**: Can't gradually move away from specs
+2. **Enforces Discipline**: Must follow process each time
+3. **Traceable Progress**: Everything documented in files
+4. **Recoverable State**: Can always restart from known good state
+5. **Parallel Development**: Multiple loops can work on different components
+
 ## The "Nothing Here Yet" Pattern
 
-A critical discovery in this workflow is the "Nothing here yet" pattern for both SPECS_PLAN.md and IMPLEMENTATION_PLAN.md:
+A critical discovery that enables the loop approach:
 
 ### Why It Works
 1. **Forces Complete Understanding**: AI must read all materials to create a plan
@@ -280,7 +341,7 @@ A critical discovery in this workflow is the "Nothing here yet" pattern for both
 1. **First Run**: AI reads everything and creates the plan
 2. **Subsequent Runs**: AI executes the plan it created
 
-This pattern is essential - it's how we ensure AI truly understands the system rather than just following a template.
+This pattern combined with the loop approach ensures AI truly understands the system rather than just following a template.
 
 ## Conclusion
 
