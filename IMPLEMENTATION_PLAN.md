@@ -128,6 +128,15 @@ This plan breaks down the implementation into atomic, testable units following T
 
 ## Phase 7: BAML Infrastructure Setup
 
+### Argo Gateway Setup
+- [ ] Install argo-proxy package (`pip install argo-proxy`)
+- [ ] Run initial configuration wizard
+- [ ] Create startup helper script
+- [ ] Test connectivity to Argo endpoints
+- [ ] Verify model access (gpt4o, gpto3mini, claudeopus4, gemini25pro)
+- [ ] Create .env.example with proxy configuration
+- [ ] Document setup process in README
+
 ### Core BAML Configuration
 - [ ] Set up baml_src directory structure
 - [ ] Create clients.baml with Argo Gateway configuration

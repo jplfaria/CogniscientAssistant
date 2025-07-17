@@ -317,6 +317,39 @@ git commit -m "feat: implement [component] - [what you did]"
 - Monitor research directions
 - Log everything for auditing
 
+## 🔒 SECURITY REQUIREMENTS - ARGO GATEWAY
+
+### NEVER COMMIT SENSITIVE INFORMATION
+- **Username**: Your Argo username (e.g., jplfaria) must NEVER appear in code
+- **API Documentation**: The argo-api-documentation.md file is already in .gitignore
+- **API Keys**: Even though Argo doesn't require keys, never hardcode credentials
+- **URLs**: Internal Argonne URLs should not be in public code
+
+### SECURE CONFIGURATION PATTERN
+```python
+# GOOD: Use environment variables
+user = os.getenv("ARGO_USER")  # Set in local .env file
+
+# BAD: Never do this
+user = "jplfaria"  # NEVER hardcode usernames
+```
+
+### ARGO PROXY SETUP
+1. **Install**: `pip install argo-proxy`
+2. **Configure**: Run `argo-proxy` for interactive setup
+3. **Start**: Use `./scripts/start-argo-proxy.sh`
+4. **Test**: Run `./scripts/test-argo-models.py`
+
+### ENVIRONMENT FILES
+- `.env.example` - Template with dummy values (commit this)
+- `.env` - Your actual configuration (NEVER commit this)
+- Ensure `.env` is in `.gitignore`
+
+### VPN REQUIREMENTS
+- Must be connected to Argonne VPN for Argo access
+- Proxy runs locally on your machine (localhost:8050)
+- All LLM calls go through the local proxy
+
 ## 📊 VERIFICATION AGAINST SPECS
 
 **After implementing each component:**
