@@ -30,6 +30,8 @@ class QueueConfig:
     priority_quotas: Dict[str, int] = None
     worker_timeout: int = 300
     heartbeat_interval: int = 30
+    heartbeat_timeout: int = 60  # Worker considered dead after this many seconds
+    heartbeat_check_interval: int = 15  # How often to check for dead workers
     retry_policy: Dict[str, Any] = None
     persistence_interval: int = 60
     starvation_threshold: int = 3600
@@ -109,6 +111,13 @@ class TaskQueue:
         
         # Capability matching
         self._capability_matching_enabled = False
+        
+        # Heartbeat monitoring
+        self._monitoring_task: Optional[asyncio.Task] = None
+        self._monitoring_stopped = False
+        
+        # Task progress tracking
+        self._task_progress: Dict[str, Dict[str, Any]] = {}
         
         # Lock for thread-safe operations
         self._lock = asyncio.Lock()
@@ -565,6 +574,133 @@ class TaskQueue:
             
             return True
     
+    async def heartbeat(self, worker_id: str, progress: Optional[Dict[str, Any]] = None) -> bool:
+        """Update worker heartbeat timestamp.
+        
+        Args:
+            worker_id: Worker sending heartbeat
+            progress: Optional task progress update
+            
+        Returns:
+            True if heartbeat recorded successfully
+        """
+        async with self._lock:
+            if worker_id not in self._worker_info:
+                return False
+            
+            # Update heartbeat timestamp
+            self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+            
+            # If worker was failed, recover it
+            if self._worker_info[worker_id].state == "failed":
+                self._worker_info[worker_id].state = "idle"
+            
+            # Update task progress if provided
+            if progress and self._worker_info[worker_id].assigned_task:
+                task_id = self._worker_info[worker_id].assigned_task
+                self._task_progress[task_id] = progress
+            
+            return True
+    
+    async def check_dead_workers(self) -> Set[str]:
+        """Check for workers that haven't sent heartbeats.
+        
+        Returns:
+            Set of worker IDs that are considered dead
+        """
+        async with self._lock:
+            dead_workers = set()
+            now = datetime.utcnow()
+            timeout = timedelta(seconds=self.config.heartbeat_timeout)
+            
+            for worker_id, info in self._worker_info.items():
+                if info.state != "failed":  # Don't recheck already failed workers
+                    time_since_heartbeat = now - info.last_heartbeat
+                    if time_since_heartbeat > timeout:
+                        dead_workers.add(worker_id)
+            
+            return dead_workers
+    
+    async def process_dead_workers(self) -> None:
+        """Process workers that are considered dead."""
+        dead_workers = await self.check_dead_workers()
+        
+        async with self._lock:
+            for worker_id in dead_workers:
+                # Mark worker as failed
+                self._worker_info[worker_id].state = "failed"
+                
+                # Handle any assigned task
+                assigned_task_id = self._worker_info[worker_id].assigned_task
+                if assigned_task_id:
+                    task = self._tasks.get(assigned_task_id)
+                    if task:
+                        # Reset task state
+                        task.state = TaskState.PENDING
+                        task.assigned_to = None
+                        task.assigned_at = None
+                        self._task_states[assigned_task_id] = TaskState.PENDING
+                        
+                        # Re-queue the task
+                        priority_queue = self._queues.get(task.priority)
+                        if priority_queue is not None:
+                            priority_queue.append(assigned_task_id)
+                        
+                        # Clear assignment tracking
+                        for assignment_id, tid in list(self._assignment_to_task.items()):
+                            if tid == assigned_task_id:
+                                del self._active_assignments[assignment_id]
+                                del self._assignment_to_task[assignment_id]
+                                del self._assignment_to_worker[assignment_id]
+                                break
+                    
+                    # Clear worker task assignment
+                    self._worker_info[worker_id].assigned_task = None
+                    self._active_workers.discard(worker_id)
+    
+    async def monitor_heartbeats(self) -> None:
+        """Background task to monitor worker heartbeats."""
+        while not self._monitoring_stopped:
+            try:
+                await self.process_dead_workers()
+                await asyncio.sleep(self.config.heartbeat_check_interval)
+            except Exception as e:
+                # Log error but continue monitoring
+                print(f"Error in heartbeat monitoring: {e}")
+                await asyncio.sleep(self.config.heartbeat_check_interval)
+    
+    def stop_monitoring(self) -> None:
+        """Stop the heartbeat monitoring task."""
+        self._monitoring_stopped = True
+    
+    async def get_heartbeat_metrics(self) -> Dict[str, Any]:
+        """Get metrics about worker heartbeats.
+        
+        Returns:
+            Dictionary with heartbeat metrics
+        """
+        async with self._lock:
+            total_workers = len(self._worker_info)
+            healthy_workers = sum(1 for info in self._worker_info.values() if info.state != "failed")
+            failed_workers = sum(1 for info in self._worker_info.values() if info.state == "failed")
+            
+            # Calculate average heartbeat age
+            now = datetime.utcnow()
+            heartbeat_ages = []
+            for info in self._worker_info.values():
+                if info.state != "failed":
+                    age = (now - info.last_heartbeat).total_seconds()
+                    heartbeat_ages.append(age)
+            
+            avg_heartbeat_age = sum(heartbeat_ages) / len(heartbeat_ages) if heartbeat_ages else 0
+            
+            return {
+                "total_workers": total_workers,
+                "healthy_workers": healthy_workers,
+                "failed_workers": failed_workers,
+                "average_heartbeat_age": avg_heartbeat_age
+            }
+    
     async def check_assignment_timeouts(self) -> None:
         """Check for timed out task assignments."""
         async with self._lock:
@@ -628,5 +764,6 @@ class TaskQueue:
                 "assigned_to": task.assigned_to,
                 "assigned_at": task.assigned_at,
                 "retry_count": self._task_retry_counts.get(task_id, 0),
-                "failure_history": self._task_failure_history.get(task_id, [])
+                "failure_history": self._task_failure_history.get(task_id, []),
+                "progress": self._task_progress.get(task_id, {})
             }
