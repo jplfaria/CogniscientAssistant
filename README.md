@@ -5,32 +5,39 @@ A multi-agent system for scientific hypothesis generation and research automatio
 ## Project Status
 
 ✅ **Specification Phase**: Complete (28 specs)  
-🚧 **Implementation Phase**: Starting
+🚧 **Implementation Phase**: In Progress (Phase 3 - Queue Mechanics)
 
 ## Quick Start for Implementation
 
 ```bash
-# Run the implementation loop
-./run-implementation-loop-improved.sh
+# Run the validated implementation loop
+./run-implementation-loop-validated.sh
 
-# Or run continuously
-./run-implementation-loop-improved.sh --letitrip
+# Or run continuously with automatic progression
+./run-implementation-loop-validated.sh --letitrip
 ```
 
 ## Project Structure
 
 ```
 .
-├── specs/                    # Complete behavioral specifications (001-028)
-├── src/                      # Implementation code (to be created)
-├── tests/                    # Test suite (to be created)
-├── docs/                     # Documentation
-│   └── spec-development/     # Historical spec development files
-├── IMPLEMENTATION_PLAN.md    # Current implementation tasks
-├── CLAUDE.md                 # Implementation guidelines
-├── prompt.md                 # Implementation task prompt
-├── BAML_SCHEMAS.md          # BAML templates for agents
-└── run-implementation-loop-improved.sh  # Implementation automation
+├── specs/                          # Complete behavioral specifications (001-028)
+├── src/                            # Implementation code
+│   └── core/                       # Core infrastructure components
+│       ├── models.py               # Data models (Task, Worker, etc.)
+│       └── task_queue.py           # Task queue implementation
+├── tests/                          # Test suite
+│   ├── unit/                       # Unit tests
+│   └── integration/                # Integration test harnesses
+├── docs/                           # Documentation
+│   ├── spec-development/           # Historical spec development
+│   ├── archive/                    # Archived workflow files
+│   └── AI_ASSISTED_DEVELOPMENT_WORKFLOW.md  # Complete workflow guide
+├── IMPLEMENTATION_PLAN.md          # Current implementation tasks (living document)
+├── INTEGRATION_TESTING_PLAN.md     # Integration testing strategy
+├── CLAUDE.md                       # Implementation guidelines for AI
+├── prompt.md                       # Implementation task prompt
+└── run-implementation-loop-validated.sh  # Primary implementation automation
 
 ```
 

@@ -132,5 +132,5 @@ Example of atomic features:
 
 When in doubt:
 1. Re-read the relevant specification
-2. Check IMPLEMENTATION_RULES.md for TDD guidelines
+2. Check docs/archive/IMPLEMENTATION_RULES.md for TDD guidelines
 3. Ensure tests pass before moving on

@@ -25,5 +25,6 @@ These files document the successful specification phase but should not be refere
 - `/CLAUDE.md` - Implementation guidelines
 - `/prompt.md` - Implementation prompt
 - `/IMPLEMENTATION_PLAN.md` - Current implementation tracking
-- `/run-implementation-loop-improved.sh` - Implementation automation script
-- `/BAML_SCHEMAS.md` - BAML templates for implementation
+- `/run-implementation-loop-validated.sh` - Primary implementation automation script
+- `/INTEGRATION_TESTING_PLAN.md` - Integration testing strategy
+- `/docs/archive/` - Historical workflow files (BAML_SCHEMAS.md, IMPLEMENTATION_RULES.md, etc.)
