@@ -1,7 +1,7 @@
 """Tests for worker heartbeat tracking in TaskQueue."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -96,7 +96,7 @@ class TestWorkerHeartbeat:
         
         # Manually set worker1's last heartbeat to be old
         async with task_queue._lock:
-            old_time = datetime.utcnow() - timedelta(seconds=90)
+            old_time = datetime.now(timezone.utc) - timedelta(seconds=90)
             task_queue._worker_info[worker1_id].last_heartbeat = old_time
         
         # Check for dead workers
@@ -128,7 +128,7 @@ class TestWorkerHeartbeat:
         
         # Manually mark worker as dead
         async with task_queue._lock:
-            old_time = datetime.utcnow() - timedelta(seconds=90)
+            old_time = datetime.now(timezone.utc) - timedelta(seconds=90)
             task_queue._worker_info[worker_id].last_heartbeat = old_time
         
         # Process dead workers
@@ -157,7 +157,7 @@ class TestWorkerHeartbeat:
         
         # Manually set worker's heartbeat to be old
         async with task_queue._lock:
-            old_time = datetime.utcnow() - timedelta(seconds=90)
+            old_time = datetime.now(timezone.utc) - timedelta(seconds=90)
             task_queue._worker_info[worker_id].last_heartbeat = old_time
         
         # Wait for next monitoring cycle
@@ -198,7 +198,7 @@ class TestWorkerHeartbeat:
         
         # Set one worker as dead
         async with task_queue._lock:
-            old_time = datetime.utcnow() - timedelta(seconds=90)
+            old_time = datetime.now(timezone.utc) - timedelta(seconds=90)
             task_queue._worker_info[worker1_id].last_heartbeat = old_time
             task_queue._worker_info[worker1_id].state = "failed"
         
@@ -222,7 +222,7 @@ class TestWorkerHeartbeat:
         
         # Set heartbeat to 15 seconds ago
         async with queue._lock:
-            old_time = datetime.utcnow() - timedelta(seconds=15)
+            old_time = datetime.now(timezone.utc) - timedelta(seconds=15)
             queue._worker_info[worker_id].last_heartbeat = old_time
         
         # Check for dead workers
@@ -250,5 +250,5 @@ class TestWorkerHeartbeat:
                 last_heartbeat = datetime.fromisoformat(status["last_heartbeat"])
             else:
                 last_heartbeat = status["last_heartbeat"]
-            age = (datetime.utcnow() - last_heartbeat).total_seconds()
+            age = (datetime.now(timezone.utc) - last_heartbeat).total_seconds()
             assert age < 1.0  # Less than 1 second old

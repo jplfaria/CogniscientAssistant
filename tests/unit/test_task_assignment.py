@@ -1,7 +1,7 @@
 """Tests for TaskQueue task assignment logic."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pytest
@@ -102,7 +102,7 @@ class TestTaskAssignment:
         assert assignment is not None
         
         # Check acknowledgment deadline is set
-        now = datetime.utcnow().timestamp()
+        now = datetime.now(timezone.utc).timestamp()
         assert assignment.acknowledgment_required_by > now
         assert assignment.acknowledgment_required_by <= now + 5  # 5 second window
         

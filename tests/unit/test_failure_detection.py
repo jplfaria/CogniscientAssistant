@@ -1,7 +1,7 @@
 """Test failure detection and recovery in TaskQueue."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 import pytest
 
@@ -49,7 +49,7 @@ class TestFailureDetection:
         assert assignment is not None
         
         # Simulate worker timeout by setting old heartbeat directly
-        old_time = datetime.utcnow() - timedelta(seconds=3)
+        old_time = datetime.now(timezone.utc) - timedelta(seconds=3)
         queue._worker_info["worker1"].last_heartbeat = old_time
         
         # Check for dead workers
@@ -98,7 +98,7 @@ class TestFailureDetection:
         await queue.acknowledge_task("worker1", assignment1.assignment_id)
         
         # Simulate worker failure
-        queue._worker_info["worker1"].last_heartbeat = datetime.utcnow() - timedelta(seconds=3)
+        queue._worker_info["worker1"].last_heartbeat = datetime.now(timezone.utc) - timedelta(seconds=3)
         
         # Process dead workers
         await queue.process_dead_workers()
@@ -137,7 +137,7 @@ class TestFailureDetection:
         # Simulate failure of workers 1, 2, and 3
         failed_workers = ["worker1", "worker2", "worker3"]
         for worker_id in failed_workers:
-            queue._worker_info[worker_id].last_heartbeat = datetime.utcnow() - timedelta(seconds=3)
+            queue._worker_info[worker_id].last_heartbeat = datetime.now(timezone.utc) - timedelta(seconds=3)
         
         # Process dead workers
         await queue.process_dead_workers()
@@ -348,7 +348,7 @@ class TestFailureDetection:
         monitor_task = asyncio.create_task(queue.monitor_heartbeats())
         
         # Set worker heartbeat to expired
-        queue._worker_info["worker1"].last_heartbeat = datetime.utcnow() - timedelta(seconds=3)
+        queue._worker_info["worker1"].last_heartbeat = datetime.now(timezone.utc) - timedelta(seconds=3)
         
         # Wait for monitoring to process
         await asyncio.sleep(1.5)
