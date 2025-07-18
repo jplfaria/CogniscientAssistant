@@ -1,5 +1,6 @@
 """Safety framework models and utilities for AI Co-Scientist."""
 
+import asyncio
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -530,3 +531,241 @@ class SafetyLogger:
             return "Enhanced monitoring for restricted level"
         else:
             return "Logged for monitoring"
+
+
+class SafetyMetricsCollector:
+    """Collects and aggregates safety-related metrics for monitoring and reporting."""
+    
+    def __init__(self, config: SafetyConfig):
+        """Initialize the metrics collector.
+        
+        Args:
+            config: SafetyConfig instance with settings
+        """
+        self.config = config
+        self.metrics: Dict = {}
+        self._start_time = datetime.now(timezone.utc)
+        self._alert_thresholds: Dict[str, float] = {}
+        self._time_series_data: List[Dict] = []
+        self._lock = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
+        
+        # Initialize metric categories
+        self._initialize_metrics()
+    
+    def _initialize_metrics(self) -> None:
+        """Initialize empty metric categories."""
+        self.metrics = {
+            "safety_checks": {
+                "total": 0,
+                "by_type": {},
+                "by_decision": {},
+                "safety_scores": []
+            },
+            "pattern_alerts": {
+                "total": 0,
+                "by_pattern": {},
+                "by_severity": {}
+            }
+        }
+    
+    def record_safety_check(self, check_type: str, safety_check: SafetyCheck) -> None:
+        """Record a safety check result.
+        
+        Args:
+            check_type: Type of check (e.g., "research_goal", "hypothesis")
+            safety_check: SafetyCheck instance with results
+        """
+        # Update total count
+        self.metrics["safety_checks"]["total"] += 1
+        
+        # Update by type
+        if check_type not in self.metrics["safety_checks"]["by_type"]:
+            self.metrics["safety_checks"]["by_type"][check_type] = 0
+        self.metrics["safety_checks"]["by_type"][check_type] += 1
+        
+        # Update by decision
+        decision = safety_check.decision.value
+        if decision not in self.metrics["safety_checks"]["by_decision"]:
+            self.metrics["safety_checks"]["by_decision"][decision] = 0
+        self.metrics["safety_checks"]["by_decision"][decision] += 1
+        
+        # Store safety score
+        self.metrics["safety_checks"]["safety_scores"].append(safety_check.safety_score)
+        
+        # Add to time series
+        self._time_series_data.append({
+            "timestamp": datetime.now(timezone.utc),
+            "type": "safety_check",
+            "check_type": check_type,
+            "decision": decision,
+            "safety_score": safety_check.safety_score
+        })
+    
+    def record_pattern_alert(self, pattern: str, severity: str) -> None:
+        """Record a pattern alert.
+        
+        Args:
+            pattern: Pattern type that triggered the alert
+            severity: Severity level (high/medium/low)
+        """
+        # Update total count
+        self.metrics["pattern_alerts"]["total"] += 1
+        
+        # Update by pattern
+        if pattern not in self.metrics["pattern_alerts"]["by_pattern"]:
+            self.metrics["pattern_alerts"]["by_pattern"][pattern] = 0
+        self.metrics["pattern_alerts"]["by_pattern"][pattern] += 1
+        
+        # Update by severity
+        if severity not in self.metrics["pattern_alerts"]["by_severity"]:
+            self.metrics["pattern_alerts"]["by_severity"][severity] = 0
+        self.metrics["pattern_alerts"]["by_severity"][severity] += 1
+        
+        # Add to time series
+        self._time_series_data.append({
+            "timestamp": datetime.now(timezone.utc),
+            "type": "pattern_alert",
+            "pattern": pattern,
+            "severity": severity
+        })
+    
+    def get_average_safety_score(self) -> float:
+        """Calculate the average safety score across all checks.
+        
+        Returns:
+            Average safety score (0.0 to 1.0)
+        """
+        scores = self.metrics["safety_checks"]["safety_scores"]
+        if not scores:
+            return 1.0
+        return sum(scores) / len(scores)
+    
+    def get_metrics_summary(self) -> Dict:
+        """Get a summary of all collected metrics.
+        
+        Returns:
+            Dictionary with metrics summary
+        """
+        uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
+        
+        return {
+            "total_safety_checks": self.metrics["safety_checks"]["total"],
+            "average_safety_score": self.get_average_safety_score(),
+            "total_pattern_alerts": self.metrics["pattern_alerts"]["total"],
+            "uptime_seconds": uptime,
+            "metrics_by_type": self.metrics["safety_checks"]["by_type"],
+            "metrics_by_decision": self.metrics["safety_checks"]["by_decision"],
+            "pattern_alerts_by_pattern": self.metrics["pattern_alerts"]["by_pattern"],
+            "pattern_alerts_by_severity": self.metrics["pattern_alerts"]["by_severity"]
+        }
+    
+    def get_hourly_metrics(self) -> List[Dict]:
+        """Get metrics aggregated by hour.
+        
+        Returns:
+            List of hourly metric summaries
+        """
+        hourly_data: Dict[str, Dict] = {}
+        
+        for entry in self._time_series_data:
+            # Round timestamp to hour
+            hour_key = entry["timestamp"].strftime("%Y-%m-%d %H:00:00")
+            
+            if hour_key not in hourly_data:
+                hourly_data[hour_key] = {
+                    "hour": hour_key,
+                    "count": 0,
+                    "safety_checks": 0,
+                    "pattern_alerts": 0
+                }
+            
+            hourly_data[hour_key]["count"] += 1
+            
+            if entry["type"] == "safety_check":
+                hourly_data[hour_key]["safety_checks"] += 1
+            elif entry["type"] == "pattern_alert":
+                hourly_data[hour_key]["pattern_alerts"] += 1
+        
+        # Convert to sorted list
+        return sorted(hourly_data.values(), key=lambda x: x["hour"])
+    
+    def reset_metrics(self) -> None:
+        """Reset all collected metrics."""
+        self._initialize_metrics()
+        self._time_series_data = []
+        self._start_time = datetime.now(timezone.utc)
+    
+    def export_metrics(self, export_path: Path) -> None:
+        """Export metrics to a JSON file.
+        
+        Args:
+            export_path: Path where to save the metrics
+        """
+        export_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "total_safety_checks": self.metrics["safety_checks"]["total"],
+            "average_safety_score": self.get_average_safety_score(),
+            "total_pattern_alerts": self.metrics["pattern_alerts"]["total"],
+            "metrics": self.metrics,
+            "time_series_count": len(self._time_series_data)
+        }
+        
+        with open(export_path, 'w') as f:
+            json.dump(export_data, f, indent=2)
+    
+    def get_metrics_by_time_range(self, start_time: datetime, end_time: datetime) -> Dict:
+        """Get metrics for a specific time range.
+        
+        Args:
+            start_time: Start of time range
+            end_time: End of time range
+            
+        Returns:
+            Metrics within the specified range
+        """
+        filtered_data = [
+            entry for entry in self._time_series_data
+            if start_time <= entry["timestamp"] <= end_time
+        ]
+        
+        return {
+            "total_checks_in_range": len(filtered_data),
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+            "data": filtered_data
+        }
+    
+    def set_alert_threshold(self, metric_name: str, threshold: float) -> None:
+        """Set an alert threshold for a specific metric.
+        
+        Args:
+            metric_name: Name of the metric to monitor
+            threshold: Threshold value that triggers an alert
+        """
+        self._alert_thresholds[metric_name] = threshold
+    
+    def get_active_alerts(self) -> List[Dict]:
+        """Get list of currently active alerts based on thresholds.
+        
+        Returns:
+            List of active alerts
+        """
+        alerts = []
+        
+        # Check unsafe rate threshold
+        if "unsafe_rate" in self._alert_thresholds:
+            total_checks = self.metrics["safety_checks"]["total"]
+            unsafe_checks = self.metrics["safety_checks"]["by_decision"].get("unsafe", 0)
+            
+            if total_checks > 0:
+                unsafe_rate = unsafe_checks / total_checks
+                
+                if unsafe_rate >= self._alert_thresholds["unsafe_rate"]:
+                    alerts.append({
+                        "type": "unsafe_rate",
+                        "threshold": self._alert_thresholds["unsafe_rate"],
+                        "current_value": unsafe_rate,
+                        "message": f"Unsafe rate ({unsafe_rate:.1%}) exceeds threshold"
+                    })
+        
+        return alerts

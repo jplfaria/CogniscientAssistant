@@ -123,8 +123,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for safety logger
 - [x] Add configurable trust levels
 - [x] Write tests for trust configuration
-- [ ] Create safety metrics collector
-- [ ] Write tests for metrics collection
+- [x] Create safety metrics collector
+- [x] Write tests for metrics collection
 
 ### Safety Integration
 - [ ] Create optional safety middleware
