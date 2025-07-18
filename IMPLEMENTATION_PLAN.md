@@ -118,11 +118,11 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for safety models
 
 ### Lightweight Safety System
-- [ ] Create SafetyConfig dataclass
-- [ ] Implement SafetyLogger for monitoring
-- [ ] Write tests for safety logger
-- [ ] Add configurable trust levels
-- [ ] Write tests for trust configuration
+- [x] Create SafetyConfig dataclass
+- [x] Implement SafetyLogger for monitoring
+- [x] Write tests for safety logger
+- [x] Add configurable trust levels
+- [x] Write tests for trust configuration
 - [ ] Create safety metrics collector
 - [ ] Write tests for metrics collection
 
