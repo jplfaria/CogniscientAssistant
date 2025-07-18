@@ -27,17 +27,23 @@ This allows the validation loop to distinguish between:
 - Expected failures that are informational only
 - Unexpected failures that need investigation
 
-### 2. Phase-Aligned Testing
+### 3. Phase-Aligned Testing
 - Tests are organized by implementation phase
 - Only test functionality that has been implemented
 - Tests build progressively as more components are added
+- Integration tests start at Phase 3 (first integrable components)
 
-### 3. Real Workflow Validation
+### 4. Real Workflow Validation
 - Test actual AI Co-Scientist use cases
 - Simulate agent interactions without implementing agents
 - Validate that components integrate correctly
 
 ## Testing Milestones by Phase
+
+### Why Integration Tests Start at Phase 3
+- **Phase 1**: Project setup - no code to integrate
+- **Phase 2**: Core models - unit tests only, no integration needed
+- **Phase 3**: First integrable component (Task Queue) - integration tests begin
 
 ### Milestone 1: Task Queue Workflow (Phase 3 - CURRENT)
 **Status**: Ready to implement  
@@ -74,9 +80,41 @@ This allows the validation loop to distinguish between:
 3. **Thread Isolation**: Different threads don't interfere
 4. **Evolution Tracking**: Hypothesis changes tracked over time
 
-### Milestone 3: BAML Functions Work (Phase 5-6)
+### Milestone 3: Safety Framework (Phase 5)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase6_baml_calls.py`
+**Location**: `tests/integration/phase5_safety_framework.py`
+
+**Key Validations**:
+- ✓ Safety checks integrated with queue
+- ✓ Research goal validation works
+- ✓ Hypothesis safety evaluation
+- ✓ Pattern monitoring functions
+
+**Test Scenarios**:
+1. **Safety Integration**: Queue respects safety boundaries
+2. **Goal Validation**: Unsafe research goals rejected
+3. **Hypothesis Filtering**: Unsafe hypotheses blocked
+4. **Monitoring**: Pattern detection works
+
+### Milestone 4: LLM Abstraction (Phase 6)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase6_llm_abstraction.py`
+
+**Key Validations**:
+- ✓ LLM abstraction interface works
+- ✓ Rate limiting functions
+- ✓ Failover mechanism works
+- ✓ Mock responses function
+
+**Test Scenarios**:
+1. **Interface Testing**: Abstraction layer works
+2. **Rate Limiting**: Respects API limits
+3. **Failover**: Handles LLM failures gracefully
+4. **Mocking**: Test infrastructure works
+
+### Milestone 5: BAML Infrastructure (Phase 7)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase7_baml_setup.py`
 
 **Key Validations**:
 - ✓ BAML schemas compile correctly
@@ -90,9 +128,9 @@ This allows the validation loop to distinguish between:
 3. **Error Handling**: Graceful handling of LLM errors
 4. **Response Parsing**: Structured data extracted correctly
 
-### Milestone 4: First Agent Orchestration (Phase 7)
+### Milestone 6: Supervisor Agent (Phase 8)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase7_supervisor_orchestration.py`
+**Location**: `tests/integration/phase8_supervisor_orchestration.py`
 
 **Key Validations**:
 - ✓ Supervisor creates correct tasks
@@ -106,9 +144,25 @@ This allows the validation loop to distinguish between:
 3. **Completion Tracking**: Supervisor knows when done
 4. **Error Recovery**: Failed tasks handled appropriately
 
-### Milestone 5: Generation → Reflection Pipeline (Phase 8)
+### Milestone 7: Generation Agent (Phase 9)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase8_generation_reflection.py`
+**Location**: `tests/integration/phase9_generation_agent.py`
+
+**Key Validations**:
+- ✓ Generation creates valid hypotheses
+- ✓ Different generation strategies work
+- ✓ Web search integration functions
+- ✓ Safety checks applied
+
+**Test Scenarios**:
+1. **Hypothesis Generation**: Valid hypotheses created
+2. **Strategy Testing**: All strategies function
+3. **External Integration**: Web search works
+4. **Safety Compliance**: Unsafe content filtered
+
+### Milestone 8: Reflection Agent (Phase 10)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase10_reflection_agent.py`
 
 **Key Validations**:
 - ✓ Generation creates valid hypotheses
@@ -122,9 +176,9 @@ This allows the validation loop to distinguish between:
 3. **Pipeline Flow**: Generation → Reflection works
 4. **Context Passing**: Information flows between agents
 
-### Milestone 6: Tournament System (Phase 9-10)
+### Milestone 9: Ranking Agent (Phase 11)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase10_tournament_ranking.py`
+**Location**: `tests/integration/phase11_ranking_agent.py`
 
 **Key Validations**:
 - ✓ Elo ratings update correctly
@@ -138,9 +192,89 @@ This allows the validation loop to distinguish between:
 3. **Ranking Accuracy**: Better hypotheses rank higher
 4. **History Tracking**: All comparisons recorded
 
-### Milestone 7: Full System (Phase 11+)
+### Milestone 10: Evolution Agent (Phase 12)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase11_full_system.py`
+**Location**: `tests/integration/phase12_evolution_agent.py`
+
+**Key Validations**:
+- ✓ Evolution strategies work
+- ✓ Hypothesis enhancement functions
+- ✓ Combination logic works
+- ✓ Quality improves
+
+**Test Scenarios**:
+1. **Enhancement**: Hypotheses get better
+2. **Combination**: Merging works correctly
+3. **Simplification**: Complexity reduction works
+4. **Paradigm Shifts**: Novel approaches generated
+
+### Milestone 11: Proximity Agent (Phase 13)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase13_proximity_agent.py`
+
+**Key Validations**:
+- ✓ Similarity calculations work
+- ✓ Clustering functions correctly
+- ✓ Integration with other agents
+- ✓ Performance acceptable
+
+**Test Scenarios**:
+1. **Similarity**: Calculations are accurate
+2. **Clustering**: Groups form correctly
+3. **Integration**: Works with hypothesis flow
+4. **Scale**: Handles many hypotheses
+
+### Milestone 12: Meta-Review Agent (Phase 14)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase14_meta_review.py`
+
+**Key Validations**:
+- ✓ Pattern extraction works
+- ✓ Feedback generation functions
+- ✓ Research synthesis accurate
+- ✓ Integrates all agent outputs
+
+**Test Scenarios**:
+1. **Pattern Detection**: Finds research themes
+2. **Feedback Quality**: Actionable insights
+3. **Synthesis**: Coherent overview
+4. **Integration**: Uses all agent data
+
+### Milestone 13: Natural Language Interface (Phase 15)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase15_cli_interface.py`
+
+**Key Validations**:
+- ✓ CLI commands work
+- ✓ Goal parsing functions
+- ✓ Interactive mode works
+- ✓ Output formatting correct
+
+**Test Scenarios**:
+1. **Command Testing**: All commands work
+2. **Input Parsing**: Goals understood
+3. **Interaction**: Responsive interface
+4. **Output**: Clear, formatted results
+
+### Milestone 14: Full Integration (Phase 16)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase16_full_integration.py`
+
+**Key Validations**:
+- ✓ Complete research cycle works
+- ✓ All agents collaborate
+- ✓ Output formatting works
+- ✓ Performance acceptable
+
+**Test Scenarios**:
+1. **End-to-End**: Goal → Results works
+2. **Agent Coordination**: Smooth handoffs
+3. **Output Quality**: Publication-ready
+4. **Performance**: Reasonable time/resources
+
+### Milestone 15: Final Validation (Phase 17)
+**Status**: Pending implementation  
+**Location**: `tests/integration/phase17_final_validation.py`
 
 **Key Validations**:
 - ✓ Complete research cycle works

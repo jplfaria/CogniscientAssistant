@@ -38,33 +38,38 @@ detect_implementation_phase() {
         return
     fi
     
-    # Check which phase we're in based on uncompleted tasks
-    if grep -A30 "## Phase 4: Context Memory" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "4"
-    elif grep -A30 "## Phase 3: Task Queue" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "3"
-    elif grep -A30 "## Phase 5: Safety Framework" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "5"
-    elif grep -A30 "## Phase 6: LLM Abstraction" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "6"
-    elif grep -A30 "## Phase 7: Supervisor Agent" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "7"
-    elif grep -A30 "## Phase 8:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "8"
-    elif grep -A30 "## Phase 9:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "9"
-    elif grep -A30 "## Phase 10:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "10"
-    elif grep -A30 "## Phase 11:" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
-        echo "11"
-    else
-        # Check if any phase 3 tasks are still pending
-        if grep -A30 "## Phase 3: Task Queue" IMPLEMENTATION_PLAN.md | grep -q "^\- \[x\]"; then
-            echo "3"  # Phase 3 completed
-        else
-            echo "0"  # Unknown or no phase detected
+    # Check phases in order - return the first one with uncompleted tasks
+    for phase in $(seq 1 17); do
+        # Get the phase header pattern
+        case $phase in
+            1) pattern="## Phase 1: Project Setup" ;;
+            2) pattern="## Phase 2: Core Data Models" ;;
+            3) pattern="## Phase 3: Task Queue" ;;
+            4) pattern="## Phase 4: Context Memory" ;;
+            5) pattern="## Phase 5: Safety Framework" ;;
+            6) pattern="## Phase 6: LLM Abstraction" ;;
+            7) pattern="## Phase 7: BAML Infrastructure" ;;
+            8) pattern="## Phase 8: Supervisor Agent" ;;
+            9) pattern="## Phase 9: Generation Agent" ;;
+            10) pattern="## Phase 10: Reflection Agent" ;;
+            11) pattern="## Phase 11: Ranking Agent" ;;
+            12) pattern="## Phase 12: Evolution Agent" ;;
+            13) pattern="## Phase 13: Proximity Agent" ;;
+            14) pattern="## Phase 14: Meta-Review Agent" ;;
+            15) pattern="## Phase 15: Natural Language" ;;
+            16) pattern="## Phase 16: Integration" ;;
+            17) pattern="## Phase 17: Final Validation" ;;
+        esac
+        
+        # Check if this phase has uncompleted tasks
+        if grep -A30 "$pattern" IMPLEMENTATION_PLAN.md | grep -q "^\- \[ \]"; then
+            echo "$phase"
+            return
         fi
-    fi
+    done
+    
+    # If we get here, all phases are complete or no phases found
+    echo "17"  # Assume final phase if all complete
 }
 
 # Function to analyze test failures against expectations

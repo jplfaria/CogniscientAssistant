@@ -1,4 +1,16 @@
 {
+  "phase_1": {
+    "name": "Project Setup and Structure",
+    "must_pass": [],
+    "may_fail": [],
+    "description": "No integration tests needed - setup phase only"
+  },
+  "phase_2": {
+    "name": "Core Data Models",
+    "must_pass": [],
+    "may_fail": [],
+    "description": "No integration tests needed - unit tests only"
+  },
   "phase_3": {
     "name": "Task Queue Implementation",
     "must_pass": [
@@ -35,18 +47,30 @@
     "description": "Safety checks must be enforced"
   },
   "phase_6": {
-    "name": "LLM Abstraction & BAML",
+    "name": "LLM Abstraction Layer",
     "must_pass": [
       "test_full_task_lifecycle",
+      "test_llm_abstraction_interface",
+      "test_rate_limiting"
+    ],
+    "may_fail": [
+      "test_baml_integration"
+    ],
+    "description": "LLM abstraction layer must function"
+  },
+  "phase_7": {
+    "name": "BAML Infrastructure Setup",
+    "must_pass": [
       "test_baml_schema_compilation",
-      "test_llm_mock_responses"
+      "test_baml_client_connectivity",
+      "test_baml_mock_responses"
     ],
     "may_fail": [
       "test_real_llm_calls"
     ],
-    "description": "BAML infrastructure must function"
+    "description": "BAML infrastructure must be properly configured"
   },
-  "phase_7": {
+  "phase_8": {
     "name": "Supervisor Agent",
     "must_pass": [
       "test_full_task_lifecycle",
@@ -58,20 +82,32 @@
     ],
     "description": "Supervisor must create and manage tasks"
   },
-  "phase_8": {
-    "name": "Generation & Reflection Agents",
+  "phase_9": {
+    "name": "Generation Agent",
     "must_pass": [
       "test_full_task_lifecycle",
       "test_supervisor_orchestration",
+      "test_hypothesis_generation"
+    ],
+    "may_fail": [
+      "test_hypothesis_reflection",
+      "test_ranking_tournament"
+    ],
+    "description": "Hypothesis generation must function"
+  },
+  "phase_10": {
+    "name": "Reflection Agent",
+    "must_pass": [
       "test_hypothesis_generation",
-      "test_hypothesis_reflection"
+      "test_hypothesis_reflection",
+      "test_review_types"
     ],
     "may_fail": [
       "test_ranking_tournament"
     ],
-    "description": "Basic hypothesis workflow must function"
+    "description": "Review system must work correctly"
   },
-  "phase_9": {
+  "phase_11": {
     "name": "Ranking Agent",
     "must_pass": [
       "test_hypothesis_generation",
@@ -84,27 +120,75 @@
     ],
     "description": "Tournament ranking system must work"
   },
-  "phase_10": {
-    "name": "Evolution & Proximity Agents",
+  "phase_12": {
+    "name": "Evolution Agent",
     "must_pass": [
       "test_hypothesis_generation",
       "test_ranking_tournament",
       "test_evolution_enhancement",
-      "test_similarity_clustering"
+      "test_evolution_strategies"
+    ],
+    "may_fail": [
+      "test_proximity_clustering"
+    ],
+    "description": "Hypothesis evolution must function"
+  },
+  "phase_13": {
+    "name": "Proximity Agent",
+    "must_pass": [
+      "test_hypothesis_generation",
+      "test_similarity_calculations",
+      "test_proximity_clustering"
     ],
     "may_fail": [
       "test_meta_review"
     ],
-    "description": "Hypothesis improvement must function"
+    "description": "Similarity and clustering must work"
   },
-  "phase_11": {
-    "name": "Meta-Review & CLI",
+  "phase_14": {
+    "name": "Meta-Review Agent",
     "must_pass": [
       "test_full_research_cycle",
       "test_meta_review_synthesis",
-      "test_cli_commands"
+      "test_pattern_extraction"
+    ],
+    "may_fail": [
+      "test_cli_integration"
+    ],
+    "description": "Meta-review synthesis must function"
+  },
+  "phase_15": {
+    "name": "Natural Language Interface",
+    "must_pass": [
+      "test_cli_commands",
+      "test_goal_parsing",
+      "test_interactive_mode"
+    ],
+    "may_fail": [
+      "test_full_system_integration"
+    ],
+    "description": "CLI interface must work correctly"
+  },
+  "phase_16": {
+    "name": "Integration and Polish",
+    "must_pass": [
+      "test_full_system_integration",
+      "test_end_to_end_workflow",
+      "test_output_formatting"
+    ],
+    "may_fail": [
+      "test_performance_benchmarks"
+    ],
+    "description": "Complete system integration must work"
+  },
+  "phase_17": {
+    "name": "Final Validation",
+    "must_pass": [
+      "test_full_system_integration",
+      "test_safety_validation",
+      "test_performance_benchmarks"
     ],
     "may_fail": [],
-    "description": "Complete system must work end-to-end"
+    "description": "Final system validation - all tests must pass"
   }
 }
