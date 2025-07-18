@@ -12,7 +12,7 @@
 ### During Implementation
 - **New file**: Read ENTIRE file before modifying
 - **Small file (<500 lines)**: Read completely
-- **Large file (500+ lines)**: Read at least 500 lines
+- **Large file (500+ lines)**: Read at least 1500 lines
 - **ALWAYS** understand existing code before adding new code
 
 ## 🔄 Implementation Workflow

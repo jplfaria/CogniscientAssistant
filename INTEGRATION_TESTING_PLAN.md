@@ -56,6 +56,12 @@ This allows the validation loop to distinguish between:
 - ✓ Failed tasks get retried per policy
 - ✓ Queue persists and recovers from disk
 - ✓ Statistics accurately reflect queue state
+- ✓ Queue capacity limits enforced
+- ✓ Task overflow handling works
+- ✓ Worker heartbeat timeout detection
+- ✓ Dead letter queue functions
+- ✓ Task reassignment on worker failure
+- ✓ Starvation prevention for low priority tasks
 
 **Test Scenarios**:
 1. **Full Task Lifecycle**: Create → Enqueue → Assign → Execute → Complete
@@ -63,6 +69,10 @@ This allows the validation loop to distinguish between:
 3. **Worker Capability Matching**: Tasks assigned to capable workers only
 4. **Failure Recovery**: Failed tasks retry with backoff
 5. **Persistence**: Queue state survives restart
+6. **Capacity Management**: Queue handles overflow gracefully
+7. **Heartbeat Monitoring**: Dead workers detected and tasks reassigned
+8. **Dead Letter Queue**: Permanently failed tasks moved to DLQ
+9. **Starvation Prevention**: Old low-priority tasks eventually promoted
 
 ### Milestone 2: Memory + Queue Integration (Phase 4)
 **Status**: Pending implementation  
@@ -73,12 +83,20 @@ This allows the validation loop to distinguish between:
 - ✓ Context retrieved for related tasks
 - ✓ Hypothesis evolution tracked
 - ✓ Thread isolation works correctly
+- ✓ Checkpoint creation and full recovery
+- ✓ Concurrent write conflict resolution
+- ✓ Version history maintained
+- ✓ Storage overflow handled gracefully
 
 **Test Scenarios**:
 1. **Task Context Storage**: Task results stored in memory
 2. **Context Retrieval**: Related context fetched for new tasks
 3. **Thread Isolation**: Different threads don't interfere
 4. **Evolution Tracking**: Hypothesis changes tracked over time
+5. **Checkpoint Management**: Create and restore system state
+6. **Concurrent Access**: Multiple agents write without conflicts
+7. **Version Control**: Access historical states
+8. **Storage Management**: Handle overflow conditions
 
 ### Milestone 3: Safety Framework (Phase 5)
 **Status**: Pending implementation  
@@ -288,6 +306,38 @@ This allows the validation loop to distinguish between:
 3. **Iterative Improvement**: Quality increases over time
 4. **Safety Compliance**: Unsafe content filtered
 
+## Performance and Temporal Tests
+
+### Performance Requirements (Phase 17)
+Tests that validate system performance meets specifications:
+
+**Latency Tests**:
+- `test_task_assignment_latency`: Task assignment < 100ms
+- `test_context_retrieval_latency`: Context retrieval < 500ms
+- `test_checkpoint_creation_timing`: Checkpoint creation < 30 seconds
+- `test_safety_check_latency`: Safety evaluation < 200ms
+- `test_llm_response_latency`: LLM abstraction overhead < 50ms
+
+**Throughput Tests**:
+- `test_queue_throughput`: Handle 1000 tasks/minute
+- `test_memory_write_throughput`: 100 writes/second
+- `test_concurrent_agent_scaling`: Support 10+ concurrent agents
+
+### Temporal Behavior Tests
+Tests for time-based and periodic operations:
+
+**Periodic Operations**:
+- `test_periodic_archive_rotation`: Archives rotate daily
+- `test_garbage_collection`: Old data cleaned up weekly
+- `test_heartbeat_intervals`: Worker heartbeats every 30s
+- `test_checkpoint_frequency`: Auto-checkpoint every 5 minutes
+
+**Time-based Behaviors**:
+- `test_task_timeout_enforcement`: Tasks timeout after limits
+- `test_starvation_time_window`: Low priority promotion after 1 hour
+- `test_rate_limit_windows`: Rate limits reset properly
+- `test_cache_expiration`: Caches expire on schedule
+
 ## Running Integration Tests
 
 ### Manual Execution
@@ -300,6 +350,12 @@ pytest tests/integration/phase3_*.py -v
 
 # Run with coverage
 pytest tests/integration/ --cov=src --cov-report=term-missing
+
+# Run performance tests with benchmarks
+pytest tests/integration/ -v --benchmark-only
+
+# Run temporal tests with time simulation
+pytest tests/integration/ -v -m temporal
 ```
 
 ### Automated Execution
@@ -310,6 +366,7 @@ Integration tests run automatically in `run-implementation-loop-validated.sh` af
 - **⚠️ Yellow**: Non-blocking issues found (informational)
 - **❌ Red (Regression)**: Previously passing test now fails
 - **❌ Red (Implementation Error)**: New test fails on first run - implementation doesn't match spec
+- **🕐 Performance**: Shows timing metrics against SLAs
 
 ## Writing New Integration Tests
 
@@ -358,10 +415,46 @@ async def test_tournament_workflow():
     pass
 ```
 
+### Writing Performance Tests
+For tests that validate performance requirements:
+
+```python
+@pytest.mark.benchmark
+async def test_task_assignment_latency(benchmark):
+    """Test that task assignment completes within 100ms."""
+    queue = TaskQueue()
+    task = Task(...)
+    
+    # Benchmark the operation
+    result = await benchmark(queue.assign_task, task)
+    assert benchmark.stats['mean'] < 0.1  # 100ms
+```
+
+### Writing Temporal Tests
+For tests that validate time-based behaviors:
+
+```python
+@pytest.mark.temporal
+async def test_starvation_prevention(time_machine):
+    """Test low priority tasks promoted after 1 hour."""
+    # Use time simulation to test without waiting
+    queue = TaskQueue()
+    low_priority_task = Task(priority=1)
+    await queue.enqueue(low_priority_task)
+    
+    # Advance time by 1 hour
+    time_machine.shift(timedelta(hours=1))
+    
+    # Verify task was promoted
+    assert queue.get_task_priority(low_priority_task.id) > 1
+```
+
 This ensures:
 - Tests waiting for future components don't block the implementation loop
 - Clear documentation of dependencies
 - Easy to enable tests once components are ready
+- Performance tests validate SLAs
+- Temporal tests run quickly with time simulation
 
 ## Maintenance
 
