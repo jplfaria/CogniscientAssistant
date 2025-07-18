@@ -8,6 +8,8 @@ from dataclasses import dataclass, asdict
 import logging
 import os
 import uuid
+import fcntl
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +120,10 @@ class ContextMemory:
         # Key-value store in-memory cache
         self._kv_cache: Dict[str, Any] = {}
         self._kv_dirty: Set[str] = set()  # Track modified keys for persistence
+        
+        # Checkpoint locking
+        self._checkpoint_lock = asyncio.Lock()
+        self._checkpoint_lock_file = None
         
         # Create directory structure
         self._initialize_storage()
@@ -287,14 +293,23 @@ class ContextMemory:
             
             # Create unique filename for concurrent writes
             timestamp_str = state_update.timestamp.strftime('%Y%m%d_%H%M%S_%f')
-            state_file = iteration_dir / f"system_state_{timestamp_str}.json"
+            base_filename = f"system_state_{timestamp_str}"
+            
+            # Handle concurrent writes by adding a counter if file exists
+            counter = 0
+            state_file = iteration_dir / f"{base_filename}.json"
+            while state_file.exists():
+                counter += 1
+                state_file = iteration_dir / f"{base_filename}_{counter}.json"
             
             state_data = {
                 "timestamp": state_update.timestamp.isoformat(),
                 "update_type": state_update.update_type,
                 "system_statistics": state_update.system_statistics,
                 "orchestration_state": state_update.orchestration_state,
-                "checkpoint_data": state_update.checkpoint_data
+                "checkpoint_data": state_update.checkpoint_data,
+                "version": 1,  # Add version tracking
+                "writer_id": f"supervisor_{timestamp_str}"  # Add writer identification
             }
             
             with open(state_file, 'w') as f:
@@ -333,7 +348,9 @@ class ContextMemory:
                 "task_id": agent_output.task_id,
                 "timestamp": agent_output.timestamp.isoformat(),
                 "results": agent_output.results,
-                "state_data": agent_output.state_data
+                "state_data": agent_output.state_data,
+                "version": 1,  # Add version tracking
+                "writer_id": f"{agent_output.agent_type}_{agent_output.task_id}"  # Add writer identification
             }
             
             with open(output_file, 'w') as f:
@@ -444,55 +461,89 @@ class ContextMemory:
             return None
     
     async def create_checkpoint(self, state_update: StateUpdate) -> Optional[str]:
-        """Create a recovery checkpoint."""
-        try:
-            # Generate checkpoint ID
-            checkpoint_id = f"ckpt_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-            checkpoint_dir = self.storage_path / "checkpoints" / checkpoint_id
-            checkpoint_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Store checkpoint data
-            checkpoint_file = checkpoint_dir / "checkpoint.json"
-            checkpoint_data = {
-                "checkpoint_id": checkpoint_id,
-                "timestamp": state_update.timestamp.isoformat(),
-                "system_statistics": state_update.system_statistics,
-                "orchestration_state": state_update.orchestration_state,
-                "checkpoint_data": state_update.checkpoint_data,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            with open(checkpoint_file, 'w') as f:
-                json.dump(checkpoint_data, f, indent=2)
-            
-            # Update active iteration's checkpoint list
-            active_iter = await self.get_active_iteration()
-            if active_iter is not None:
-                iter_name = f"iteration_{active_iter:03d}"
-                metadata_file = self.storage_path / "iterations" / iter_name / "metadata.json"
-                if metadata_file.exists():
+        """Create a recovery checkpoint with exclusive locking."""
+        # Use asyncio lock for high-level coordination
+        async with self._checkpoint_lock:
+            try:
+                # Create a lock file for process-level locking
+                lock_file_path = self.storage_path / "checkpoints" / ".checkpoint.lock"
+                lock_file_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Try to acquire file lock with timeout
+                lock_acquired = False
+                start_time = time.time()
+                timeout_seconds = 30  # 30 second timeout as per spec
+                
+                while not lock_acquired and (time.time() - start_time) < timeout_seconds:
                     try:
-                        # Load metadata
-                        with open(metadata_file, 'r') as f:
-                            metadata = json.load(f)
-                        
-                        # Add checkpoint to list
-                        if "checkpoints" not in metadata:
-                            metadata["checkpoints"] = []
-                        metadata["checkpoints"].append(checkpoint_id)
-                        
-                        # Save updated metadata
-                        with open(metadata_file, 'w') as f:
-                            json.dump(metadata, f, indent=2)
-                    except Exception as e:
-                        logger.warning(f"Failed to update iteration metadata with checkpoint: {e}")
-            
-            logger.info(f"Created checkpoint {checkpoint_id}")
-            return checkpoint_id
-            
-        except Exception as e:
-            logger.error(f"Failed to create checkpoint: {e}")
-            return None
+                        lock_file = open(lock_file_path, 'w')
+                        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        lock_acquired = True
+                    except (IOError, OSError):
+                        # Lock is held by another process, wait and retry
+                        await asyncio.sleep(0.1)
+                        if 'lock_file' in locals():
+                            lock_file.close()
+                
+                if not lock_acquired:
+                    logger.error("Failed to acquire checkpoint lock within timeout")
+                    return None
+                
+                try:
+                    # Generate checkpoint ID
+                    checkpoint_id = f"ckpt_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+                    checkpoint_dir = self.storage_path / "checkpoints" / checkpoint_id
+                    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Store checkpoint data
+                    checkpoint_file = checkpoint_dir / "checkpoint.json"
+                    checkpoint_data = {
+                        "checkpoint_id": checkpoint_id,
+                        "timestamp": state_update.timestamp.isoformat(),
+                        "system_statistics": state_update.system_statistics,
+                        "orchestration_state": state_update.orchestration_state,
+                        "checkpoint_data": state_update.checkpoint_data,
+                        "created_at": datetime.now().isoformat(),
+                        "version": 1,  # Add version tracking
+                        "writer_id": f"checkpoint_{checkpoint_id}"  # Add writer identification
+                    }
+                    
+                    with open(checkpoint_file, 'w') as f:
+                        json.dump(checkpoint_data, f, indent=2)
+                    
+                    # Update active iteration's checkpoint list
+                    active_iter = await self.get_active_iteration()
+                    if active_iter is not None:
+                        iter_name = f"iteration_{active_iter:03d}"
+                        metadata_file = self.storage_path / "iterations" / iter_name / "metadata.json"
+                        if metadata_file.exists():
+                            try:
+                                # Load metadata
+                                with open(metadata_file, 'r') as f:
+                                    metadata = json.load(f)
+                                
+                                # Add checkpoint to list
+                                if "checkpoints" not in metadata:
+                                    metadata["checkpoints"] = []
+                                metadata["checkpoints"].append(checkpoint_id)
+                                
+                                # Save updated metadata
+                                with open(metadata_file, 'w') as f:
+                                    json.dump(metadata, f, indent=2)
+                            except Exception as e:
+                                logger.warning(f"Failed to update iteration metadata with checkpoint: {e}")
+                    
+                    logger.info(f"Created checkpoint {checkpoint_id}")
+                    return checkpoint_id
+                    
+                finally:
+                    # Release the file lock
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                    lock_file.close()
+                    
+            except Exception as e:
+                logger.error(f"Failed to create checkpoint: {e}")
+                return None
     
     async def recover_from_checkpoint(self, checkpoint_id: str) -> Optional[RecoveryState]:
         """Recover system state from a checkpoint."""
@@ -1202,9 +1253,69 @@ class ContextMemory:
     ) -> bool:
         """Update aggregate data with merge strategy."""
         try:
-            # For now, we'll implement replace strategy by storing a new entry
-            # Future enhancement: implement different merge strategies
-            return await self.store_aggregate(aggregate_type, data, datetime.now())
+            if merge_strategy == "replace":
+                # Replace strategy: store as new entry
+                return await self.store_aggregate(aggregate_type, data, datetime.now())
+            
+            elif merge_strategy == "merge":
+                # Merge strategy: combine with latest entry
+                aggregate_file = self.storage_path / "aggregates" / f"{aggregate_type}.json"
+                
+                if aggregate_file.exists():
+                    with open(aggregate_file, 'r') as f:
+                        aggregate_data = json.load(f)
+                    
+                    if aggregate_data.get("entries"):
+                        # Get latest entry
+                        latest_entry = aggregate_data["entries"][-1]
+                        merged_data = latest_entry["data"].copy()
+                        
+                        # Merge non-conflicting fields
+                        for key, value in data.items():
+                            if key not in merged_data:
+                                # Add new field
+                                merged_data[key] = value
+                            elif isinstance(value, dict) and isinstance(merged_data[key], dict):
+                                # Recursively merge nested dicts
+                                merged_data[key] = {**merged_data[key], **value}
+                            else:
+                                # Replace conflicting field (last-write-wins)
+                                merged_data[key] = value
+                        
+                        # Store merged result
+                        return await self.store_aggregate(aggregate_type, merged_data, datetime.now())
+                
+                # No existing data, just store
+                return await self.store_aggregate(aggregate_type, data, datetime.now())
+            
+            elif merge_strategy == "accumulate":
+                # Accumulate strategy: add numeric values
+                aggregate_file = self.storage_path / "aggregates" / f"{aggregate_type}.json"
+                
+                if aggregate_file.exists():
+                    with open(aggregate_file, 'r') as f:
+                        aggregate_data = json.load(f)
+                    
+                    if aggregate_data.get("entries"):
+                        # Get latest entry
+                        latest_entry = aggregate_data["entries"][-1]
+                        accumulated_data = latest_entry["data"].copy()
+                        
+                        # Accumulate numeric fields
+                        for key, value in data.items():
+                            if key in accumulated_data and isinstance(value, (int, float)):
+                                accumulated_data[key] += value
+                            else:
+                                accumulated_data[key] = value
+                        
+                        # Store accumulated result
+                        return await self.store_aggregate(aggregate_type, accumulated_data, datetime.now())
+                
+                # No existing data, just store
+                return await self.store_aggregate(aggregate_type, data, datetime.now())
+            
+            else:
+                raise ValueError(f"Unknown merge strategy: {merge_strategy}")
             
         except Exception as e:
             logger.error(f"Failed to update aggregate: {e}")

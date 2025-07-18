@@ -87,8 +87,8 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for aggregates
 
 ### Advanced Features
-- [ ] Add conflict resolution logic
-- [ ] Write tests for conflict resolution
+- [x] Add conflict resolution logic
+- [x] Write tests for conflict resolution
 - [ ] Implement temporal guarantees
 - [ ] Write tests for temporal operations
 - [ ] Add memory cleanup/archival
