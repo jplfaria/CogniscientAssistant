@@ -133,16 +133,16 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Implement log rotation and cleanup
 
 ### Integration Tests  
-- [ ] Create tests/integration/test_phase5_safety_framework.py
-- [ ] Implement test_research_goal_logging
-- [ ] Implement test_hypothesis_monitoring
-- [ ] Implement test_trust_level_configuration
-- [ ] Implement test_safety_logger_disable
-- [ ] Implement test_pattern_report_generation
-- [ ] Implement test_audit_trail_creation
-- [ ] Implement test_safety_metrics_collection
-- [ ] Implement test_log_rotation (may_fail)
-- [ ] Implement test_performance_impact (may_fail)
+- [x] Create tests/integration/test_phase5_safety_framework.py
+- [x] Implement test_research_goal_logging
+- [x] Implement test_hypothesis_monitoring
+- [x] Implement test_trust_level_configuration
+- [x] Implement test_safety_logger_disable
+- [x] Implement test_pattern_report_generation
+- [x] Implement test_audit_trail_creation
+- [x] Implement test_safety_metrics_collection
+- [x] Implement test_log_rotation (may_fail)
+- [x] Implement test_performance_impact (may_fail)
 
 ## Phase 6: LLM Abstraction Layer
 

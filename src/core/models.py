@@ -360,3 +360,30 @@ class Review(BaseModel):
         if review_type == ReviewType.SIMULATION and not v:
             raise ValueError("Simulation reviews must include simulation results")
         return v
+
+
+class ResearchGoal(BaseModel):
+    """Research goal that guides hypothesis generation."""
+    
+    id: str = Field(default_factory=lambda: f"rg_{uuid4().hex[:8]}")
+    description: str = Field(min_length=10)
+    constraints: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: Optional[datetime] = None
+    
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: str) -> str:
+        """Ensure description is meaningful."""
+        if len(v.strip()) < 10:
+            raise ValueError("Description must be at least 10 characters")
+        return v.strip()
+    
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to ISO format string."""
+        return value.isoformat() if value else None
+    
+    def update(self) -> None:
+        """Update the timestamp when goal is modified."""
+        self.updated_at = utcnow()
