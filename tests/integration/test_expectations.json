@@ -51,23 +51,23 @@
     "description": "Memory must integrate with task queue"
   },
   "phase_5": {
-    "name": "Safety Framework",
+    "name": "Safety Framework (Lightweight)",
     "must_pass": [
       "test_full_task_lifecycle",
       "test_memory_storage_and_retrieval",
-      "test_research_goal_safety_assessment",
-      "test_hypothesis_safety_review",
-      "test_continuous_pattern_monitoring",
-      "test_meta_review_safety_audit",
-      "test_safety_level_enforcement",
-      "test_unsafe_content_blocking",
-      "test_safety_triggered_task_blocking"
+      "test_research_goal_logging",
+      "test_hypothesis_monitoring",
+      "test_trust_level_configuration",
+      "test_safety_logger_disable",
+      "test_pattern_report_generation",
+      "test_audit_trail_creation",
+      "test_safety_metrics_collection"
     ],
     "may_fail": [
-      "test_llm_safety_integration",
-      "test_safety_monitoring_performance"
+      "test_log_rotation",
+      "test_performance_impact"
     ],
-    "description": "Safety checks must be enforced"
+    "description": "Lightweight safety monitoring must function"
   },
   "phase_6": {
     "name": "LLM Abstraction Layer",

@@ -98,21 +98,21 @@ This allows the validation loop to distinguish between:
 7. **Version Control**: Access historical states
 8. **Storage Management**: Handle overflow conditions
 
-### Milestone 3: Safety Framework (Phase 5)
+### Milestone 3: Safety Framework - Lightweight (Phase 5)
 **Status**: Pending implementation  
 **Location**: `tests/integration/phase5_safety_framework.py`
 
 **Key Validations**:
-- ✓ Safety checks integrated with queue
-- ✓ Research goal validation works
-- ✓ Hypothesis safety evaluation
-- ✓ Pattern monitoring functions
+- ✓ Safety logging integrated with queue
+- ✓ Research goal monitoring works
+- ✓ Trust level configuration functions
+- ✓ Pattern reporting generates reports
 
 **Test Scenarios**:
-1. **Safety Integration**: Queue respects safety boundaries
-2. **Goal Validation**: Unsafe research goals rejected
-3. **Hypothesis Filtering**: Unsafe hypotheses blocked
-4. **Monitoring**: Pattern detection works
+1. **Logging Integration**: All research activities logged
+2. **Trust Configuration**: Different trust levels apply correctly
+3. **Disable Functionality**: Safety can be disabled for trusted users
+4. **Report Generation**: Pattern reports created successfully
 
 ### Milestone 4: LLM Abstraction (Phase 6)
 **Status**: Pending implementation  
@@ -315,7 +315,7 @@ Tests that validate system performance meets specifications:
 - `test_task_assignment_latency`: Task assignment < 100ms
 - `test_context_retrieval_latency`: Context retrieval < 500ms
 - `test_checkpoint_creation_timing`: Checkpoint creation < 30 seconds
-- `test_safety_check_latency`: Safety evaluation < 200ms
+- `test_safety_logging_latency`: Safety logging < 50ms
 - `test_llm_response_latency`: LLM abstraction overhead < 50ms
 
 **Throughput Tests**:

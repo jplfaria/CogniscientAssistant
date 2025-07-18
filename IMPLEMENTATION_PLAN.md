@@ -109,38 +109,40 @@ This plan breaks down the implementation into atomic, testable units following T
 
 ## Phase 5: Safety Framework
 
+**Note**: Transitioned to lightweight safety system on 2025-01-18. Original heavy-handed 
+specification archived due to API safety filter issues. See ADR-001 for details.
+
 ### Safety Models
 - [x] Create SafetyLevel enum
 - [x] Create SafetyCheck dataclass
 - [x] Write tests for safety models
 
-### Safety Evaluators
-- [ ] Implement research goal safety evaluator
-- [ ] Write tests for goal evaluation
-- [ ] Implement hypothesis safety evaluator
-- [ ] Write tests for hypothesis evaluation
-- [ ] Add pattern monitoring system
-- [ ] Write tests for pattern monitoring
-- [ ] Implement meta-review safety checks
-- [ ] Write tests for meta-review safety
+### Lightweight Safety System
+- [ ] Create SafetyConfig dataclass
+- [ ] Implement SafetyLogger for monitoring
+- [ ] Write tests for safety logger
+- [ ] Add configurable trust levels
+- [ ] Write tests for trust configuration
+- [ ] Create safety metrics collector
+- [ ] Write tests for metrics collection
 
 ### Safety Integration
-- [ ] Create safety middleware for agents
+- [ ] Create optional safety middleware
 - [ ] Write tests for middleware
-- [ ] Add safety logging system
-- [ ] Write tests for safety logs
+- [ ] Add safety logging directory structure
+- [ ] Implement log rotation and cleanup
 
-### Integration Tests
+### Integration Tests  
 - [ ] Create tests/integration/test_phase5_safety_framework.py
-- [ ] Implement test_research_goal_safety_assessment
-- [ ] Implement test_hypothesis_safety_review
-- [ ] Implement test_continuous_pattern_monitoring
-- [ ] Implement test_meta_review_safety_audit
-- [ ] Implement test_safety_level_enforcement
-- [ ] Implement test_unsafe_content_blocking
-- [ ] Implement test_safety_triggered_task_blocking
-- [ ] Implement test_llm_safety_integration (may_fail)
-- [ ] Implement test_safety_monitoring_performance (may_fail)
+- [ ] Implement test_research_goal_logging
+- [ ] Implement test_hypothesis_monitoring
+- [ ] Implement test_trust_level_configuration
+- [ ] Implement test_safety_logger_disable
+- [ ] Implement test_pattern_report_generation
+- [ ] Implement test_audit_trail_creation
+- [ ] Implement test_safety_metrics_collection
+- [ ] Implement test_log_rotation (may_fail)
+- [ ] Implement test_performance_impact (may_fail)
 
 ## Phase 6: LLM Abstraction Layer
 
