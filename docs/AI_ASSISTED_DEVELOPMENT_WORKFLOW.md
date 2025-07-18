@@ -131,18 +131,21 @@ Created integration testing framework:
 
 ### Key Components
 1. **Test Harnesses**: Validate functionality without modifying production code
-2. **Phase Detection**: Run appropriate tests based on implementation progress
+2. **Phase Detection**: Run appropriate tests based on implementation progress (17 phases)
 3. **Regression Tracking**: Detect when previously passing tests fail
-4. **Non-blocking Failures**: Tests inform but don't block progress
+4. **Implementation Error Detection**: Stop when new tests fail on first run
+5. **Test Expectations**: `test_expectations.json` defines must_pass vs may_fail tests
+6. **Non-blocking Failures**: Only expected failures are non-blocking
 
 ## Phase 5: Current State
 
 ### Active Workflow Files
-- `CLAUDE.md` - Core implementation guidelines with regression handling
-- `prompt.md` - Implementation task prompt with quality checks
-- `run-implementation-loop-validated.sh` - Primary implementation script
-- `IMPLEMENTATION_PLAN.md` - Living document tracking progress
+- `CLAUDE.md` - Simplified implementation guidelines (71% smaller, more focused)
+- `prompt.md` - Implementation task prompt with test expectations awareness
+- `run-implementation-loop-validated.sh` - Primary implementation script (handles all 17 phases)
+- `IMPLEMENTATION_PLAN.md` - Living document tracking progress (includes integration test tasks)
 - `INTEGRATION_TESTING_PLAN.md` - Testing strategy and milestones
+- `tests/integration/test_expectations.json` - Defines critical vs optional tests per phase
 
 ### Workflow Process
 1. Run implementation loop: `./run-implementation-loop-validated.sh`
@@ -218,25 +221,35 @@ To use this complete workflow for another project:
 
 ### Phase 2: Implementation
 
-1. **Set Up Implementation Framework**
+1. **Set Up Development Environment**
+   ```bash
+   # Install uv for fast package management (recommended)
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Set Up Implementation Framework**
    ```bash
    # Copy implementation files:
    cp CLAUDE.md new-project/
    cp prompt.md new-project/
    cp run-implementation-loop-validated.sh new-project/
+   cp -r scripts/ new-project/scripts/
    
    # Initialize empty plan:
    echo "Nothing here yet" > IMPLEMENTATION_PLAN.md
+   
+   # Set up development environment
+   ./scripts/setup-dev.sh
    ```
 
-2. **Run Implementation Loop**
+3. **Run Implementation Loop**
    ```bash
    ./run-implementation-loop-validated.sh
    # Or continuous mode:
    ./run-implementation-loop-validated.sh --letitrip
    ```
 
-3. **Set Up Integration Testing**
+4. **Set Up Integration Testing**
    ```bash
    # Copy testing framework:
    cp INTEGRATION_TESTING_PLAN.md new-project/
@@ -244,11 +257,12 @@ To use this complete workflow for another project:
    cp test_expectations.json new-project/
    ```
 
-4. **Monitor Progress**
-   - Check IMPLEMENTATION_PLAN.md for tasks
+5. **Monitor Progress**
+   - Check IMPLEMENTATION_PLAN.md for tasks (17 phases total)
    - Review git log for history
-   - Watch for regression flags
-   - Run integration tests at milestones
+   - Watch for .implementation_flags (regression or implementation errors)
+   - Integration tests run automatically per phase
+   - Check test_expectations.json to understand test requirements
 
 ### Key Success Factors
 

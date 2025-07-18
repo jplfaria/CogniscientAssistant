@@ -5,12 +5,37 @@ A multi-agent system for scientific hypothesis generation and research automatio
 ## Project Status
 
 ✅ **Specification Phase**: Complete (28 specs)  
-🚧 **Implementation Phase**: In Progress (Phase 3 - Queue Mechanics)
+🚧 **Implementation Phase**: In Progress (Phase 4 - Context Memory)
+
+## Development Setup
+
+### Using uv (Recommended - Fast)
+
+```bash
+# Install uv (one time)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Set up development environment
+./scripts/setup-dev.sh
+
+# Activate virtual environment
+source .venv/bin/activate
+```
+
+### Using pip (Traditional)
+
+```bash
+# Set up development environment
+./scripts/setup-dev.sh
+
+# Activate virtual environment
+source venv/bin/activate
+```
 
 ## Quick Start for Implementation
 
 ```bash
-# Run the validated implementation loop
+# After environment setup, run the validated implementation loop
 ./run-implementation-loop-validated.sh
 
 # Or run continuously with automatic progression
@@ -67,8 +92,11 @@ A multi-agent system for scientific hypothesis generation and research automatio
 - Python 3.11+
 - BAML for LLM interactions
 - asyncio for concurrency
-- pytest for testing
+- pytest for testing (≥80% coverage required)
 - Argo Gateway for model access
+- uv for package management (optional but recommended)
+- mypy for type checking
+- ruff for linting
 
 ## Safety First
 
