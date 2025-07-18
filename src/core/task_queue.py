@@ -1664,7 +1664,9 @@ class TaskQueue:
                 "retry_count": self._task_retry_counts.get(task_id, 0),
                 "reassignment_count": reassignment_count,
                 "previous_workers": previous_workers,
-                "prefer_different_worker": reassignment_count > 0
+                "prefer_different_worker": reassignment_count > 0,
+                "failure_history": self._task_failure_history.get(task_id, []),
+                "progress": self._task_progress.get(task_id, {})
             }
     
     async def get_starvation_statistics(self) -> Dict[str, Any]:
@@ -1675,10 +1677,36 @@ class TaskQueue:
         """
         async with self._lock:
             now = datetime.utcnow()
+            starvation_threshold = timedelta(seconds=self.config.starvation_threshold)
+            
+            starved_tasks = 0
+            starved_task_ids = []
+            oldest_task = None
+            oldest_wait_time = 0
             tasks_boosted = 0
             max_wait_time = 0
             tasks_above_threshold = 0
             
+            # Check pending tasks for starvation using created_at
+            for priority in [1, 2, 3]:  # Check all priorities
+                for task_id in self._queues[priority]:
+                    task = self._tasks.get(task_id)
+                    if task and task.created_at:
+                        wait_time = now - task.created_at
+                        if wait_time > starvation_threshold:
+                            starved_tasks += 1
+                            starved_task_ids.append(task_id)
+                        
+                        wait_seconds = wait_time.total_seconds()
+                        if wait_seconds > oldest_wait_time:
+                            oldest_wait_time = wait_seconds
+                            oldest_task = {
+                                "task_id": task_id,
+                                "priority": {1: "low", 2: "medium", 3: "high"}[priority],
+                                "wait_time": wait_seconds
+                            }
+            
+            # Also check for priority boosts
             for task_id, enqueue_time in self._task_enqueue_times.items():
                 if self._task_states.get(task_id) == TaskState.PENDING:
                     wait_time = (now - enqueue_time).total_seconds()
@@ -1691,6 +1719,10 @@ class TaskQueue:
                         tasks_above_threshold += 1
             
             return {
+                "starved_tasks": starved_tasks,
+                "starved_task_ids": starved_task_ids,
+                "oldest_waiting_task": oldest_task,
+                "starvation_threshold": self.config.starvation_threshold,
                 "tasks_boosted": tasks_boosted,
                 "max_wait_time": max_wait_time,
                 "tasks_above_threshold": tasks_above_threshold

@@ -246,5 +246,9 @@ class TestWorkerHeartbeat:
         # All should have recent heartbeats
         for worker_id in worker_ids:
             status = await task_queue.get_worker_status(worker_id)
-            age = (datetime.utcnow() - status["last_heartbeat"]).total_seconds()
+            if isinstance(status["last_heartbeat"], str):
+                last_heartbeat = datetime.fromisoformat(status["last_heartbeat"])
+            else:
+                last_heartbeat = status["last_heartbeat"]
+            age = (datetime.utcnow() - last_heartbeat).total_seconds()
             assert age < 1.0  # Less than 1 second old

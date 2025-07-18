@@ -316,7 +316,7 @@ class TestTaskQueueWorkerManagement:
     async def test_get_nonexistent_worker_status(self, queue):
         """Test getting status of nonexistent worker."""
         status = await queue.get_worker_status("nonexistent-worker")
-        assert status is None
+        assert status == {"error": "Worker not found"}
     
     async def test_list_workers_by_state(self, queue):
         """Test listing workers by their state."""
