@@ -146,8 +146,8 @@ run_phase_integration_tests() {
         # Find integration test files for current or previous phases
         local test_files=""
         for phase in $(seq 3 $current_phase); do
-            if ls tests/integration/phase${phase}_*.py 2>/dev/null | grep -q .; then
-                test_files="$test_files tests/integration/phase${phase}_*.py"
+            if ls tests/integration/test_phase${phase}_*.py 2>/dev/null | grep -q .; then
+                test_files="$test_files tests/integration/test_phase${phase}_*.py"
             fi
         done
         

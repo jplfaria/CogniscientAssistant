@@ -769,3 +769,356 @@ class SafetyMetricsCollector:
                     })
         
         return alerts
+
+
+class SafetyMiddleware:
+    """Optional safety middleware for wrapping operations with safety logging.
+    
+    This middleware provides a lightweight way to add safety monitoring to 
+    any part of the system without modifying existing code.
+    """
+    
+    def __init__(self, config: SafetyConfig):
+        """Initialize the safety middleware.
+        
+        Args:
+            config: SafetyConfig instance with settings
+        """
+        self.config = config
+        self.logger = SafetyLogger(config)
+        self.enabled = config.enabled
+    
+    async def process_research_goal(self, goal: str, context: Dict) -> SafetyCheck:
+        """Process a research goal through the safety middleware.
+        
+        Args:
+            goal: Research goal text
+            context: Additional context
+            
+        Returns:
+            SafetyCheck with result
+        """
+        if not self.enabled:
+            return SafetyCheck(
+                decision=SafetyLevel.SAFE,
+                safety_score=1.0,
+                reasoning="Safety middleware disabled"
+            )
+        
+        return await self.logger.log_research_goal(goal, context)
+    
+    async def process_hypothesis(self, hypothesis_data: Dict) -> SafetyCheck:
+        """Process a hypothesis through the safety middleware.
+        
+        Args:
+            hypothesis_data: Dictionary with hypothesis details
+            
+        Returns:
+            SafetyCheck with result
+        """
+        if not self.enabled:
+            return SafetyCheck(
+                decision=SafetyLevel.SAFE,
+                safety_score=1.0,
+                reasoning="Safety middleware disabled"
+            )
+        
+        return await self.logger.log_hypothesis(hypothesis_data)
+    
+    def wrap_research_goal_handler(self, func):
+        """Wrap an async function to add safety logging for research goals.
+        
+        Args:
+            func: Async function that takes (goal, context) parameters
+            
+        Returns:
+            Wrapped function with safety logging
+        """
+        async def wrapper(goal: str, context: Dict, *args, **kwargs):
+            # Log the research goal before processing
+            await self.process_research_goal(goal, context)
+            
+            # Call the original function
+            return await func(goal, context, *args, **kwargs)
+        
+        return wrapper
+    
+    def wrap_hypothesis_handler(self, func):
+        """Wrap an async function to add safety logging for hypotheses.
+        
+        Args:
+            func: Async function that processes hypothesis data
+            
+        Returns:
+            Wrapped function with safety logging
+        """
+        async def wrapper(hypothesis_data: Dict, *args, **kwargs):
+            # Log the hypothesis before processing
+            await self.process_hypothesis(hypothesis_data)
+            
+            # Call the original function
+            return await func(hypothesis_data, *args, **kwargs)
+        
+        return wrapper
+    
+    async def batch_process_hypotheses(self, hypotheses: List[Dict]) -> List[SafetyCheck]:
+        """Process multiple hypotheses in batch.
+        
+        Args:
+            hypotheses: List of hypothesis data dictionaries
+            
+        Returns:
+            List of SafetyCheck results
+        """
+        if not self.enabled:
+            return [
+                SafetyCheck(
+                    decision=SafetyLevel.SAFE,
+                    safety_score=1.0,
+                    reasoning="Safety middleware disabled"
+                )
+                for _ in hypotheses
+            ]
+        
+        # Process all hypotheses concurrently
+        tasks = [self.process_hypothesis(hyp) for hyp in hypotheses]
+        return await asyncio.gather(*tasks)
+    
+    def log_research_goal(self, func):
+        """Decorator for logging research goals.
+        
+        Usage:
+            @middleware.log_research_goal
+            async def handle_goal(goal: str, context: dict):
+                ...
+        """
+        return self.wrap_research_goal_handler(func)
+    
+    def log_hypothesis(self, func):
+        """Decorator for logging hypotheses.
+        
+        Usage:
+            @middleware.log_hypothesis
+            async def generate_hypothesis(data: dict):
+                ...
+        """
+        return self.wrap_hypothesis_handler(func)
+    
+    def batch_safety_context(self):
+        """Context manager for batch safety operations.
+        
+        Returns:
+            BatchSafetyContext instance
+        """
+        return BatchSafetyContext(self)
+    
+    def get_safety_status(self) -> Dict:
+        """Get current safety middleware status.
+        
+        Returns:
+            Dictionary with status information
+        """
+        return {
+            "enabled": self.enabled,
+            "trust_level": self.config.trust_level,
+            "log_only_mode": self.config.log_only_mode,
+            "log_directory": str(self.config.log_directory),
+            "blocking_threshold": self.config.blocking_threshold
+        }
+
+
+class BatchSafetyContext:
+    """Context manager for batch safety operations."""
+    
+    def __init__(self, middleware: SafetyMiddleware):
+        """Initialize batch context.
+        
+        Args:
+            middleware: SafetyMiddleware instance
+        """
+        self.middleware = middleware
+        self.operations = []
+    
+    async def __aenter__(self):
+        """Enter the batch context."""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit the batch context and execute all operations."""
+        # Execute all queued operations
+        for op_type, args in self.operations:
+            if op_type == "goal":
+                await self.middleware.process_research_goal(*args)
+            elif op_type == "hypothesis":
+                await self.middleware.process_hypothesis(*args)
+    
+    def log_goal(self, goal: str, context: Dict) -> None:
+        """Queue a research goal for logging.
+        
+        Args:
+            goal: Research goal text
+            context: Additional context
+        """
+        self.operations.append(("goal", (goal, context)))
+    
+    def log_hypothesis(self, hypothesis_data: Dict) -> None:
+        """Queue a hypothesis for logging.
+        
+        Args:
+            hypothesis_data: Hypothesis data dictionary
+        """
+        self.operations.append(("hypothesis", (hypothesis_data,)))
+
+
+class LogRotationManager:
+    """Manages log rotation and archival for safety logs."""
+    
+    def __init__(self, config: SafetyConfig):
+        """Initialize the log rotation manager.
+        
+        Args:
+            config: SafetyConfig instance with settings
+        """
+        self.config = config
+        self.log_directory = config.log_directory
+        self.retention_days = config.retention_days
+        
+        # Ensure log directory exists
+        if not self.log_directory.exists():
+            self.log_directory.mkdir(parents=True, exist_ok=True)
+    
+    async def rotate_if_needed(self, log_file: Path, size_limit_kb: float = 1024) -> Optional[Path]:
+        """Rotate a log file if it exceeds size limit.
+        
+        Args:
+            log_file: Path to the log file
+            size_limit_kb: Size limit in KB (default 1MB)
+            
+        Returns:
+            Path to rotated file if rotation occurred, None otherwise
+        """
+        if not log_file.exists():
+            return None
+        
+        # Check file size
+        size_kb = self.get_file_size_kb(log_file)
+        if size_kb <= size_limit_kb:
+            return None
+        
+        # Rotate the file
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        rotated_path = log_file.parent / f"{log_file.stem}_{timestamp}.rotated.json"
+        
+        log_file.rename(rotated_path)
+        return rotated_path
+    
+    async def rotate_old_files(self, age_days: int = None) -> List[Path]:
+        """Rotate files older than specified age.
+        
+        Args:
+            age_days: Age threshold in days (uses retention_days if not specified)
+            
+        Returns:
+            List of rotated file paths
+        """
+        if age_days is None:
+            age_days = self.retention_days
+        
+        rotated_files = []
+        
+        for log_file in self.log_directory.glob("*.json"):
+            # Skip already rotated files
+            if ".rotated." in log_file.name:
+                continue
+            
+            file_age = self.get_file_age_days(log_file)
+            if file_age > age_days:
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                rotated_path = log_file.parent / f"{log_file.stem}_{timestamp}.rotated.json"
+                log_file.rename(rotated_path)
+                rotated_files.append(rotated_path)
+        
+        return rotated_files
+    
+    async def archive_rotated_logs(self) -> Optional[Path]:
+        """Archive rotated log files into a compressed archive.
+        
+        Returns:
+            Path to the archive file if created, None otherwise
+        """
+        import tarfile
+        
+        rotated_files = list(self.log_directory.glob("*.rotated.json"))
+        if not rotated_files:
+            return None
+        
+        # Create archive name with timestamp
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        archive_path = self.log_directory / f"safety_logs_archive_{timestamp}.tar.gz"
+        
+        # Create archive
+        with tarfile.open(archive_path, "w:gz") as tar:
+            for file_path in rotated_files:
+                tar.add(file_path, arcname=file_path.name)
+        
+        # Remove archived files
+        for file_path in rotated_files:
+            file_path.unlink()
+        
+        return archive_path
+    
+    async def run_scheduled_rotation(self, size_limit_kb: float = 1024) -> None:
+        """Run a scheduled rotation task.
+        
+        Args:
+            size_limit_kb: Size limit for rotation in KB
+        """
+        # First, clean up old logs
+        logger = SafetyLogger(self.config)
+        await logger.cleanup_old_logs()
+        
+        # Rotate large files
+        for log_file in self.log_directory.glob("*.json"):
+            if ".rotated." not in log_file.name:
+                await self.rotate_if_needed(log_file, size_limit_kb)
+        
+        # Archive rotated files
+        await self.archive_rotated_logs()
+    
+    def get_file_age_days(self, file_path: Path) -> int:
+        """Get the age of a file in days.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Age in days
+        """
+        try:
+            # Try to extract date from filename first (YYYYMMDD format)
+            date_str = file_path.name.split('_')[0]
+            if len(date_str) == 8 and date_str.isdigit():
+                file_date = datetime.strptime(date_str, '%Y%m%d')
+                file_date = file_date.replace(tzinfo=timezone.utc)
+            else:
+                # Fall back to file modification time
+                import os
+                mtime = os.path.getmtime(file_path)
+                file_date = datetime.fromtimestamp(mtime, tz=timezone.utc)
+            
+            age = datetime.now(timezone.utc) - file_date
+            return age.days
+        except Exception:
+            # If we can't determine age, assume it's new
+            return 0
+    
+    def get_file_size_kb(self, file_path: Path) -> float:
+        """Get the size of a file in KB.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Size in KB
+        """
+        return file_path.stat().st_size / 1024

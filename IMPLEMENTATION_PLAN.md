@@ -127,10 +127,10 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for metrics collection
 
 ### Safety Integration
-- [ ] Create optional safety middleware
-- [ ] Write tests for middleware
-- [ ] Add safety logging directory structure
-- [ ] Implement log rotation and cleanup
+- [x] Create optional safety middleware
+- [x] Write tests for middleware
+- [x] Add safety logging directory structure
+- [x] Implement log rotation and cleanup
 
 ### Integration Tests  
 - [ ] Create tests/integration/test_phase5_safety_framework.py
