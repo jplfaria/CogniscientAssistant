@@ -4,7 +4,7 @@ import asyncio
 import json
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Any, Set, Tuple
 from uuid import uuid4, UUID
 
@@ -261,7 +261,7 @@ class TaskQueue:
             task_id = str(task.id)
             self._tasks[task_id] = task
             self._task_states[task_id] = TaskState.PENDING
-            self._task_enqueue_times[task_id] = datetime.utcnow()
+            self._task_enqueue_times[task_id] = datetime.now(timezone.utc)
             self._task_boost_levels[task_id] = 0.0
             priority_queue.append(task_id)
             
@@ -320,10 +320,10 @@ class TaskQueue:
                 if worker_id in self._worker_info:
                     self._worker_info[worker_id].state = "active"
                     self._worker_info[worker_id].assigned_task = task_id
-                    self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+                    self._worker_info[worker_id].last_heartbeat = datetime.now(timezone.utc)
                 
                 # Create assignment
-                now = datetime.utcnow().timestamp()
+                now = datetime.now(timezone.utc).timestamp()
                 assignment_id = str(uuid4())
                 assignment = TaskAssignment(
                     task=task,
@@ -384,7 +384,7 @@ class TaskQueue:
                 id=worker_id,
                 capabilities=capabilities,
                 state="idle",
-                last_heartbeat=datetime.utcnow()
+                last_heartbeat=datetime.now(timezone.utc)
             )
             self._workers.add(worker_id)
             
@@ -582,7 +582,7 @@ class TaskQueue:
             self._task_states[task_id] = TaskState.COMPLETED
             task.state = TaskState.COMPLETED
             task.result = result
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             
             # Clear assignment
             for assignment_id, tid in self._assignment_to_task.items():
@@ -623,7 +623,7 @@ class TaskQueue:
             self._task_failure_history[task_id].append({
                 "worker_id": worker_id,
                 "error": error,
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.now(timezone.utc)
             })
             
             # Clear assignment
@@ -674,7 +674,7 @@ class TaskQueue:
                         "reason": dlq_reason,
                         "error": error,
                         "retry_count": retry_count + 1,
-                        "timestamp": datetime.utcnow()
+                        "timestamp": datetime.now(timezone.utc)
                     }
             
             return True
@@ -694,7 +694,7 @@ class TaskQueue:
                 return False
             
             # Update heartbeat timestamp
-            self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+            self._worker_info[worker_id].last_heartbeat = datetime.now(timezone.utc)
             
             # If worker was failed, recover it
             if self._worker_info[worker_id].state == "failed":
@@ -715,7 +715,7 @@ class TaskQueue:
         """
         async with self._lock:
             dead_workers = set()
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             timeout = timedelta(seconds=self.config.heartbeat_timeout)
             
             for worker_id, info in self._worker_info.items():
@@ -790,7 +790,7 @@ class TaskQueue:
             failed_workers = sum(1 for info in self._worker_info.values() if info.state == "failed")
             
             # Calculate average heartbeat age
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             heartbeat_ages = []
             for info in self._worker_info.values():
                 if info.state != "failed":
@@ -809,7 +809,7 @@ class TaskQueue:
     async def check_assignment_timeouts(self) -> None:
         """Check for timed out task assignments."""
         async with self._lock:
-            now = datetime.utcnow().timestamp()
+            now = datetime.now(timezone.utc).timestamp()
             timed_out_assignments = []
             
             # Find timed out assignments
@@ -940,7 +940,7 @@ class TaskQueue:
             Dictionary with throughput metrics
         """
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             one_minute_ago = now - timedelta(minutes=1)
             one_hour_ago = now - timedelta(hours=1)
             
@@ -1071,7 +1071,7 @@ class TaskQueue:
             Dictionary with starvation information
         """
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             starvation_threshold = timedelta(seconds=self.config.starvation_threshold)
             
             starved_tasks = 0
@@ -1119,7 +1119,7 @@ class TaskQueue:
             "capacity_statistics": await self.get_capacity_statistics(),
             "starvation_statistics": await self.get_starvation_statistics(),
             "heartbeat_metrics": await self.get_heartbeat_metrics(),
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
         return metrics
@@ -1189,7 +1189,7 @@ class TaskQueue:
             # Prepare state for serialization
             state = {
                 "version": self._persistence_version,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "queues": {
                     "high": list(self._queues[3]),
                     "medium": list(self._queues[2]),
@@ -1473,7 +1473,7 @@ class TaskQueue:
         """
         async with self._lock:
             if worker_id in self._worker_info:
-                self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+                self._worker_info[worker_id].last_heartbeat = datetime.now(timezone.utc)
     
     async def get_worker_status(self, worker_id: str) -> Dict[str, Any]:
         """Get detailed status of a worker.
@@ -1489,7 +1489,7 @@ class TaskQueue:
                 return {"error": "Worker not found"}
             
             worker = self._worker_info[worker_id]
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             time_since_heartbeat = (now - worker.last_heartbeat).total_seconds()
             
             return {
@@ -1537,7 +1537,7 @@ class TaskQueue:
                     self._task_failure_history[task_id].append({
                         "worker_id": worker_id,
                         "reason": "worker_failure",
-                        "timestamp": datetime.utcnow()
+                        "timestamp": datetime.now(timezone.utc)
                     })
                     
                     # Add back to appropriate queue
@@ -1637,10 +1637,18 @@ class TaskQueue:
             enqueue_time = self._task_enqueue_times.get(task_id)
             wait_time = 0
             if enqueue_time:
+                # Ensure enqueue_time is timezone-aware
+                if enqueue_time.tzinfo is None:
+                    enqueue_time = enqueue_time.replace(tzinfo=timezone.utc)
+                
                 if task.assigned_at:
-                    wait_time = (task.assigned_at - enqueue_time).total_seconds()
+                    # Ensure assigned_at is timezone-aware
+                    assigned_at = task.assigned_at
+                    if assigned_at.tzinfo is None:
+                        assigned_at = assigned_at.replace(tzinfo=timezone.utc)
+                    wait_time = (assigned_at - enqueue_time).total_seconds()
                 else:
-                    wait_time = (datetime.utcnow() - enqueue_time).total_seconds()
+                    wait_time = (datetime.now(timezone.utc) - enqueue_time).total_seconds()
             
             # Calculate effective priority with boost
             boost_level = self._task_boost_levels.get(task_id, 0.0)
@@ -1676,7 +1684,7 @@ class TaskQueue:
             Dictionary with starvation statistics
         """
         async with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             starvation_threshold = timedelta(seconds=self.config.starvation_threshold)
             
             starved_tasks = 0
@@ -1733,12 +1741,16 @@ class TaskQueue:
         
         Note: This method must be called within a lock.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         boost_interval = self.config.priority_boost_interval
         boost_amount = self.config.priority_boost_amount
         
         for task_id, enqueue_time in self._task_enqueue_times.items():
             if self._task_states.get(task_id) == TaskState.PENDING:
+                # Ensure both datetimes are timezone-aware for comparison
+                if enqueue_time.tzinfo is None:
+                    # Convert naive datetime to UTC
+                    enqueue_time = enqueue_time.replace(tzinfo=timezone.utc)
                 wait_time = (now - enqueue_time).total_seconds()
                 
                 # Calculate how many boost intervals have passed
@@ -1763,7 +1775,7 @@ class TaskQueue:
             # Prepare state for export
             state = {
                 "version": self._persistence_version,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "queues": {
                     "high": list(self._queues[3]),
                     "medium": list(self._queues[2]),
@@ -1839,6 +1851,65 @@ class TaskQueue:
                     "acknowledgment_required_by": assignment.acknowledgment_required_by,
                     "worker_id": self._assignment_to_worker.get(assignment_id)
                 }
+            
+            # Add task lists grouped by state for compatibility with tests
+            pending_tasks = []
+            in_progress_tasks = []
+            completed_tasks = []
+            failed_tasks = []
+            
+            for task_id, task in self._tasks.items():
+                task_data = {
+                    "id": task_id,
+                    "task_type": task.task_type.value,
+                    "priority": task.priority,
+                    "state": task.state.value,
+                    "payload": task.payload,
+                    "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "started_at": task.assigned_at.isoformat() if task.assigned_at else None,
+                    "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+                    "failed_at": None,  # Will be set for failed tasks
+                    "assigned_worker": task.assigned_to,
+                    "result": task.result,
+                    "error": task.error,
+                    "metadata": {}
+                }
+                
+                task_state = self._task_states.get(task_id, TaskState.PENDING)
+                
+                if task_state == TaskState.PENDING:
+                    pending_tasks.append(task_data)
+                elif task_state in [TaskState.EXECUTING, TaskState.ASSIGNED]:
+                    in_progress_tasks.append(task_data)
+                elif task_state == TaskState.COMPLETED:
+                    completed_tasks.append(task_data)
+                elif task_state == TaskState.FAILED:
+                    # For failed tasks, set failed_at timestamp
+                    if task_id in self._task_failure_history and self._task_failure_history[task_id]:
+                        last_failure = self._task_failure_history[task_id][-1]
+                        if 'timestamp' in last_failure:
+                            task_data['failed_at'] = last_failure['timestamp'].isoformat()
+                    failed_tasks.append(task_data)
+            
+            state["pending_tasks"] = pending_tasks
+            state["in_progress_tasks"] = in_progress_tasks
+            state["completed_tasks"] = completed_tasks
+            state["failed_tasks"] = failed_tasks
+            
+            # Add statistics for compatibility
+            # Count tasks by state
+            total_completed = sum(1 for s in self._task_states.values() if s == TaskState.COMPLETED)
+            total_failed = sum(1 for s in self._task_states.values() if s == TaskState.FAILED)
+            total_enqueued = len(self._tasks)  # All tasks that have been added
+            
+            state["statistics"] = {
+                "total_enqueued": total_enqueued,
+                "total_completed": total_completed,
+                "total_failed": total_failed,
+                "current_queue_size": self.size(),
+                "workers_count": len(self._workers),
+                "active_workers_count": len(self._active_workers)
+            }
             
             return state
     
@@ -1982,3 +2053,90 @@ class TaskQueue:
                 self._displaced_tasks = state["displaced_tasks"]
             if "displacement_by_priority" in state:
                 self._displacement_by_priority.update(state["displacement_by_priority"])
+            
+            # If task lists are provided (for compatibility), import them
+            if "pending_tasks" in state or "in_progress_tasks" in state or "completed_tasks" in state or "failed_tasks" in state:
+                # Clear existing tasks if we're importing from lists
+                self._tasks.clear()
+                self._task_states.clear()
+                self._queues = {3: deque(), 2: deque(), 1: deque()}
+                
+                # Import pending tasks
+                for task_data in state.get("pending_tasks", []):
+                    task = Task(
+                        task_type=TaskType(task_data["task_type"]),
+                        priority=task_data["priority"],
+                        payload=task_data["payload"]
+                    )
+                    task.id = UUID(task_data["id"])
+                    task.state = TaskState.PENDING
+                    if task_data.get("created_at"):
+                        task.created_at = datetime.fromisoformat(task_data["created_at"])
+                    
+                    task_id = str(task.id)
+                    self._tasks[task_id] = task
+                    self._task_states[task_id] = TaskState.PENDING
+                    self._queues[task.priority].append(task_id)
+                    if task.created_at:
+                        self._task_enqueue_times[task_id] = task.created_at
+                
+                # Import in-progress tasks
+                for task_data in state.get("in_progress_tasks", []):
+                    task = Task(
+                        task_type=TaskType(task_data["task_type"]),
+                        priority=task_data["priority"],
+                        payload=task_data["payload"]
+                    )
+                    task.id = UUID(task_data["id"])
+                    task.state = TaskState.ASSIGNED
+                    task.assigned_to = task_data.get("assigned_worker")
+                    if task_data.get("created_at"):
+                        task.created_at = datetime.fromisoformat(task_data["created_at"])
+                    if task_data.get("started_at"):
+                        task.assigned_at = datetime.fromisoformat(task_data["started_at"])
+                    
+                    task_id = str(task.id)
+                    self._tasks[task_id] = task
+                    self._task_states[task_id] = TaskState.ASSIGNED
+                
+                # Import completed tasks
+                for task_data in state.get("completed_tasks", []):
+                    task = Task(
+                        task_type=TaskType(task_data["task_type"]),
+                        priority=task_data["priority"],
+                        payload=task_data["payload"]
+                    )
+                    task.id = UUID(task_data["id"])
+                    task.state = TaskState.COMPLETED
+                    task.result = task_data.get("result")
+                    if task_data.get("created_at"):
+                        task.created_at = datetime.fromisoformat(task_data["created_at"])
+                    if task_data.get("started_at"):
+                        task.assigned_at = datetime.fromisoformat(task_data["started_at"])
+                    if task_data.get("completed_at"):
+                        task.completed_at = datetime.fromisoformat(task_data["completed_at"])
+                    
+                    task_id = str(task.id)
+                    self._tasks[task_id] = task
+                    self._task_states[task_id] = TaskState.COMPLETED
+                
+                # Import failed tasks
+                for task_data in state.get("failed_tasks", []):
+                    task = Task(
+                        task_type=TaskType(task_data["task_type"]),
+                        priority=task_data["priority"],
+                        payload=task_data["payload"]
+                    )
+                    task.id = UUID(task_data["id"])
+                    task.state = TaskState.FAILED
+                    task.error = task_data.get("error")
+                    if task_data.get("created_at"):
+                        task.created_at = datetime.fromisoformat(task_data["created_at"])
+                    if task_data.get("started_at"):
+                        task.assigned_at = datetime.fromisoformat(task_data["started_at"])
+                    if task_data.get("failed_at"):
+                        task.completed_at = datetime.fromisoformat(task_data["failed_at"])
+                    
+                    task_id = str(task.id)
+                    self._tasks[task_id] = task
+                    self._task_states[task_id] = TaskState.FAILED

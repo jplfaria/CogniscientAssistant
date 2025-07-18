@@ -110,9 +110,9 @@ This plan breaks down the implementation into atomic, testable units following T
 ## Phase 5: Safety Framework
 
 ### Safety Models
-- [ ] Create SafetyLevel enum
-- [ ] Create SafetyCheck dataclass
-- [ ] Write tests for safety models
+- [x] Create SafetyLevel enum
+- [x] Create SafetyCheck dataclass
+- [x] Write tests for safety models
 
 ### Safety Evaluators
 - [ ] Implement research goal safety evaluator

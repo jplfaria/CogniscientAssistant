@@ -1,11 +1,16 @@
 """Core data models for AI Co-Scientist."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, field_serializer
+
+
+def utcnow() -> datetime:
+    """Get current UTC time with timezone info."""
+    return datetime.now(timezone.utc)
 
 
 class TaskState(str, Enum):
@@ -46,7 +51,7 @@ class Task(BaseModel):
     error: Optional[str] = None
     
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     assigned_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     
@@ -73,7 +78,7 @@ class Task(BaseModel):
             raise ValueError(f"Cannot assign task in state {self.state}")
         
         self.assigned_to = worker_id
-        self.assigned_at = datetime.utcnow()
+        self.assigned_at = utcnow()
         self.state = TaskState.ASSIGNED
     
     def start_execution(self) -> None:
@@ -100,7 +105,7 @@ class Task(BaseModel):
             raise ValueError(f"Cannot complete task in state {self.state}")
         
         self.result = result
-        self.completed_at = datetime.utcnow()
+        self.completed_at = utcnow()
         self.state = TaskState.COMPLETED
     
     def fail(self, error: str) -> None:
@@ -110,7 +115,7 @@ class Task(BaseModel):
             error: Error message
         """
         self.error = error
-        self.completed_at = datetime.utcnow()
+        self.completed_at = utcnow()
         self.state = TaskState.FAILED
     
     model_config = ConfigDict()
@@ -191,7 +196,7 @@ class Hypothesis(BaseModel):
     supporting_evidence: List[Citation]
     confidence_score: float = Field(ge=0.0, le=1.0)
     generation_method: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     
     # Optional fields for tracking
     elo_rating: Optional[float] = Field(default=1200.0, ge=0)
@@ -319,7 +324,7 @@ class Review(BaseModel):
     literature_citations: Optional[List[Citation]] = None
     
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     time_spent_seconds: Optional[float] = Field(default=None, ge=0)
     
     model_config = ConfigDict()
