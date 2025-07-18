@@ -60,6 +60,15 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Add queue recovery on startup
 - [x] Write tests for recovery
 
+### Phase 3 Integration Test Updates
+- [x] Update tests/integration/phase3_task_queue_workflow.py with expanded tests
+- [x] Implement test_queue_capacity_limits
+- [x] Implement test_task_overflow_handling  
+- [x] Implement test_worker_heartbeat_timeout
+- [x] Implement test_dead_letter_queue
+- [x] Implement test_task_reassignment_on_failure
+- [x] Implement test_starvation_prevention
+
 ## Phase 4: Context Memory Implementation
 
 ### Basic Storage
@@ -197,6 +206,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write tests for error scenarios
 - [ ] Implement logging and monitoring
 
+### Phase 7 Integration Tests
+- [ ] Create tests/integration/phase7_baml_infrastructure.py
+- [ ] Implement test_baml_client_connectivity
+- [ ] Implement test_schema_validation
+- [ ] Implement test_thread_state_persistence
+- [ ] Implement test_event_replay_functionality
+- [ ] Implement test_error_handling_and_retries
+- [ ] Implement test_agent_function_invocation
+- [ ] Implement test_concurrent_baml_calls
+- [ ] Implement test_proxy_failover (may_fail)
+- [ ] Implement test_rate_limiting (may_fail)
+
 ## Phase 8: Supervisor Agent
 
 ### Agent Structure
@@ -219,6 +240,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write tests for termination
 - [ ] Add recovery mechanisms
 - [ ] Write tests for recovery
+
+### Phase 8 Integration Tests
+- [ ] Create tests/integration/phase8_supervisor_agent.py
+- [ ] Implement test_supervisor_initialization
+- [ ] Implement test_task_distribution_logic
+- [ ] Implement test_resource_allocation
+- [ ] Implement test_progress_monitoring
+- [ ] Implement test_adaptive_agent_weighting
+- [ ] Implement test_termination_detection
+- [ ] Implement test_supervisor_recovery
+- [ ] Implement test_multi_agent_coordination (may_fail)
+- [ ] Implement test_supervisor_performance (may_fail)
 
 ## Phase 9: Generation Agent
 
@@ -243,6 +276,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add safety checks to generation
 - [ ] Write tests for safety integration
 
+### Phase 9 Integration Tests
+- [ ] Create tests/integration/phase9_generation_agent.py
+- [ ] Implement test_generation_agent_initialization
+- [ ] Implement test_literature_based_generation
+- [ ] Implement test_simulated_debate_generation
+- [ ] Implement test_assumption_based_generation
+- [ ] Implement test_feedback_based_generation
+- [ ] Implement test_generation_safety_checks
+- [ ] Implement test_web_search_integration
+- [ ] Implement test_hypothesis_diversity (may_fail)
+- [ ] Implement test_generation_creativity_metrics (may_fail)
+
 ## Phase 10: Reflection Agent
 
 ### Agent Structure
@@ -264,6 +309,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add tournament review
 - [ ] Write tests for tournament review
 
+### Phase 10 Integration Tests
+- [ ] Create tests/integration/phase10_reflection_agent.py
+- [ ] Implement test_reflection_agent_initialization
+- [ ] Implement test_initial_review_process
+- [ ] Implement test_full_review_with_literature
+- [ ] Implement test_deep_verification_review
+- [ ] Implement test_observation_review
+- [ ] Implement test_simulation_review
+- [ ] Implement test_tournament_review
+- [ ] Implement test_review_consistency (may_fail)
+- [ ] Implement test_review_quality_metrics (may_fail)
+
 ## Phase 11: Ranking Agent
 
 ### Agent Structure
@@ -278,6 +335,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write tests for debates
 - [ ] Implement convergence detection
 - [ ] Write tests for convergence
+
+### Phase 11 Integration Tests
+- [ ] Create tests/integration/phase11_ranking_agent.py
+- [ ] Implement test_ranking_agent_initialization
+- [ ] Implement test_elo_rating_calculations
+- [ ] Implement test_pairwise_comparison
+- [ ] Implement test_multi_turn_debates
+- [ ] Implement test_convergence_detection
+- [ ] Implement test_tournament_fairness
+- [ ] Implement test_ranking_stability
+- [ ] Implement test_large_scale_tournament (may_fail)
+- [ ] Implement test_ranking_performance (may_fail)
 
 ## Phase 12: Evolution Agent
 
@@ -295,6 +364,18 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Add paradigm shift strategy
 - [ ] Write tests for paradigm shifts
 
+### Phase 12 Integration Tests
+- [ ] Create tests/integration/phase12_evolution_agent.py
+- [ ] Implement test_evolution_agent_initialization
+- [ ] Implement test_enhancement_strategy
+- [ ] Implement test_combination_strategy
+- [ ] Implement test_simplification_strategy
+- [ ] Implement test_paradigm_shift_strategy
+- [ ] Implement test_evolution_constraints
+- [ ] Implement test_hypothesis_lineage_tracking
+- [ ] Implement test_evolution_diversity (may_fail)
+- [ ] Implement test_evolution_quality_metrics (may_fail)
+
 ## Phase 13: Proximity Agent
 
 ### Agent Structure
@@ -306,6 +387,16 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write tests for similarity
 - [ ] Add clustering logic
 - [ ] Write tests for clustering
+
+### Phase 13 Integration Tests
+- [ ] Create tests/integration/phase13_proximity_agent.py
+- [ ] Implement test_proximity_agent_initialization
+- [ ] Implement test_semantic_similarity_calculation
+- [ ] Implement test_hypothesis_clustering
+- [ ] Implement test_cluster_visualization
+- [ ] Implement test_similarity_threshold_tuning
+- [ ] Implement test_large_scale_clustering (may_fail)
+- [ ] Implement test_clustering_performance (may_fail)
 
 ## Phase 14: Meta-Review Agent
 
@@ -321,6 +412,17 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Implement research overview
 - [ ] Write tests for overview
 
+### Phase 14 Integration Tests
+- [ ] Create tests/integration/phase14_meta_review_agent.py
+- [ ] Implement test_meta_review_initialization
+- [ ] Implement test_pattern_extraction
+- [ ] Implement test_feedback_generation
+- [ ] Implement test_research_overview_synthesis
+- [ ] Implement test_meta_review_safety_audit
+- [ ] Implement test_cross_agent_pattern_detection
+- [ ] Implement test_meta_review_quality (may_fail)
+- [ ] Implement test_synthesis_performance (may_fail)
+
 ## Phase 15: Natural Language Interface
 
 ### CLI Interface
@@ -335,6 +437,17 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write tests for goal parsing
 - [ ] Implement constraint handling
 - [ ] Write tests for constraints
+
+### Phase 15 Integration Tests
+- [ ] Create tests/integration/phase15_natural_language_interface.py
+- [ ] Implement test_cli_entry_point
+- [ ] Implement test_command_parsing
+- [ ] Implement test_interactive_mode
+- [ ] Implement test_research_goal_parsing
+- [ ] Implement test_constraint_handling
+- [ ] Implement test_user_feedback_loop
+- [ ] Implement test_natural_language_understanding (may_fail)
+- [ ] Implement test_interface_responsiveness (may_fail)
 
 ## Phase 16: Integration and Polish
 
@@ -356,6 +469,17 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Write deployment guide
 - [ ] Create example workflows
 
+### Phase 16 Integration Tests
+- [ ] Create tests/integration/phase16_system_integration.py
+- [ ] Implement test_full_system_workflow
+- [ ] Implement test_end_to_end_hypothesis_generation
+- [ ] Implement test_monitoring_dashboard
+- [ ] Implement test_nih_specific_aims_formatter
+- [ ] Implement test_export_functionality
+- [ ] Implement test_performance_benchmarks
+- [ ] Implement test_system_resilience (may_fail)
+- [ ] Implement test_scalability_limits (may_fail)
+
 ## Phase 17: Final Validation
 
 - [ ] Run full system tests
@@ -363,6 +487,17 @@ This plan breaks down the implementation into atomic, testable units following T
 - [ ] Performance testing
 - [ ] Safety validation
 - [ ] User acceptance testing
+
+### Phase 17 Integration Tests
+- [ ] Create tests/integration/phase17_final_validation.py
+- [ ] Implement test_full_system_test_suite
+- [ ] Implement test_code_coverage_validation
+- [ ] Implement test_performance_validation
+- [ ] Implement test_safety_validation
+- [ ] Implement test_user_acceptance_scenarios
+- [ ] Implement test_deployment_readiness
+- [ ] Implement test_stress_testing (may_fail)
+- [ ] Implement test_production_simulation (may_fail)
 
 ## Notes
 

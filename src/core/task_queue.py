@@ -41,6 +41,9 @@ class QueueConfig:
     auto_start_monitoring: bool = False  # Auto-start heartbeat monitoring
     starvation_threshold: int = 3600
     acknowledgment_timeout: int = 5
+    overflow_strategy: str = "displace_oldest_low_priority"  # Strategy when queue full
+    priority_boost_interval: int = 60  # Boost priority every N seconds
+    priority_boost_amount: float = 0.1  # Amount to boost priority by
     
     def __post_init__(self):
         """Initialize and validate configuration."""
@@ -51,7 +54,8 @@ class QueueConfig:
             self.retry_policy = {
                 "max_attempts": 3,
                 "backoff_base": 2,
-                "backoff_max": 300
+                "backoff_max": 300,
+                "send_to_dlq": True
             }
         
         # Validation
@@ -103,6 +107,8 @@ class TaskQueue:
         self._task_states: Dict[str, TaskState] = {}
         self._task_retry_counts: Dict[str, int] = {}
         self._task_failure_history: Dict[str, list] = {}
+        self._task_enqueue_times: Dict[str, datetime] = {}  # Track when tasks were enqueued
+        self._task_boost_levels: Dict[str, float] = {}  # Track priority boosts
         
         # Worker tracking
         self._workers: Set[str] = set()
@@ -134,6 +140,18 @@ class TaskQueue:
         
         # Track initialization status
         self._initialized = False
+        
+        # Dead letter queue
+        self._dead_letter_queue: deque = deque()
+        self._dlq_metadata: Dict[str, Dict[str, Any]] = {}
+        
+        # Overflow tracking
+        self._displaced_tasks: int = 0
+        self._displacement_by_priority: Dict[str, int] = {"low": 0, "medium": 0, "high": 0}
+        
+        # Starvation prevention
+        self._priority_boost_task: Optional[asyncio.Task] = None
+        self._priority_boost_stopped = False
     
     async def initialize(self) -> None:
         """Initialize the queue, optionally recovering state and starting background tasks.
@@ -206,24 +224,45 @@ class TaskQueue:
             raise ValueError("Priority must be positive")
         
         async with self._lock:
-            # Check capacity
-            if self.size() >= self.config.max_queue_size:
-                raise RuntimeError("Queue at capacity")
-            
             # Map priority to queue (1=low, 2=medium, 3=high)
             priority_queue = self._queues.get(task.priority)
             if priority_queue is None:
                 raise ValueError(f"Invalid priority: {task.priority}")
             
-            # Check priority quota
             priority_name = {1: "low", 2: "medium", 3: "high"}.get(task.priority)
-            if len(priority_queue) >= self.config.priority_quotas.get(priority_name, 0):
-                raise RuntimeError(f"Queue at capacity for {priority_name} priority")
+            
+            # Track if we've already displaced a task
+            displaced_for_capacity = False
+            
+            # Check if queue is at capacity
+            if self.size() >= self.config.max_queue_size:
+                # Handle overflow based on strategy
+                if self.config.overflow_strategy == "displace_oldest_low_priority" and task.priority > 1:
+                    # Try to displace a lower priority task
+                    displaced = await self._displace_low_priority_task(task.priority)
+                    if not displaced:
+                        raise RuntimeError("Queue at capacity and no tasks can be displaced")
+                    displaced_for_capacity = True
+                else:
+                    raise RuntimeError("Queue at capacity")
+            
+            # Check priority quota only if we didn't displace due to total capacity
+            # (because displacement already made room)
+            if not displaced_for_capacity and len(priority_queue) >= self.config.priority_quotas.get(priority_name, 0):
+                # For high priority tasks, try to displace lower priority
+                if task.priority > 1 and self.config.overflow_strategy == "displace_oldest_low_priority":
+                    displaced = await self._displace_low_priority_task(task.priority)
+                    if not displaced:
+                        raise RuntimeError(f"Queue at capacity for {priority_name} priority")
+                else:
+                    raise RuntimeError(f"Queue at capacity for {priority_name} priority")
             
             # Add to queue
             task_id = str(task.id)
             self._tasks[task_id] = task
             self._task_states[task_id] = TaskState.PENDING
+            self._task_enqueue_times[task_id] = datetime.utcnow()
+            self._task_boost_levels[task_id] = 0.0
             priority_queue.append(task_id)
             
             return task_id
@@ -247,58 +286,58 @@ class TaskQueue:
                     state="idle"
                 )
             
-            # Find highest priority task that worker can handle
-            for priority in [3, 2, 1]:  # High to low
+            # Apply priority boosts for starving tasks
+            await self._apply_priority_boosts()
+            
+            # Collect all pending tasks with their effective priorities
+            candidate_tasks = []
+            for priority in [3, 2, 1]:
                 queue = self._queues[priority]
-                
-                # Look through tasks in this priority level
-                tasks_to_requeue = []
-                found_task = None
-                
-                while queue and not found_task:
-                    task_id = queue.popleft()
+                for task_id in queue:
                     task = self._tasks.get(task_id)
-                    
                     if task and self._can_worker_handle_task(worker_id, task):
-                        found_task = (task_id, task)
-                    else:
-                        # Worker can't handle this task, save for requeue
-                        tasks_to_requeue.append(task_id)
+                        boost = self._task_boost_levels.get(task_id, 0.0)
+                        effective_priority = task.priority + boost
+                        candidate_tasks.append((task_id, task, effective_priority))
+            
+            # Sort by effective priority (highest first)
+            candidate_tasks.sort(key=lambda x: x[2], reverse=True)
+            
+            if candidate_tasks:
+                # Take the highest priority task
+                task_id, task, _ = candidate_tasks[0]
                 
-                # Requeue tasks that weren't suitable
-                for tid in tasks_to_requeue:
-                    queue.append(tid)
+                # Remove from its queue
+                priority_queue = self._queues[task.priority]
+                priority_queue.remove(task_id)
                 
-                if found_task:
-                    task_id, task = found_task
-                    
-                    # Update task state
-                    task.assign(worker_id)
-                    self._task_states[task_id] = TaskState.ASSIGNED
-                    self._active_workers.add(worker_id)
-                    
-                    # Update worker state
-                    if worker_id in self._worker_info:
-                        self._worker_info[worker_id].state = "active"
-                        self._worker_info[worker_id].assigned_task = task_id
-                        self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
-                    
-                    # Create assignment
-                    now = datetime.utcnow().timestamp()
-                    assignment_id = str(uuid4())
-                    assignment = TaskAssignment(
-                        task=task,
-                        assignment_id=assignment_id,
-                        deadline=now + self.config.worker_timeout,
-                        acknowledgment_required_by=now + self.config.acknowledgment_timeout
-                    )
-                    
-                    # Track assignment
-                    self._active_assignments[assignment_id] = assignment
-                    self._assignment_to_task[assignment_id] = task_id
-                    self._assignment_to_worker[assignment_id] = worker_id
-                    
-                    return assignment
+                # Update task state
+                task.assign(worker_id)
+                self._task_states[task_id] = TaskState.ASSIGNED
+                self._active_workers.add(worker_id)
+                
+                # Update worker state
+                if worker_id in self._worker_info:
+                    self._worker_info[worker_id].state = "active"
+                    self._worker_info[worker_id].assigned_task = task_id
+                    self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+                
+                # Create assignment
+                now = datetime.utcnow().timestamp()
+                assignment_id = str(uuid4())
+                assignment = TaskAssignment(
+                    task=task,
+                    assignment_id=assignment_id,
+                    deadline=now + self.config.worker_timeout,
+                    acknowledgment_required_by=now + self.config.acknowledgment_timeout
+                )
+                
+                # Track assignment
+                self._active_assignments[assignment_id] = assignment
+                self._assignment_to_task[assignment_id] = task_id
+                self._assignment_to_worker[assignment_id] = worker_id
+                
+                return assignment
             
             return None
     
@@ -605,7 +644,7 @@ class TaskQueue:
             retry_count = self._task_retry_counts.get(task_id, 0)
             max_retries = self.config.retry_policy.get("max_attempts", 3)
             
-            if error.get("retryable", False) and retry_count < max_retries:
+            if error.get("retryable", False) and retry_count < max_retries - 1:
                 # Reset task for retry
                 task.state = TaskState.PENDING
                 task.assigned_to = None
@@ -618,8 +657,25 @@ class TaskQueue:
                 if priority_queue is not None:
                     priority_queue.append(task_id)
             else:
-                # Permanent failure
+                # Permanent failure or max retries reached
                 self._task_states[task_id] = TaskState.FAILED
+                
+                # Send to DLQ if configured
+                if self.config.retry_policy.get("send_to_dlq", False):
+                    self._dead_letter_queue.append(task_id)
+                    
+                    # Determine reason for DLQ
+                    if not error.get("retryable", False):
+                        dlq_reason = "non_retryable_error"
+                    else:
+                        dlq_reason = "retry_exhaustion"
+                    
+                    self._dlq_metadata[task_id] = {
+                        "reason": dlq_reason,
+                        "error": error,
+                        "retry_count": retry_count + 1,
+                        "timestamp": datetime.utcnow()
+                    }
             
             return True
     
@@ -851,12 +907,30 @@ class TaskQueue:
                 "failed": sum(1 for info in self._worker_info.values() if info.state == "failed")
             }
             
+            # Calculate capacity information
+            current_size = self.size()
+            max_size = self.config.max_queue_size
+            capacity_percentage = (current_size / max_size * 100) if max_size > 0 else 0
+            
+            # Determine capacity status
+            if capacity_percentage >= 100:
+                capacity_status = "full"
+            elif capacity_percentage >= 95:
+                capacity_status = "critical"
+            elif capacity_percentage >= 80:
+                capacity_status = "warning"
+            else:
+                capacity_status = "normal"
+            
             return {
-                "total_tasks": self.size(),
+                "total_tasks": current_size,
                 "depth_by_priority": depth_by_priority,
                 "task_states": task_states,
                 "worker_stats": worker_stats,
-                "active_assignments": len(self._active_assignments)
+                "active_assignments": len(self._active_assignments),
+                "capacity_percentage": capacity_percentage,
+                "capacity_status": capacity_status,
+                "displaced_tasks": self._displaced_tasks
             }
     
     async def get_throughput_metrics(self) -> Dict[str, Any]:
@@ -1342,3 +1416,307 @@ class TaskQueue:
                 print(f"Error in persistence: {e}")
                 import traceback
                 traceback.print_exc()
+    
+    async def _displace_low_priority_task(self, incoming_priority: int) -> bool:
+        """Displace a lower priority task to make room.
+        
+        Args:
+            incoming_priority: Priority of incoming task
+            
+        Returns:
+            True if a task was displaced, False otherwise
+        """
+        # Note: This method must be called within a lock
+        # Try to displace from lowest priority first
+        for priority in [1, 2]:  # Low to medium
+            if priority >= incoming_priority:
+                break  # Can't displace equal or higher priority
+                
+            queue = self._queues[priority]
+            if queue:
+                # Remove oldest task from this priority
+                displaced_task_id = queue.popleft()
+                displaced_task = self._tasks.pop(displaced_task_id, None)
+                
+                if displaced_task:
+                    # Clean up task state
+                    self._task_states.pop(displaced_task_id, None)
+                    self._task_enqueue_times.pop(displaced_task_id, None)
+                    self._task_boost_levels.pop(displaced_task_id, None)
+                    
+                    # Track displacement
+                    self._displaced_tasks += 1
+                    priority_name = {1: "low", 2: "medium", 3: "high"}.get(priority, "unknown")
+                    self._displacement_by_priority[priority_name] += 1
+                    
+                    return True
+        
+        return False
+    
+    async def get_overflow_statistics(self) -> Dict[str, Any]:
+        """Get statistics about task displacement due to overflow.
+        
+        Returns:
+            Dictionary with overflow statistics
+        """
+        async with self._lock:
+            return {
+                "total_displaced": self._displaced_tasks,
+                "displacement_by_priority": self._displacement_by_priority.copy()
+            }
+    
+    async def send_heartbeat(self, worker_id: str) -> None:
+        """Send heartbeat for a worker.
+        
+        Args:
+            worker_id: ID of the worker
+        """
+        async with self._lock:
+            if worker_id in self._worker_info:
+                self._worker_info[worker_id].last_heartbeat = datetime.utcnow()
+    
+    async def get_worker_status(self, worker_id: str) -> Dict[str, Any]:
+        """Get detailed status of a worker.
+        
+        Args:
+            worker_id: ID of the worker
+            
+        Returns:
+            Dictionary with worker status
+        """
+        async with self._lock:
+            if worker_id not in self._worker_info:
+                return {"error": "Worker not found"}
+            
+            worker = self._worker_info[worker_id]
+            now = datetime.utcnow()
+            time_since_heartbeat = (now - worker.last_heartbeat).total_seconds()
+            
+            return {
+                "id": worker_id,
+                "state": worker.state,
+                "last_heartbeat": worker.last_heartbeat.isoformat(),
+                "time_since_heartbeat": time_since_heartbeat,
+                "assigned_task": worker.assigned_task,
+                "capabilities": worker.capabilities,
+                "failure_reason": "heartbeat_timeout" if worker.state == "failed" and time_since_heartbeat > self.config.heartbeat_timeout else None
+            }
+    
+    async def mark_worker_failed(self, worker_id: str, reason: str) -> None:
+        """Mark a worker as failed and reassign its tasks.
+        
+        Args:
+            worker_id: ID of the worker
+            reason: Reason for failure
+        """
+        async with self._lock:
+            if worker_id not in self._worker_info:
+                return
+            
+            worker = self._worker_info[worker_id]
+            worker.state = "failed"
+            
+            # Remove from active workers
+            self._active_workers.discard(worker_id)
+            
+            # Find and reassign any tasks assigned to this worker
+            reassigned_tasks = []
+            for assignment_id, assignment in list(self._active_assignments.items()):
+                if assignment.task.assigned_to == worker_id:
+                    task_id = str(assignment.task.id)
+                    
+                    # Reset task state
+                    assignment.task.state = TaskState.PENDING
+                    assignment.task.assigned_to = None
+                    assignment.task.assigned_at = None
+                    self._task_states[task_id] = TaskState.PENDING
+                    
+                    # Track failure for reassignment history
+                    if task_id not in self._task_failure_history:
+                        self._task_failure_history[task_id] = []
+                    self._task_failure_history[task_id].append({
+                        "worker_id": worker_id,
+                        "reason": "worker_failure",
+                        "timestamp": datetime.utcnow()
+                    })
+                    
+                    # Add back to appropriate queue
+                    priority_queue = self._queues[assignment.task.priority]
+                    priority_queue.appendleft(task_id)  # Add to front for quick reassignment
+                    
+                    # Clean up assignment
+                    self._active_assignments.pop(assignment_id, None)
+                    self._assignment_to_task.pop(assignment_id, None)
+                    self._assignment_to_worker.pop(assignment_id, None)
+                    
+                    reassigned_tasks.append(task_id)
+            
+            # Update worker's assigned task
+            worker.assigned_task = None
+    
+    async def get_dlq_statistics(self) -> Dict[str, Any]:
+        """Get dead letter queue statistics.
+        
+        Returns:
+            Dictionary with DLQ statistics
+        """
+        async with self._lock:
+            by_reason = defaultdict(int)
+            for metadata in self._dlq_metadata.values():
+                reason = metadata.get("reason", "unknown")
+                by_reason[reason] += 1
+            
+            return {
+                "total_tasks": len(self._dead_letter_queue),
+                "by_reason": dict(by_reason)
+            }
+    
+    async def get_dlq_tasks(self) -> list:
+        """Get all tasks in the dead letter queue.
+        
+        Returns:
+            List of task IDs in DLQ
+        """
+        async with self._lock:
+            return list(self._dead_letter_queue)
+    
+    async def retry_from_dlq(self, task_id: str) -> Dict[str, Any]:
+        """Retry a task from the dead letter queue.
+        
+        Args:
+            task_id: ID of task to retry
+            
+        Returns:
+            Dictionary with retry result
+        """
+        async with self._lock:
+            if task_id not in self._dlq_metadata:
+                return {"success": False, "error": "Task not in DLQ"}
+            
+            # Find and remove task from DLQ
+            task = None
+            for i, tid in enumerate(self._dead_letter_queue):
+                if tid == task_id:
+                    self._dead_letter_queue.remove(tid)
+                    task = self._tasks.get(tid)
+                    break
+            
+            if not task:
+                return {"success": False, "error": "Task not found"}
+            
+            # Reset task state
+            task.state = TaskState.PENDING
+            task.assigned_to = None
+            task.assigned_at = None
+            self._task_states[task_id] = TaskState.PENDING
+            self._task_retry_counts[task_id] = 0  # Reset retry count
+            
+            # Add back to appropriate queue
+            priority_queue = self._queues[task.priority]
+            priority_queue.append(task_id)
+            
+            # Clean up DLQ metadata
+            self._dlq_metadata.pop(task_id, None)
+            
+            return {"success": True, "task_id": task_id}
+    
+    async def get_task_info(self, task_id: str) -> Dict[str, Any]:
+        """Get detailed information about a task.
+        
+        Args:
+            task_id: ID of the task
+            
+        Returns:
+            Dictionary with task information
+        """
+        async with self._lock:
+            task = self._tasks.get(task_id)
+            if not task:
+                return {"error": "Task not found"}
+            
+            enqueue_time = self._task_enqueue_times.get(task_id)
+            wait_time = 0
+            if enqueue_time:
+                if task.assigned_at:
+                    wait_time = (task.assigned_at - enqueue_time).total_seconds()
+                else:
+                    wait_time = (datetime.utcnow() - enqueue_time).total_seconds()
+            
+            # Calculate effective priority with boost
+            boost_level = self._task_boost_levels.get(task_id, 0.0)
+            effective_priority = task.priority + boost_level
+            
+            # Get reassignment info
+            reassignment_count = 0
+            previous_workers = []
+            for failure in self._task_failure_history.get(task_id, []):
+                if failure.get("reason") == "worker_failure":
+                    reassignment_count += 1
+                    if "worker_id" in failure:
+                        previous_workers.append(failure["worker_id"])
+            
+            return {
+                "task_id": task_id,
+                "state": self._task_states.get(task_id, TaskState.PENDING).value,
+                "priority": task.priority,
+                "effective_priority": effective_priority,
+                "wait_time": wait_time,
+                "retry_count": self._task_retry_counts.get(task_id, 0),
+                "reassignment_count": reassignment_count,
+                "previous_workers": previous_workers,
+                "prefer_different_worker": reassignment_count > 0
+            }
+    
+    async def get_starvation_statistics(self) -> Dict[str, Any]:
+        """Get statistics about task starvation.
+        
+        Returns:
+            Dictionary with starvation statistics
+        """
+        async with self._lock:
+            now = datetime.utcnow()
+            tasks_boosted = 0
+            max_wait_time = 0
+            tasks_above_threshold = 0
+            
+            for task_id, enqueue_time in self._task_enqueue_times.items():
+                if self._task_states.get(task_id) == TaskState.PENDING:
+                    wait_time = (now - enqueue_time).total_seconds()
+                    max_wait_time = max(max_wait_time, wait_time)
+                    
+                    if self._task_boost_levels.get(task_id, 0) > 0:
+                        tasks_boosted += 1
+                    
+                    if wait_time > self.config.starvation_threshold:
+                        tasks_above_threshold += 1
+            
+            return {
+                "tasks_boosted": tasks_boosted,
+                "max_wait_time": max_wait_time,
+                "tasks_above_threshold": tasks_above_threshold
+            }
+    
+    async def _apply_priority_boosts(self) -> None:
+        """Apply priority boosts to tasks that have been waiting too long.
+        
+        Note: This method must be called within a lock.
+        """
+        now = datetime.utcnow()
+        boost_interval = self.config.priority_boost_interval
+        boost_amount = self.config.priority_boost_amount
+        
+        for task_id, enqueue_time in self._task_enqueue_times.items():
+            if self._task_states.get(task_id) == TaskState.PENDING:
+                wait_time = (now - enqueue_time).total_seconds()
+                
+                # Calculate how many boost intervals have passed
+                boost_intervals_passed = int(wait_time / boost_interval)
+                
+                if boost_intervals_passed > 0:
+                    # Apply boost
+                    current_boost = self._task_boost_levels.get(task_id, 0.0)
+                    new_boost = boost_intervals_passed * boost_amount
+                    
+                    # Only update if the new boost is higher
+                    if new_boost > current_boost:
+                        self._task_boost_levels[task_id] = new_boost
