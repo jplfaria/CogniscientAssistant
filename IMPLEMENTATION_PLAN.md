@@ -81,10 +81,10 @@ This plan breaks down the implementation into atomic, testable units following T
 ### Hierarchical Organization
 - [x] Implement iteration tracking
 - [x] Write tests for iteration management
-- [ ] Add checkpoint functionality
-- [ ] Write tests for checkpoints
-- [ ] Implement aggregate storage
-- [ ] Write tests for aggregates
+- [x] Add checkpoint functionality
+- [x] Write tests for checkpoints
+- [x] Implement aggregate storage
+- [x] Write tests for aggregates
 
 ### Advanced Features
 - [ ] Add conflict resolution logic

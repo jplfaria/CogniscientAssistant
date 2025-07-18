@@ -503,11 +503,17 @@ class ContextMemory:
                 with open(checkpoint_file, 'r') as f:
                     checkpoint_data = json.load(f)
                 
+                # Validate required fields exist
+                required_fields = ["timestamp", "orchestration_state", "checkpoint_data", "system_statistics"]
+                if not all(field in checkpoint_data for field in required_fields):
+                    logger.error(f"Checkpoint {checkpoint_id} missing required fields")
+                    return None
+                
                 return RecoveryState(
                     checkpoint_timestamp=datetime.fromisoformat(checkpoint_data["timestamp"]),
                     system_configuration=checkpoint_data["orchestration_state"],
-                    active_tasks=checkpoint_data["checkpoint_data"]["in_flight_tasks"],
-                    completed_work={"hypotheses": checkpoint_data["system_statistics"]["total_hypotheses"]},
+                    active_tasks=checkpoint_data["checkpoint_data"].get("in_flight_tasks", []),
+                    completed_work={"hypotheses": checkpoint_data["system_statistics"].get("total_hypotheses", 0)},
                     resume_points={},
                     data_integrity={"valid": True}
                 )
@@ -983,3 +989,370 @@ class ContextMemory:
         except Exception as e:
             logger.error(f"Failed to get storage size: {e}")
             return 0
+    
+    async def list_checkpoints(self) -> List[Dict[str, Any]]:
+        """List all checkpoints with their metadata."""
+        try:
+            checkpoints = []
+            checkpoints_dir = self.storage_path / "checkpoints"
+            
+            if checkpoints_dir.exists():
+                for checkpoint_dir in checkpoints_dir.iterdir():
+                    if checkpoint_dir.is_dir():
+                        checkpoint_file = checkpoint_dir / "checkpoint.json"
+                        if checkpoint_file.exists():
+                            try:
+                                with open(checkpoint_file, 'r') as f:
+                                    data = json.load(f)
+                                    checkpoints.append({
+                                        "checkpoint_id": data.get("checkpoint_id"),
+                                        "timestamp": data.get("timestamp"),
+                                        "created_at": data.get("created_at")
+                                    })
+                            except Exception as e:
+                                logger.warning(f"Failed to read checkpoint {checkpoint_dir.name}: {e}")
+            
+            # Sort by created_at timestamp
+            checkpoints.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            return checkpoints
+            
+        except Exception as e:
+            logger.error(f"Failed to list checkpoints: {e}")
+            return []
+    
+    async def cleanup_old_checkpoints(self) -> int:
+        """Clean up checkpoints older than retention period."""
+        try:
+            cleaned_count = 0
+            checkpoints_dir = self.storage_path / "checkpoints"
+            
+            if not checkpoints_dir.exists():
+                return 0
+            
+            cutoff_date = datetime.now() - timedelta(days=self.retention_days)
+            
+            for checkpoint_dir in checkpoints_dir.iterdir():
+                if checkpoint_dir.is_dir():
+                    checkpoint_file = checkpoint_dir / "checkpoint.json"
+                    if checkpoint_file.exists():
+                        try:
+                            with open(checkpoint_file, 'r') as f:
+                                data = json.load(f)
+                                created_at = datetime.fromisoformat(data.get("created_at", ""))
+                                
+                                if created_at < cutoff_date:
+                                    # Remove old checkpoint
+                                    import shutil
+                                    shutil.rmtree(checkpoint_dir)
+                                    cleaned_count += 1
+                                    logger.info(f"Cleaned up old checkpoint: {checkpoint_dir.name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to process checkpoint {checkpoint_dir.name}: {e}")
+            
+            return cleaned_count
+            
+        except Exception as e:
+            logger.error(f"Failed to cleanup old checkpoints: {e}")
+            return 0
+    
+    async def validate_checkpoint(self, checkpoint_id: str) -> bool:
+        """Validate checkpoint data integrity."""
+        try:
+            checkpoint_file = self.storage_path / "checkpoints" / checkpoint_id / "checkpoint.json"
+            
+            if not checkpoint_file.exists():
+                return False
+            
+            try:
+                with open(checkpoint_file, 'r') as f:
+                    data = json.load(f)
+                
+                # Check required fields
+                required_fields = [
+                    "checkpoint_id", "timestamp", "system_statistics",
+                    "orchestration_state", "checkpoint_data", "created_at"
+                ]
+                
+                if not all(field in data for field in required_fields):
+                    return False
+                
+                # Validate checkpoint_id matches
+                if data.get("checkpoint_id") != checkpoint_id:
+                    return False
+                
+                # Try to parse timestamps
+                datetime.fromisoformat(data["timestamp"])
+                datetime.fromisoformat(data["created_at"])
+                
+                return True
+                
+            except (json.JSONDecodeError, ValueError, KeyError):
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to validate checkpoint {checkpoint_id}: {e}")
+            return False
+    
+    async def get_latest_checkpoint(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent checkpoint."""
+        try:
+            checkpoints = await self.list_checkpoints()
+            if checkpoints:
+                # Already sorted by created_at in descending order
+                checkpoint_id = checkpoints[0]["checkpoint_id"]
+                
+                # Load full checkpoint data
+                checkpoint_file = self.storage_path / "checkpoints" / checkpoint_id / "checkpoint.json"
+                if checkpoint_file.exists():
+                    with open(checkpoint_file, 'r') as f:
+                        return json.load(f)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to get latest checkpoint: {e}")
+            return None
+    
+    # Aggregate Storage Methods
+    
+    async def store_aggregate(self, aggregate_type: str, data: Dict[str, Any], timestamp: datetime) -> bool:
+        """Store aggregate data."""
+        try:
+            aggregate_file = self.storage_path / "aggregates" / f"{aggregate_type}.json"
+            
+            # Load existing data or create new structure
+            if aggregate_file.exists():
+                with open(aggregate_file, 'r') as f:
+                    aggregate_data = json.load(f)
+            else:
+                aggregate_data = {"entries": []}
+            
+            # Add new entry
+            entry = {
+                "timestamp": timestamp.isoformat(),
+                "data": data
+            }
+            aggregate_data["entries"].append(entry)
+            
+            # Sort entries by timestamp
+            aggregate_data["entries"].sort(key=lambda x: x["timestamp"])
+            
+            # Write back to file
+            with open(aggregate_file, 'w') as f:
+                json.dump(aggregate_data, f, indent=2)
+            
+            logger.info(f"Stored aggregate data for {aggregate_type}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to store aggregate: {e}")
+            return False
+    
+    async def retrieve_aggregate(
+        self,
+        aggregate_type: str,
+        query_type: str = "latest",
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None
+    ) -> Optional[Any]:
+        """Retrieve aggregate data based on query type."""
+        try:
+            aggregate_file = self.storage_path / "aggregates" / f"{aggregate_type}.json"
+            
+            if not aggregate_file.exists():
+                return None
+            
+            with open(aggregate_file, 'r') as f:
+                aggregate_data = json.load(f)
+            
+            entries = aggregate_data.get("entries", [])
+            
+            if not entries:
+                return None
+            
+            if query_type == "latest":
+                # Return data from the latest entry
+                return entries[-1]["data"]
+            
+            elif query_type == "time_range":
+                # Filter entries by time range
+                if start_time is None or end_time is None:
+                    raise ValueError("start_time and end_time required for time_range query")
+                
+                filtered_entries = []
+                for entry in entries:
+                    entry_time = datetime.fromisoformat(entry["timestamp"])
+                    if start_time <= entry_time <= end_time:
+                        filtered_entries.append(entry["data"])
+                
+                return filtered_entries
+            
+            else:
+                raise ValueError(f"Unknown query_type: {query_type}")
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve aggregate: {e}")
+            return None
+    
+    async def update_aggregate(
+        self,
+        aggregate_type: str,
+        data: Dict[str, Any],
+        merge_strategy: str = "replace"
+    ) -> bool:
+        """Update aggregate data with merge strategy."""
+        try:
+            # For now, we'll implement replace strategy by storing a new entry
+            # Future enhancement: implement different merge strategies
+            return await self.store_aggregate(aggregate_type, data, datetime.now())
+            
+        except Exception as e:
+            logger.error(f"Failed to update aggregate: {e}")
+            return False
+    
+    async def compute_aggregate_statistics(
+        self,
+        agent_type: str,
+        metric: str
+    ) -> Optional[Dict[str, float]]:
+        """Compute aggregate statistics from agent outputs."""
+        try:
+            # Get active iteration
+            active_iter = await self.get_active_iteration()
+            if active_iter is None:
+                # No active iteration, check recent iterations
+                iterations = await self.list_iterations()
+                if not iterations:
+                    return None
+                # Use the most recent iteration
+                active_iter = iterations[-1]["iteration_number"]
+            
+            iter_name = f"iteration_{active_iter:03d}"
+            agent_outputs_dir = self.storage_path / "iterations" / iter_name / "agent_outputs"
+            
+            if not agent_outputs_dir.exists():
+                return None
+            
+            values = []
+            
+            # Collect metric values from agent outputs
+            for output_file in agent_outputs_dir.glob(f"{agent_type}_*.json"):
+                with open(output_file, 'r') as f:
+                    data = json.load(f)
+                    if data["agent_type"] == agent_type:
+                        results = data.get("results", {})
+                        if metric in results:
+                            values.append(results[metric])
+            
+            if not values:
+                return None
+            
+            # Compute statistics
+            stats = {
+                "count": len(values),
+                "average": sum(values) / len(values),
+                "min": min(values),
+                "max": max(values)
+            }
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Failed to compute aggregate statistics: {e}")
+            return None
+    
+    async def cleanup_aggregate_entries(self) -> int:
+        """Clean up old entries from aggregates."""
+        try:
+            cleaned_count = 0
+            aggregates_dir = self.storage_path / "aggregates"
+            
+            if not aggregates_dir.exists():
+                return 0
+            
+            cutoff_date = datetime.now() - timedelta(days=self.retention_days)
+            
+            for aggregate_file in aggregates_dir.glob("*.json"):
+                try:
+                    with open(aggregate_file, 'r') as f:
+                        aggregate_data = json.load(f)
+                    
+                    original_count = len(aggregate_data.get("entries", []))
+                    
+                    # Filter out old entries
+                    aggregate_data["entries"] = [
+                        entry for entry in aggregate_data.get("entries", [])
+                        if datetime.fromisoformat(entry["timestamp"]) >= cutoff_date
+                    ]
+                    
+                    cleaned_count += original_count - len(aggregate_data["entries"])
+                    
+                    # Write back cleaned data
+                    with open(aggregate_file, 'w') as f:
+                        json.dump(aggregate_data, f, indent=2)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to clean aggregate {aggregate_file.name}: {e}")
+            
+            return cleaned_count
+            
+        except Exception as e:
+            logger.error(f"Failed to cleanup aggregate entries: {e}")
+            return 0
+    
+    async def list_aggregate_types(self) -> List[str]:
+        """List all available aggregate types."""
+        try:
+            aggregates_dir = self.storage_path / "aggregates"
+            
+            if not aggregates_dir.exists():
+                return []
+            
+            aggregate_types = []
+            for aggregate_file in aggregates_dir.glob("*.json"):
+                aggregate_types.append(aggregate_file.stem)
+            
+            return sorted(aggregate_types)
+            
+        except Exception as e:
+            logger.error(f"Failed to list aggregate types: {e}")
+            return []
+    
+    async def get_aggregate_summary(self) -> Dict[str, Dict[str, Any]]:
+        """Get summary information for all aggregates."""
+        try:
+            summary = {}
+            aggregates_dir = self.storage_path / "aggregates"
+            
+            if not aggregates_dir.exists():
+                return summary
+            
+            for aggregate_file in aggregates_dir.glob("*.json"):
+                try:
+                    aggregate_type = aggregate_file.stem
+                    file_size = aggregate_file.stat().st_size
+                    
+                    with open(aggregate_file, 'r') as f:
+                        aggregate_data = json.load(f)
+                    
+                    entries = aggregate_data.get("entries", [])
+                    
+                    if entries:
+                        latest_timestamp = entries[-1]["timestamp"]
+                    else:
+                        latest_timestamp = None
+                    
+                    summary[aggregate_type] = {
+                        "entry_count": len(entries),
+                        "file_size": file_size,
+                        "latest_timestamp": latest_timestamp
+                    }
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to get summary for {aggregate_file.name}: {e}")
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Failed to get aggregate summary: {e}")
+            return {}
