@@ -95,17 +95,17 @@ This plan breaks down the implementation into atomic, testable units following T
 - [x] Write tests for cleanup
 
 ### Integration Tests
-- [ ] Create tests/integration/phase4_memory_queue.py
-- [ ] Implement test_memory_storage_and_retrieval
-- [ ] Implement test_context_thread_isolation
-- [ ] Implement test_checkpoint_creation_and_recovery
-- [ ] Implement test_concurrent_write_conflict_resolution
-- [ ] Implement test_memory_version_history
-- [ ] Implement test_storage_overflow_handling
-- [ ] Implement test_agent_memory_integration (may_fail)
-- [ ] Implement test_memory_retrieval_performance (may_fail)
-- [ ] Implement test_periodic_archive_rotation (may_fail)
-- [ ] Implement test_garbage_collection (may_fail)
+- [x] Create tests/integration/phase4_memory_queue.py
+- [x] Implement test_memory_storage_and_retrieval
+- [x] Implement test_context_thread_isolation
+- [x] Implement test_checkpoint_creation_and_recovery
+- [x] Implement test_concurrent_write_conflict_resolution
+- [x] Implement test_memory_version_history
+- [x] Implement test_storage_overflow_handling
+- [x] Implement test_agent_memory_integration (may_fail)
+- [x] Implement test_memory_retrieval_performance (may_fail)
+- [x] Implement test_periodic_archive_rotation (may_fail)
+- [x] Implement test_garbage_collection (may_fail)
 
 ## Phase 5: Safety Framework
 

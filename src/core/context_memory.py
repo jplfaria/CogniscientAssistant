@@ -282,6 +282,10 @@ class ContextMemory:
     async def store_state_update(self, state_update: StateUpdate) -> StorageResult:
         """Store a state update from the Supervisor Agent."""
         try:
+            # Check storage limit
+            if not await self._check_storage_limit():
+                logger.warning("Storage limit exceeded, cannot store state update")
+                return StorageResult(success=False, error="Storage limit exceeded")
             # Use active iteration if available, otherwise current
             active_iter = await self.get_active_iteration()
             if active_iter is not None:
@@ -1836,7 +1840,11 @@ class ContextMemory:
                                 metadata = json.load(f)
                             
                             if metadata.get("status") != "active":
-                                started_at = datetime.fromisoformat(metadata.get("started_at", datetime.now().isoformat()))
+                                started_at_str = metadata.get("started_at", datetime.now(timezone.utc).isoformat())
+                                started_at = datetime.fromisoformat(started_at_str)
+                                # Ensure timezone awareness
+                                if started_at.tzinfo is None:
+                                    started_at = started_at.replace(tzinfo=timezone.utc)
                                 if started_at < cutoff_date:
                                     archived = await self._archive_iteration(iteration_dir)
                                     if archived:
@@ -2095,3 +2103,99 @@ class ContextMemory:
         except Exception as e:
             logger.error(f"Failed to cleanup batch: {e}")
             return 0
+    
+    async def collect_garbage(self) -> Dict[str, Any]:
+        """Collect garbage - identify and clean orphaned data.
+        
+        Returns:
+            Dictionary with garbage collection statistics
+        """
+        try:
+            collected_stats = {
+                "orphaned_files": 0,
+                "orphaned_directories": 0,
+                "storage_freed_bytes": 0,
+                "errors": []
+            }
+            
+            # Check for orphaned iteration directories
+            iterations_dir = self.storage_path / "iterations"
+            if iterations_dir.exists():
+                for item in iterations_dir.iterdir():
+                    try:
+                        if item.is_dir():
+                            # Check if it's a valid iteration directory
+                            if not item.name.startswith("iteration_"):
+                                # Orphaned directory
+                                collected_stats["orphaned_directories"] += 1
+                                collected_stats["storage_freed_bytes"] += self._get_directory_size(item)
+                                import shutil
+                                shutil.rmtree(item)
+                            else:
+                                # Check if it has metadata
+                                metadata_file = item / "metadata.json"
+                                if not metadata_file.exists():
+                                    # Orphaned iteration without metadata
+                                    collected_stats["orphaned_directories"] += 1
+                                    collected_stats["storage_freed_bytes"] += self._get_directory_size(item)
+                                    import shutil
+                                    shutil.rmtree(item)
+                        elif item.is_file():
+                            # Orphaned file in iterations directory
+                            collected_stats["orphaned_files"] += 1
+                            collected_stats["storage_freed_bytes"] += item.stat().st_size
+                            item.unlink()
+                    except Exception as e:
+                        collected_stats["errors"].append(str(e))
+                        logger.warning(f"Failed to collect garbage for {item}: {e}")
+            
+            # Check for orphaned files in other directories
+            for subdir in ["checkpoints", "aggregates", "kv_store"]:
+                dir_path = self.storage_path / subdir
+                if dir_path.exists():
+                    for item in dir_path.iterdir():
+                        try:
+                            if item.is_file() and item.name.startswith(".") and item.name.endswith(".tmp"):
+                                # Temporary file
+                                collected_stats["orphaned_files"] += 1
+                                collected_stats["storage_freed_bytes"] += item.stat().st_size
+                                item.unlink()
+                        except Exception as e:
+                            collected_stats["errors"].append(str(e))
+            
+            logger.info(f"Garbage collection completed: {collected_stats}")
+            return collected_stats
+            
+        except Exception as e:
+            logger.error(f"Failed to collect garbage: {e}")
+            return {
+                "orphaned_files": 0,
+                "orphaned_directories": 0,
+                "storage_freed_bytes": 0,
+                "errors": [str(e)]
+            }
+    
+    def _get_directory_size(self, directory: Path) -> int:
+        """Get total size of a directory in bytes."""
+        total_size = 0
+        try:
+            for item in directory.rglob("*"):
+                if item.is_file():
+                    total_size += item.stat().st_size
+        except Exception:
+            pass
+        return total_size
+    
+    async def _check_storage_limit(self) -> bool:
+        """Check if storage is within limits.
+        
+        Returns:
+            True if within limits, False if exceeded
+        """
+        try:
+            total_size = self._get_directory_size(self.storage_path)
+            max_size_bytes = self.max_storage_gb * 1024 * 1024 * 1024
+            return total_size < max_size_bytes
+        except Exception as e:
+            logger.error(f"Failed to check storage limit: {e}")
+            return True  # Assume within limits on error

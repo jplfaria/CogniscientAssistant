@@ -1752,3 +1752,233 @@ class TaskQueue:
                     # Only update if the new boost is higher
                     if new_boost > current_boost:
                         self._task_boost_levels[task_id] = new_boost
+    
+    async def export_state(self) -> Dict[str, Any]:
+        """Export current queue state as a dictionary.
+        
+        Returns:
+            Dictionary containing the complete queue state
+        """
+        async with self._lock:
+            # Prepare state for export
+            state = {
+                "version": self._persistence_version,
+                "timestamp": datetime.utcnow().isoformat(),
+                "queues": {
+                    "high": list(self._queues[3]),
+                    "medium": list(self._queues[2]),
+                    "low": list(self._queues[1])
+                },
+                "tasks": {},
+                "task_states": {},
+                "task_retry_counts": dict(self._task_retry_counts),
+                "task_failure_history": {},
+                "task_progress": dict(self._task_progress),
+                "task_enqueue_times": {},
+                "task_boost_levels": dict(self._task_boost_levels),
+                "workers": {},
+                "assignments": {},
+                "capability_matching_enabled": self._capability_matching_enabled,
+                "dead_letter_queue": list(self._dead_letter_queue),
+                "dlq_metadata": dict(self._dlq_metadata),
+                "displaced_tasks": self._displaced_tasks,
+                "displacement_by_priority": dict(self._displacement_by_priority)
+            }
+            
+            # Serialize tasks
+            for task_id, task in self._tasks.items():
+                state["tasks"][task_id] = {
+                    "id": str(task.id),
+                    "task_type": task.task_type.value,
+                    "priority": task.priority,
+                    "state": task.state.value,
+                    "payload": task.payload,
+                    "assigned_to": task.assigned_to,
+                    "result": task.result,
+                    "error": task.error,
+                    "created_at": task.created_at.isoformat() if task.created_at else None,
+                    "assigned_at": task.assigned_at.isoformat() if task.assigned_at else None,
+                    "completed_at": task.completed_at.isoformat() if task.completed_at else None
+                }
+            
+            # Serialize task states
+            for task_id, task_state in self._task_states.items():
+                state["task_states"][task_id] = task_state.value
+            
+            # Serialize task enqueue times
+            for task_id, enqueue_time in self._task_enqueue_times.items():
+                state["task_enqueue_times"][task_id] = enqueue_time.isoformat()
+            
+            # Serialize failure history with datetime conversion
+            for task_id, failures in self._task_failure_history.items():
+                serialized_failures = []
+                for failure in failures:
+                    serialized_failure = failure.copy()
+                    if 'timestamp' in serialized_failure and isinstance(serialized_failure['timestamp'], datetime):
+                        serialized_failure['timestamp'] = serialized_failure['timestamp'].isoformat()
+                    serialized_failures.append(serialized_failure)
+                state["task_failure_history"][task_id] = serialized_failures
+            
+            # Serialize workers
+            for worker_id, worker_info in self._worker_info.items():
+                state["workers"][worker_id] = {
+                    "id": worker_info.id,
+                    "capabilities": worker_info.capabilities,
+                    "state": worker_info.state,
+                    "last_heartbeat": worker_info.last_heartbeat.isoformat(),
+                    "assigned_task": worker_info.assigned_task,
+                    "registration_time": worker_info.registration_time.isoformat()
+                }
+                
+            # Serialize active assignments
+            for assignment_id, assignment in self._active_assignments.items():
+                state["assignments"][assignment_id] = {
+                    "task_id": str(assignment.task.id),
+                    "assignment_id": assignment.assignment_id,
+                    "deadline": assignment.deadline,
+                    "acknowledgment_required_by": assignment.acknowledgment_required_by,
+                    "worker_id": self._assignment_to_worker.get(assignment_id)
+                }
+            
+            return state
+    
+    async def import_state(self, state: Dict[str, Any]) -> None:
+        """Import queue state from a dictionary.
+        
+        Args:
+            state: Dictionary containing queue state to import
+            
+        Raises:
+            ValueError: If state version is incompatible
+        """
+        # Check version compatibility
+        version = state.get("version", "0.0.0")
+        if version.split('.')[0] != self._persistence_version.split('.')[0]:
+            raise ValueError(f"Incompatible state version: {version}")
+        
+        async with self._lock:
+            # Clear current state
+            self._queues = {3: deque(), 2: deque(), 1: deque()}
+            self._tasks.clear()
+            self._task_states.clear()
+            self._task_retry_counts.clear()
+            self._task_failure_history.clear()
+            self._task_progress.clear()
+            self._task_enqueue_times.clear()
+            self._task_boost_levels.clear()
+            self._workers.clear()
+            self._active_workers.clear()
+            self._worker_info.clear()
+            self._active_assignments.clear()
+            self._assignment_to_task.clear()
+            self._assignment_to_worker.clear()
+            self._dead_letter_queue.clear()
+            self._dlq_metadata.clear()
+            
+            # Restore queues
+            queues = state.get("queues", {})
+            if "high" in queues:
+                self._queues[3].extend(queues["high"])
+            if "medium" in queues:
+                self._queues[2].extend(queues["medium"])
+            if "low" in queues:
+                self._queues[1].extend(queues["low"])
+            
+            # Restore tasks
+            for task_id, task_data in state.get("tasks", {}).items():
+                task = Task(
+                    task_type=TaskType(task_data["task_type"]),
+                    priority=task_data["priority"],
+                    payload=task_data["payload"]
+                )
+                # Set ID from saved data
+                task.id = UUID(task_data["id"])
+                task.state = TaskState(task_data["state"])
+                task.assigned_to = task_data["assigned_to"]
+                task.result = task_data["result"]
+                task.error = task_data["error"]
+                
+                # Restore timestamps
+                if task_data["created_at"]:
+                    task.created_at = datetime.fromisoformat(task_data["created_at"])
+                if task_data["assigned_at"]:
+                    task.assigned_at = datetime.fromisoformat(task_data["assigned_at"])
+                if task_data["completed_at"]:
+                    task.completed_at = datetime.fromisoformat(task_data["completed_at"])
+                
+                self._tasks[task_id] = task
+            
+            # Restore task states
+            for task_id, state_value in state.get("task_states", {}).items():
+                self._task_states[task_id] = TaskState(state_value)
+            
+            # Restore task enqueue times
+            for task_id, enqueue_time_str in state.get("task_enqueue_times", {}).items():
+                self._task_enqueue_times[task_id] = datetime.fromisoformat(enqueue_time_str)
+            
+            # Restore task boost levels
+            self._task_boost_levels.update(state.get("task_boost_levels", {}))
+            
+            # Restore retry counts
+            self._task_retry_counts.update(state.get("task_retry_counts", {}))
+            
+            # Restore failure history
+            for task_id, failures in state.get("task_failure_history", {}).items():
+                restored_failures = []
+                for failure in failures:
+                    restored_failure = failure.copy()
+                    if 'timestamp' in restored_failure and isinstance(restored_failure['timestamp'], str):
+                        restored_failure['timestamp'] = datetime.fromisoformat(restored_failure['timestamp'])
+                    restored_failures.append(restored_failure)
+                self._task_failure_history[task_id] = restored_failures
+            
+            # Restore progress
+            self._task_progress.update(state.get("task_progress", {}))
+            
+            # Restore workers
+            for worker_id, worker_data in state.get("workers", {}).items():
+                worker_info = WorkerInfo(
+                    id=worker_data["id"],
+                    capabilities=worker_data["capabilities"],
+                    state=worker_data["state"],
+                    last_heartbeat=datetime.fromisoformat(worker_data["last_heartbeat"]),
+                    assigned_task=worker_data["assigned_task"],
+                    registration_time=datetime.fromisoformat(worker_data["registration_time"])
+                )
+                self._worker_info[worker_id] = worker_info
+                self._workers.add(worker_id)
+                
+                if worker_info.state == "active" and worker_info.assigned_task:
+                    self._active_workers.add(worker_id)
+            
+            # Restore assignments
+            for assignment_id, assignment_data in state.get("assignments", {}).items():
+                task_id = assignment_data["task_id"]
+                task = self._tasks.get(task_id)
+                if task:
+                    assignment = TaskAssignment(
+                        task=task,
+                        assignment_id=assignment_data["assignment_id"],
+                        deadline=assignment_data["deadline"],
+                        acknowledgment_required_by=assignment_data["acknowledgment_required_by"]
+                    )
+                    self._active_assignments[assignment_id] = assignment
+                    self._assignment_to_task[assignment_id] = task_id
+                    self._assignment_to_worker[assignment_id] = assignment_data["worker_id"]
+            
+            # Restore other settings
+            self._capability_matching_enabled = state.get("capability_matching_enabled", False)
+            
+            # Restore dead letter queue
+            if "dead_letter_queue" in state:
+                self._dead_letter_queue.extend(state["dead_letter_queue"])
+            
+            # Restore DLQ metadata
+            if "dlq_metadata" in state:
+                self._dlq_metadata.update(state["dlq_metadata"])
+            
+            # Restore displacement stats
+            if "displaced_tasks" in state:
+                self._displaced_tasks = state["displaced_tasks"]
+            if "displacement_by_priority" in state:
+                self._displacement_by_priority.update(state["displacement_by_priority"])
