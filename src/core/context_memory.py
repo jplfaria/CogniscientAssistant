@@ -1,7 +1,7 @@
 """Context Memory implementation for persistent state management."""
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Set, Literal
 from dataclasses import dataclass, asdict
@@ -22,6 +22,7 @@ class StateUpdate:
     system_statistics: Dict[str, Any]
     orchestration_state: Dict[str, Any]
     checkpoint_data: Optional[Dict[str, Any]] = None
+    writer_id: Optional[str] = None  # ID of the writing agent/component
 
 
 @dataclass
@@ -309,7 +310,7 @@ class ContextMemory:
                 "orchestration_state": state_update.orchestration_state,
                 "checkpoint_data": state_update.checkpoint_data,
                 "version": 1,  # Add version tracking
-                "writer_id": f"supervisor_{timestamp_str}"  # Add writer identification
+                "writer_id": state_update.writer_id or f"supervisor_{timestamp_str}"  # Use provided writer_id or generate one
             }
             
             with open(state_file, 'w') as f:
@@ -1467,3 +1468,630 @@ class ContextMemory:
         except Exception as e:
             logger.error(f"Failed to get aggregate summary: {e}")
             return {}
+    
+    # Temporal Guarantee Methods
+    
+    async def retrieve_states_in_range(
+        self, 
+        start_time: datetime, 
+        end_time: datetime
+    ) -> List[Dict[str, Any]]:
+        """Retrieve all states within a time range, ordered by timestamp."""
+        try:
+            states = []
+            
+            # Search through all iterations
+            iterations_dir = self.storage_path / "iterations"
+            if not iterations_dir.exists():
+                return states
+            
+            for iteration_dir in iterations_dir.iterdir():
+                if not iteration_dir.is_dir():
+                    continue
+                
+                # Check all state files in this iteration
+                for state_file in iteration_dir.glob("system_state*.json"):
+                    try:
+                        with open(state_file, 'r') as f:
+                            data = json.load(f)
+                            timestamp = datetime.fromisoformat(data["timestamp"])
+                            
+                            # Check if in range
+                            if start_time <= timestamp <= end_time:
+                                states.append(data)
+                    except Exception as e:
+                        logger.warning(f"Failed to read state file {state_file}: {e}")
+            
+            # Sort by timestamp
+            states.sort(key=lambda x: x["timestamp"])
+            return states
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve states in range: {e}")
+            return []
+    
+    async def retrieve_state_for_agent(
+        self, 
+        agent_id: str, 
+        request_type: str = "latest"
+    ) -> Optional[RetrievedState]:
+        """Retrieve state ensuring read-your-writes consistency for an agent."""
+        try:
+            # For now, retrieve latest state that was written by this agent
+            # or the absolute latest if no agent-specific state exists
+            latest_state = None
+            latest_time = None
+            agent_state = None
+            agent_time = None
+            
+            for timestamp, path in sorted(self._temporal_index.items(), reverse=True):
+                if path.name.startswith("system_state"):
+                    with open(path, 'r') as f:
+                        state_data = json.load(f)
+                        
+                        # Track absolute latest
+                        if latest_state is None:
+                            latest_state = state_data
+                            latest_time = timestamp
+                        
+                        # Check if written by this agent
+                        writer = state_data.get("writer_id")
+                        if writer == agent_id and agent_state is None:
+                            agent_state = state_data
+                            agent_time = timestamp
+                            break
+            
+            # Return agent's own write if available, otherwise latest
+            if agent_state:
+                system_state = agent_state["orchestration_state"].copy()
+                system_state["tournament_progress"] = agent_state["system_statistics"].get("tournament_progress")
+                # Include statistics values in system_state for compatibility
+                system_state["value"] = agent_state["system_statistics"].get("value")
+                return RetrievedState(
+                    request_type=request_type,
+                    content={
+                        "system_state": system_state,
+                        "statistics": agent_state["system_statistics"],
+                        "timestamp": agent_state["timestamp"],
+                        "writer_id": agent_id
+                    }
+                )
+            elif latest_state:
+                system_state = latest_state["orchestration_state"].copy()
+                system_state["tournament_progress"] = latest_state["system_statistics"].get("tournament_progress")
+                return RetrievedState(
+                    request_type=request_type,
+                    content={
+                        "system_state": system_state,
+                        "statistics": latest_state["system_statistics"],
+                        "timestamp": latest_state["timestamp"]
+                    }
+                )
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve state for agent {agent_id}: {e}")
+            return None
+    
+    async def retrieve_state_as_of(self, timestamp: datetime) -> Optional[RetrievedState]:
+        """Retrieve state as of a specific timestamp (snapshot isolation)."""
+        try:
+            # Find the most recent state before or at the given timestamp
+            best_state = None
+            best_time = None
+            
+            for ts, path in sorted(self._temporal_index.items()):
+                if ts <= timestamp and path.name.startswith("system_state"):
+                    with open(path, 'r') as f:
+                        best_state = json.load(f)
+                        best_time = ts
+                elif ts > timestamp:
+                    break  # No need to look further
+            
+            if best_state:
+                system_state = best_state["orchestration_state"].copy()
+                system_state["tournament_progress"] = best_state["system_statistics"].get("tournament_progress")
+                return RetrievedState(
+                    request_type="as_of",
+                    timestamp_range=(best_time, timestamp),
+                    content={
+                        "system_state": system_state,
+                        "statistics": best_state["system_statistics"],
+                        "timestamp": best_state["timestamp"]
+                    }
+                )
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve state as of {timestamp}: {e}")
+            return None
+    
+    async def get_version_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get version history with version numbers."""
+        try:
+            versions = []
+            version_counter = 0
+            
+            # Get recent states in reverse chronological order
+            for timestamp, path in sorted(self._temporal_index.items(), reverse=True):
+                if path.name.startswith("system_state"):
+                    with open(path, 'r') as f:
+                        data = json.load(f)
+                        
+                        # Add computed version number
+                        version_info = {
+                            "version": data.get("version", version_counter),
+                            "timestamp": data["timestamp"],
+                            "writer_id": data.get("writer_id", "unknown"),
+                            "update_type": data.get("update_type", "unknown")
+                        }
+                        versions.append(version_info)
+                        version_counter += 1
+                        
+                        if len(versions) >= limit:
+                            break
+            
+            # Reverse to get chronological order with increasing versions
+            versions.reverse()
+            
+            # Ensure version numbers are sequential
+            for i, v in enumerate(versions):
+                v["version"] = i + 1
+            
+            return versions
+            
+        except Exception as e:
+            logger.error(f"Failed to get version history: {e}")
+            return []
+    
+    async def get_session_history(self, session_id: str) -> List[Dict[str, Any]]:
+        """Get causal history for a session."""
+        try:
+            history = []
+            
+            # Search all states for this session
+            for timestamp, path in sorted(self._temporal_index.items()):
+                if path.name.startswith("system_state"):
+                    with open(path, 'r') as f:
+                        data = json.load(f)
+                        
+                        # Check if part of this session
+                        if data.get("orchestration_state", {}).get("session_id") == session_id:
+                            # Extract relevant info
+                            history_entry = {
+                                "timestamp": data["timestamp"],
+                                "step": data["system_statistics"].get("step"),
+                                "value": data["system_statistics"].get("value"),
+                                "update_type": data.get("update_type")
+                            }
+                            history.append(history_entry)
+            
+            return history
+            
+        except Exception as e:
+            logger.error(f"Failed to get session history: {e}")
+            return []
+    
+    async def get_all_timestamps(self) -> List[datetime]:
+        """Get all stored timestamps in order."""
+        try:
+            timestamps = []
+            
+            # Collect from temporal index
+            for timestamp, path in sorted(self._temporal_index.items()):
+                timestamps.append(timestamp)
+            
+            return timestamps
+            
+        except Exception as e:
+            logger.error(f"Failed to get all timestamps: {e}")
+            return []
+    
+    async def reserve_write_window(
+        self, 
+        agent_id: str, 
+        duration_seconds: float
+    ) -> Optional[Dict[str, Any]]:
+        """Reserve a write window for an agent to minimize conflicts."""
+        try:
+            # Store reservation in a special file
+            reservations_file = self.storage_path / "configuration" / "write_reservations.json"
+            
+            # Load existing reservations
+            if reservations_file.exists():
+                with open(reservations_file, 'r') as f:
+                    reservations = json.load(f)
+            else:
+                reservations = {}
+            
+            current_time = datetime.now(timezone.utc)
+            
+            # Clean up expired reservations
+            active_reservations = {}
+            for aid, res in reservations.items():
+                expiry = datetime.fromisoformat(res["expiry"])
+                if expiry > current_time:
+                    active_reservations[aid] = res
+            
+            # Check if agent already has a reservation
+            if agent_id in active_reservations:
+                return active_reservations[agent_id]
+            
+            # Create new reservation
+            reservation = {
+                "agent_id": agent_id,
+                "start_time": current_time.isoformat(),
+                "expiry": (current_time + timedelta(seconds=duration_seconds)).isoformat(),
+                "duration_seconds": duration_seconds
+            }
+            
+            active_reservations[agent_id] = reservation
+            
+            # Save updated reservations
+            with open(reservations_file, 'w') as f:
+                json.dump(active_reservations, f, indent=2)
+            
+            return reservation
+            
+        except Exception as e:
+            logger.error(f"Failed to reserve write window: {e}")
+            return None
+    
+    # Cleanup and Archival Methods
+    
+    async def cleanup_old_iterations(self) -> int:
+        """Clean up iterations older than retention period."""
+        try:
+            start_time = datetime.now(timezone.utc)
+            initial_size = await self.get_total_storage_size() if hasattr(self, '_performance_monitoring') else 0
+            
+            cleaned_count = 0
+            iterations_dir = self.storage_path / "iterations"
+            
+            if not iterations_dir.exists():
+                return 0
+            
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
+            
+            for iteration_dir in iterations_dir.iterdir():
+                if not iteration_dir.is_dir() or not iteration_dir.name.startswith("iteration_"):
+                    continue
+                
+                # Check if this is the active iteration
+                metadata_file = iteration_dir / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                            
+                        # Never clean up active iterations
+                        if metadata.get("status") == "active":
+                            continue
+                        
+                        # Check age
+                        if "started_at" in metadata:
+                            started_at = datetime.fromisoformat(metadata["started_at"])
+                            if started_at < cutoff_date:
+                                # Archive before deletion
+                                await self._archive_iteration(iteration_dir)
+                                
+                                # Remove directory
+                                import shutil
+                                shutil.rmtree(iteration_dir)
+                                cleaned_count += 1
+                                logger.info(f"Cleaned up old iteration: {iteration_dir.name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to process iteration {iteration_dir.name}: {e}")
+            
+            # Also run checkpoint cleanup
+            checkpoint_cleaned = await self.cleanup_old_checkpoints()
+            
+            total_cleaned = cleaned_count + checkpoint_cleaned
+            
+            # Update metrics if performance monitoring is enabled
+            if hasattr(self, '_performance_monitoring') and self._performance_monitoring:
+                duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+                final_size = await self.get_total_storage_size()
+                freed_bytes = initial_size - final_size
+                
+                self._cleanup_metrics["last_cleanup_duration"] = duration
+                self._cleanup_metrics["items_cleaned"] = total_cleaned
+                self._cleanup_metrics["storage_freed_bytes"] = freed_bytes
+                self._cleanup_metrics["cleanup_history"].append({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "duration": duration,
+                    "items_cleaned": total_cleaned,
+                    "bytes_freed": freed_bytes
+                })
+            
+            return total_cleaned
+            
+        except Exception as e:
+            logger.error(f"Failed to cleanup old iterations: {e}")
+            return 0
+    
+    async def archive_old_data(self) -> int:
+        """Archive old data before cleanup."""
+        try:
+            archive_dir = self.storage_path / "archive"
+            archive_dir.mkdir(exist_ok=True)
+            
+            archived_count = 0
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
+            
+            # Archive old iterations
+            iterations_dir = self.storage_path / "iterations"
+            if iterations_dir.exists():
+                for iteration_dir in iterations_dir.iterdir():
+                    if not iteration_dir.is_dir():
+                        continue
+                    
+                    try:
+                        # Check if old enough to archive
+                        metadata_file = iteration_dir / "metadata.json"
+                        if metadata_file.exists():
+                            with open(metadata_file, 'r') as f:
+                                metadata = json.load(f)
+                            
+                            if metadata.get("status") != "active":
+                                started_at = datetime.fromisoformat(metadata.get("started_at", datetime.now().isoformat()))
+                                if started_at < cutoff_date:
+                                    archived = await self._archive_iteration(iteration_dir)
+                                    if archived:
+                                        archived_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to archive {iteration_dir.name}: {e}")
+            
+            # Update archive metadata
+            await self._update_archive_metadata(archived_count)
+            
+            return archived_count
+            
+        except Exception as e:
+            logger.error(f"Failed to archive old data: {e}")
+            return 0
+    
+    async def _archive_iteration(self, iteration_dir: Path) -> bool:
+        """Archive a single iteration directory."""
+        try:
+            import tarfile
+            import gzip
+            
+            archive_dir = self.storage_path / "archive"
+            archive_dir.mkdir(exist_ok=True)
+            
+            # Create archive filename
+            iteration_name = iteration_dir.name
+            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+            archive_name = f"{iteration_name}_{timestamp}.tar.gz"
+            archive_path = archive_dir / archive_name
+            
+            # Create compressed archive
+            with tarfile.open(archive_path, "w:gz") as tar:
+                tar.add(iteration_dir, arcname=iteration_name)
+            
+            logger.info(f"Archived iteration to {archive_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to archive iteration {iteration_dir}: {e}")
+            return False
+    
+    async def _update_archive_metadata(self, archived_count: int):
+        """Update archive metadata file."""
+        try:
+            # Ensure archive directory exists
+            archive_dir = self.storage_path / "archive"
+            archive_dir.mkdir(exist_ok=True)
+            
+            metadata_file = archive_dir / "archive_metadata.json"
+            
+            # Load existing metadata or create new
+            if metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+            else:
+                metadata = {"archives": []}
+            
+            # Add new archive entry
+            archive_entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "archived_count": archived_count
+            }
+            metadata["archives"].append(archive_entry)
+            
+            # Save updated metadata
+            with open(metadata_file, 'w') as f:
+                json.dump(metadata, f, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Failed to update archive metadata: {e}")
+    
+    async def get_total_storage_size(self) -> int:
+        """Get total storage size in bytes."""
+        try:
+            total_size = 0
+            
+            # Walk through all files in storage path
+            for root, dirs, files in os.walk(self.storage_path):
+                for file in files:
+                    file_path = Path(root) / file
+                    try:
+                        total_size += file_path.stat().st_size
+                    except Exception:
+                        pass
+            
+            return total_size
+            
+        except Exception as e:
+            logger.error(f"Failed to get total storage size: {e}")
+            return 0
+    
+    async def get_storage_breakdown(self) -> Dict[str, int]:
+        """Get storage size breakdown by component."""
+        try:
+            breakdown = {
+                "iterations": 0,
+                "checkpoints": 0,
+                "aggregates": 0,
+                "kv_store": 0
+            }
+            
+            for component in breakdown.keys():
+                component_dir = self.storage_path / component
+                if component_dir.exists():
+                    for root, dirs, files in os.walk(component_dir):
+                        for file in files:
+                            file_path = Path(root) / file
+                            try:
+                                breakdown[component] += file_path.stat().st_size
+                            except Exception:
+                                pass
+            
+            return breakdown
+            
+        except Exception as e:
+            logger.error(f"Failed to get storage breakdown: {e}")
+            return {}
+    
+    async def check_garbage_collection_needed(self) -> bool:
+        """Check if garbage collection is needed based on storage limits."""
+        try:
+            total_size = await self.get_total_storage_size()
+            max_size_bytes = self.max_storage_gb * 1024 * 1024 * 1024
+            
+            # Trigger GC at 80% of max storage
+            return total_size > (max_size_bytes * 0.8)
+            
+        except Exception as e:
+            logger.error(f"Failed to check garbage collection: {e}")
+            return False
+    
+    async def run_garbage_collection(self) -> int:
+        """Run garbage collection to free up storage space."""
+        try:
+            initial_size = await self.get_total_storage_size()
+            
+            # First, clean up old data
+            cleaned_iterations = await self.cleanup_old_iterations()
+            
+            # Clean up old aggregates
+            cleaned_aggregates = await self.cleanup_aggregate_entries()
+            
+            # Get final size
+            final_size = await self.get_total_storage_size()
+            freed_bytes = initial_size - final_size
+            
+            logger.info(f"Garbage collection freed {freed_bytes} bytes")
+            return freed_bytes
+            
+        except Exception as e:
+            logger.error(f"Failed to run garbage collection: {e}")
+            return 0
+    
+    async def check_archive_rotation_needed(self) -> bool:
+        """Check if archive rotation is needed (every 24 hours)."""
+        try:
+            last_archive_file = self.storage_path / "configuration" / "last_archive.json"
+            
+            if not last_archive_file.exists():
+                return True
+            
+            with open(last_archive_file, 'r') as f:
+                data = json.load(f)
+                last_archive = datetime.fromisoformat(data["timestamp"])
+            
+            # Check if 24 hours have passed
+            hours_since = (datetime.now(timezone.utc) - last_archive).total_seconds() / 3600
+            return hours_since >= 24
+            
+        except Exception as e:
+            logger.error(f"Failed to check archive rotation: {e}")
+            return False
+    
+    async def rotate_archives(self) -> bool:
+        """Rotate archives - archive old data and update tracking."""
+        try:
+            # Archive old data
+            archived_count = await self.archive_old_data()
+            
+            # Update last archive time
+            last_archive_file = self.storage_path / "configuration" / "last_archive.json"
+            last_archive_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "archived_count": archived_count
+            }
+            
+            with open(last_archive_file, 'w') as f:
+                json.dump(last_archive_data, f, indent=2)
+            
+            logger.info(f"Archive rotation completed, archived {archived_count} items")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to rotate archives: {e}")
+            return False
+    
+    async def enable_performance_monitoring(self):
+        """Enable performance monitoring for cleanup operations."""
+        self._performance_monitoring = True
+        self._cleanup_metrics = {
+            "last_cleanup_duration": 0,
+            "items_cleaned": 0,
+            "storage_freed_bytes": 0,
+            "cleanup_history": []
+        }
+    
+    async def get_cleanup_metrics(self) -> Dict[str, Any]:
+        """Get cleanup performance metrics."""
+        return getattr(self, '_cleanup_metrics', {})
+    
+    def set_cleanup_batch_size(self, batch_size: int):
+        """Set the batch size for incremental cleanup."""
+        self._cleanup_batch_size = batch_size
+    
+    async def cleanup_batch(self) -> int:
+        """Clean up a batch of old items."""
+        try:
+            batch_size = getattr(self, '_cleanup_batch_size', 10)
+            cleaned_count = 0
+            
+            iterations_dir = self.storage_path / "iterations"
+            if not iterations_dir.exists():
+                return 0
+            
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
+            
+            for iteration_dir in iterations_dir.iterdir():
+                if cleaned_count >= batch_size:
+                    break
+                
+                if not iteration_dir.is_dir() or not iteration_dir.name.startswith("iteration_"):
+                    continue
+                
+                # Check if eligible for cleanup
+                metadata_file = iteration_dir / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                        
+                        if metadata.get("status") != "active":
+                            if "started_at" in metadata:
+                                started_at = datetime.fromisoformat(metadata["started_at"])
+                                if started_at < cutoff_date:
+                                    # Archive and remove
+                                    await self._archive_iteration(iteration_dir)
+                                    import shutil
+                                    shutil.rmtree(iteration_dir)
+                                    cleaned_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to process {iteration_dir.name}: {e}")
+            
+            return cleaned_count
+            
+        except Exception as e:
+            logger.error(f"Failed to cleanup batch: {e}")
+            return 0

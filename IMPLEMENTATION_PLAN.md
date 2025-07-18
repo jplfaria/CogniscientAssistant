@@ -89,10 +89,10 @@ This plan breaks down the implementation into atomic, testable units following T
 ### Advanced Features
 - [x] Add conflict resolution logic
 - [x] Write tests for conflict resolution
-- [ ] Implement temporal guarantees
-- [ ] Write tests for temporal operations
-- [ ] Add memory cleanup/archival
-- [ ] Write tests for cleanup
+- [x] Implement temporal guarantees
+- [x] Write tests for temporal operations
+- [x] Add memory cleanup/archival
+- [x] Write tests for cleanup
 
 ### Integration Tests
 - [ ] Create tests/integration/phase4_memory_queue.py
