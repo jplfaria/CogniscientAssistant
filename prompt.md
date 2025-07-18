@@ -5,18 +5,32 @@ Read all specifications in specs/ and implement the AI Co-Scientist system accor
 ## CRITICAL: Check for Integration Test Regressions
 
 ```bash
-if [ -f ".implementation_flags" ] && grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
-    echo "❌ CRITICAL: Integration test regression detected!"
-    echo "Previously passing integration tests are now failing."
-    echo "This indicates broken functionality in completed components."
-    echo ""
-    echo "REQUIRED ACTIONS:"
-    echo "1. Run integration tests to see failures: pytest tests/integration/ -v"
-    echo "2. Review recent changes that could have broken functionality"
-    echo "3. Fix the regression before implementing new features"
-    echo "4. After fixing, remove flag: rm .implementation_flags"
-    echo ""
-    echo "DO NOT PROCEED WITH NEW IMPLEMENTATION UNTIL FIXED!"
+if [ -f ".implementation_flags" ]; then
+    if grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
+        echo "❌ CRITICAL: Integration test regression detected!"
+        echo "Previously passing integration tests are now failing."
+        echo "This indicates broken functionality in completed components."
+        echo ""
+        echo "REQUIRED ACTIONS:"
+        echo "1. Run integration tests to see failures: pytest tests/integration/ -v"
+        echo "2. Review recent changes that could have broken functionality"
+        echo "3. Fix the regression before implementing new features"
+        echo "4. After fixing, remove flag: rm .implementation_flags"
+        echo ""
+        echo "DO NOT PROCEED WITH NEW IMPLEMENTATION UNTIL FIXED!"
+    elif grep -q "IMPLEMENTATION_ERROR=true" .implementation_flags; then
+        echo "❌ CRITICAL: Implementation doesn't match specifications!"
+        echo "Integration tests for current phase failed on first run."
+        echo "This means the implementation doesn't meet required behavior."
+        echo ""
+        echo "REQUIRED ACTIONS:"
+        echo "1. Check test_expectations.json for 'must_pass' tests that failed"
+        echo "2. Review the failing tests and compare with specifications"
+        echo "3. Fix the implementation to match expected behavior"
+        echo "4. After fixing, remove flag: rm .implementation_flags"
+        echo ""
+        echo "DO NOT PROCEED UNTIL IMPLEMENTATION MATCHES SPECS!"
+    fi
 fi
 ```
 
@@ -62,6 +76,11 @@ fi
    ```
    
    DO NOT COMMIT if tests fail or coverage is below 80%!
+   
+   **Integration Test Expectations**: The file `tests/integration/test_expectations.json` defines:
+   - `must_pass`: Critical tests that MUST pass for each phase
+   - `may_fail`: Tests allowed to fail (usually waiting for future components)
+   - If a `must_pass` test fails, the implementation is incorrect
 
 7. Update IMPLEMENTATION_PLAN.md:
    - Mark completed items with [x]
