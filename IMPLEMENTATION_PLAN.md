@@ -198,8 +198,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ### BAML Configuration
 - [x] Create clients.baml with mock configuration
-- [ ] Add test client configurations
-- [ ] Set up environment variable mappings
+- [x] Add test client configurations
+- [x] Set up environment variable mappings
 - [ ] Configure retry policies in BAML
 - [ ] Add timeout configurations
 
