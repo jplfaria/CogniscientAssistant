@@ -43,6 +43,19 @@ enum Criticality {
     peripheral
 }
 
+enum SafetyLevel {
+    safe
+    concerning
+    blocked
+}
+
+enum SafetyCategory {
+    content_safety
+    goal_violation
+    ethical_concern
+    resource_misuse
+}
+
 // Supporting Classes
 
 class Citation {
@@ -146,4 +159,24 @@ class Review {
     // Metadata
     created_at string @description("Review creation timestamp in ISO format")
     time_spent_seconds float? @description("Time spent on review in seconds")
+}
+
+// Safety-related Classes
+
+class SafetyCheck {
+    id string @description("Unique identifier for the safety check")
+    target_type string @description("Type of item being checked (hypothesis, task, etc)")
+    target_id string @description("ID of the item being checked")
+    safety_level SafetyLevel @description("Overall safety assessment level")
+    passed bool @description("Whether the item passed safety checks")
+    checks_performed string[] @description("List of checks that were performed")
+    
+    // Details about safety issues
+    violations string[]? @description("Specific safety violations found")
+    recommendations string[]? @description("Recommendations for addressing safety concerns")
+    category SafetyCategory? @description("Primary category of safety concern if any")
+    
+    // Metadata
+    timestamp string @description("When the safety check was performed (ISO format)")
+    metadata map<string, any>? @description("Additional context like trust level")
 }

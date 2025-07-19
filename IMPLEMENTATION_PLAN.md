@@ -149,7 +149,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ### BAML Setup
 - [x] Create BAML schema for Hypothesis
 - [x] Create BAML schema for Review
-- [ ] Create BAML schema for SafetyCheck
+- [x] Create BAML schema for SafetyCheck
 - [ ] Set up BAML client configuration
 
 ### LLM Interface
