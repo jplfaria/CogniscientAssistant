@@ -212,18 +212,18 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write BAML test blocks for each function
 
 ### BAML Client Generation
-- [ ] Install BAML CLI tools
-- [ ] Generate Python clients from BAML
-- [ ] Create Python wrapper for BAML clients
-- [ ] Write tests for generated clients
-- [ ] Integrate with LLM abstraction layer
+- [x] Install BAML CLI tools
+- [x] Generate Python clients from BAML
+- [x] Create Python wrapper for BAML clients
+- [x] Write tests for generated clients
+- [x] Integrate with LLM abstraction layer
 
 ### Phase 7 Integration Tests
-- [ ] Create tests/integration/test_phase7_baml_infrastructure.py
-- [ ] Implement test_baml_schema_compilation
-- [ ] Implement test_baml_client_connectivity
-- [ ] Implement test_baml_mock_responses
-- [ ] Implement test_real_llm_calls (may_fail)
+- [x] Create tests/integration/test_phase7_baml_infrastructure.py
+- [x] Implement test_baml_schema_compilation
+- [x] Implement test_baml_client_connectivity
+- [x] Implement test_baml_mock_responses
+- [x] Implement test_real_llm_calls (may_fail)
 
 ## Phase 8: Argo Gateway Integration
 

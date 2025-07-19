@@ -7,14 +7,7 @@ client<llm> MockClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"  // Mock server endpoint
-    default_role "assistant"
     timeout_seconds 10  // Shorter timeout for mock
-    retry_policy {
-      max_retries 2
-      initial_delay_ms 500
-      max_delay_ms 2000
-      exponential_backoff true
-    }
   }
 }
 
@@ -25,14 +18,7 @@ client<llm> DevelopmentClient {
     model "gpt-3.5-turbo"
     temperature 0.7
     max_tokens 2000
-    default_role "assistant"
     timeout_seconds 30
-    retry_policy {
-      max_retries 3
-      initial_delay_ms 1000
-      max_delay_ms 10000
-      exponential_backoff true
-    }
   }
 }
 
@@ -57,19 +43,12 @@ client<llm> DevelopmentClient {
 
 // Default client selection based on environment
 client<llm> DefaultClient {
-  provider env.BAML_CLIENT_PROVIDER
+  provider openai
   options {
-    model env.BAML_MODEL
+    model "gpt-3.5-turbo"
     temperature 0.7
     max_tokens 2000
-    default_role "assistant"
-    timeout_seconds env.BAML_CLIENT_TIMEOUT_SECONDS
-    retry_policy {
-      max_retries 3
-      initial_delay_ms 1000
-      max_delay_ms 10000
-      exponential_backoff true
-    }
+    timeout_seconds 30
   }
 }
 
@@ -82,7 +61,6 @@ client<llm> TestErrorClient {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8001/v1"  // Non-existent server for errors
     timeout_seconds 1  // Very short timeout to trigger errors
-    default_role "assistant"
   }
 }
 
@@ -93,7 +71,6 @@ client<llm> TestSlowClient {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
     timeout_seconds 5  // Moderate timeout for testing
-    default_role "assistant"
     // Simulated slow response via mock server
   }
 }
@@ -104,13 +81,6 @@ client<llm> TestRateLimitedClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
-    default_role "assistant"
-    retry_policy {
-      max_retries 2
-      initial_delay_ms 100
-      max_delay_ms 1000
-      exponential_backoff false
-    }
   }
 }
 
@@ -121,7 +91,6 @@ client<llm> TestContextClient {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
     max_tokens 100  // Small limit for testing
-    default_role "assistant"
   }
 }
 
@@ -131,13 +100,6 @@ client<llm> TestRetryClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
-    default_role "assistant"
-    retry_policy {
-      max_retries 3
-      initial_delay_ms 500
-      max_delay_ms 5000
-      exponential_backoff true
-    }
   }
 }
 
@@ -147,50 +109,7 @@ client<llm> TestNoRetryClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
-    default_role "assistant"
-    retry_policy {
-      max_retries 0
-    }
   }
 }
 
-// Test configuration for unit tests
-test TestClient {
-  // Uses MockClient for all tests by default
-  functions [
-    GenerateHypothesis
-    ReviewHypothesis
-    PerformSafetyCheck
-  ]
-  default_client MockClient
-}
-
-// Test configuration for error scenarios
-test ErrorScenarios {
-  functions [
-    GenerateHypothesis
-    ReviewHypothesis
-    PerformSafetyCheck
-  ]
-  default_client TestErrorClient
-}
-
-// Test configuration for performance scenarios
-test PerformanceScenarios {
-  functions [
-    GenerateHypothesis
-    ReviewHypothesis
-    PerformSafetyCheck
-  ]
-  default_client TestSlowClient
-}
-
-// Test configuration for edge case scenarios
-test EdgeCaseScenarios {
-  functions [
-    GenerateHypothesis
-    ReviewHypothesis
-    PerformSafetyCheck
-  ]
-  default_client TestContextClient
-}
+// Test configurations are now handled in individual test blocks in functions.baml

@@ -3,97 +3,97 @@
 // Enums
 
 enum HypothesisCategory {
-    mechanistic
-    therapeutic
-    diagnostic
-    biomarker
-    methodology
-    other
+    Mechanistic
+    Therapeutic
+    Diagnostic
+    Biomarker
+    Methodology
+    Other
 }
 
 enum ReviewType {
-    initial
-    full
-    deep_verification
-    observation
-    simulation
-    tournament
+    Initial
+    Full
+    DeepVerification
+    Observation
+    Simulation
+    Tournament
 }
 
 enum ReviewDecision {
-    accept
-    reject
-    revise
+    Accept
+    Reject
+    Revise
 }
 
 enum ConfidenceLevel {
-    high
-    medium
-    low
+    High
+    Medium
+    Low
 }
 
 enum Validity {
-    valid
-    questionable
-    invalid
+    Valid
+    Questionable
+    Invalid
 }
 
 enum Criticality {
-    fundamental
-    peripheral
+    Fundamental
+    Peripheral
 }
 
 enum SafetyLevel {
-    safe
-    concerning
-    blocked
+    Safe
+    Concerning
+    Blocked
 }
 
 enum SafetyCategory {
-    content_safety
-    goal_violation
-    ethical_concern
-    resource_misuse
+    ContentSafety
+    GoalViolation
+    EthicalConcern
+    ResourceMisuse
 }
 
 enum TaskType {
-    generate_hypothesis
-    reflect_on_hypothesis
-    rank_hypotheses
-    evolve_hypothesis
-    find_similar_hypotheses
-    meta_review
+    GenerateHypothesis
+    ReflectOnHypothesis
+    RankHypotheses
+    EvolveHypothesis
+    FindSimilarHypotheses
+    MetaReview
 }
 
 enum TaskState {
-    pending
-    assigned
-    executing
-    completed
-    failed
+    Pending
+    Assigned
+    Executing
+    Completed
+    Failed
 }
 
 enum AgentType {
-    generation
-    reflection
-    ranking
-    evolution
-    proximity
-    meta_review
-    supervisor
+    Generation
+    Reflection
+    Ranking
+    Evolution
+    Proximity
+    MetaReview
+    Supervisor
 }
 
 enum RequestType {
-    generate
-    analyze
-    evaluate
-    compare
+    Generate
+    Analyze
+    Evaluate
+    Compare
 }
 
 enum ResponseStatus {
-    success
-    error
-    partial
+    Success
+    Error
+    Partial
 }
 
 // Supporting Classes
@@ -218,7 +218,7 @@ class SafetyCheck {
     
     // Metadata
     timestamp string @description("When the safety check was performed (ISO format)")
-    metadata map<string, any>? @description("Additional context like trust level")
+    metadata map<string, string>? @description("Additional context like trust level")
 }
 
 // Task-related Classes
@@ -228,13 +228,13 @@ class Task {
     task_type TaskType @description("Type of task to be performed")
     priority int @description("Priority level, higher = more important")
     state TaskState @description("Current state of the task")
-    payload map<string, any> @description("Task-specific data and parameters")
+    payload map<string, string> @description("Task-specific data and parameters")
     
     // Assignment info
     assigned_to string? @description("ID of the worker/agent assigned to this task")
     
     // Results
-    result map<string, any>? @description("Task execution result data")
+    result map<string, string>? @description("Task execution result data")
     error string? @description("Error message if task failed")
     
     // Timestamps
@@ -247,8 +247,8 @@ class Task {
 
 class RequestContent {
     prompt string @description("Natural language instruction for the agent")
-    context map<string, any> @description("Additional context including previous results, domain knowledge, constraints")
-    parameters map<string, any> @description("Request parameters like max_length, temperature, response_format")
+    context map<string, string> @description("Additional context including previous results, domain knowledge, constraints")
+    parameters map<string, string> @description("Request parameters like max_length, temperature, response_format")
 }
 
 class AgentRequest {
@@ -260,7 +260,7 @@ class AgentRequest {
 
 class ResponseData {
     content string @description("Generated or analyzed content")
-    metadata map<string, any> @description("Response metadata including model_used, tokens_used, processing_time")
+    metadata map<string, string> @description("Response metadata including model_used, tokens_used, processing_time")
 }
 
 class ErrorInfo {
@@ -274,4 +274,40 @@ class AgentResponse {
     status ResponseStatus @description("Response status")
     response ResponseData? @description("Response data if successful")
     error ErrorInfo? @description("Error information if failed")
+}
+
+// Additional classes for BAML functions
+
+class ComparisonResult {
+    winner_id string @description("ID of the winning hypothesis")
+    confidence float @description("Confidence in the comparison (0-1)")
+    reasoning string @description("Detailed reasoning for the decision")
+    strengths_h1 string[] @description("Key strengths of hypothesis 1")
+    strengths_h2 string[] @description("Key strengths of hypothesis 2")
+    decisive_factors string[] @description("Factors that determined the winner")
+}
+
+class SimilarityScore {
+    overall_similarity float @description("Overall similarity score (0-1)")
+    aspect_scores map<string, float> @description("Similarity scores per aspect")
+    shared_concepts string[] @description("Key concepts shared between hypotheses")
+    key_differences string[] @description("Main differences identified")
+}
+
+class ResearchPatterns {
+    identified_patterns string[] @description("Key patterns identified")
+    common_strengths string[] @description("Recurring strengths across hypotheses")
+    common_weaknesses string[] @description("Recurring weaknesses")
+    emerging_themes string[] @description("Emerging research themes")
+    recommendations string[] @description("Strategic recommendations")
+    synthesis_summary string @description("High-level synthesis of findings")
+}
+
+class ParsedResearchGoal {
+    primary_objective string @description("Main research objective")
+    sub_objectives string[] @description("Broken down sub-objectives")
+    implied_constraints string[] @description("Constraints inferred from the goal")
+    suggested_categories string[] @description("Relevant hypothesis categories")
+    key_terms string[] @description("Important scientific terms identified")
+    success_criteria string[] @description("What would constitute success")
 }

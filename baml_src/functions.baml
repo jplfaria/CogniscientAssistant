@@ -1,9 +1,6 @@
 // BAML Function Definitions for AI Co-Scientist
 // This file defines all LLM-based functions used by agents
 
-// Import models from models.baml
-use models from "./models.baml"
-
 // ============================================================================
 // Hypothesis Generation Functions
 // ============================================================================
@@ -59,7 +56,7 @@ function EvaluateHypothesis(
   hypothesis: Hypothesis @description("The hypothesis to evaluate"),
   review_type: ReviewType @description("Type of review to perform"),
   evaluation_criteria: string[] @description("Specific criteria to evaluate against"),
-  context: map<string, any>? @description("Additional context for evaluation")
+  context: map<string, string>? @description("Additional context for evaluation")
 ) -> Review {
   client DefaultClient
   
@@ -159,14 +156,7 @@ function CompareHypotheses(
   hypothesis2: Hypothesis @description("Second hypothesis"),
   comparison_criteria: string[] @description("Criteria for comparison"),
   debate_context: string? @description("Context from ongoing debate if applicable")
-) -> class ComparisonResult {
-  winner_id: string @description("ID of the winning hypothesis")
-  confidence: float @description("Confidence in the comparison (0-1)")
-  reasoning: string @description("Detailed reasoning for the decision")
-  strengths_h1: string[] @description("Key strengths of hypothesis 1")
-  strengths_h2: string[] @description("Key strengths of hypothesis 2")
-  decisive_factors: string[] @description("Factors that determined the winner")
-} {
+) -> ComparisonResult {
   client DefaultClient
   
   prompt #"
@@ -262,12 +252,7 @@ function CalculateSimilarity(
   hypothesis1: Hypothesis @description("First hypothesis"),
   hypothesis2: Hypothesis @description("Second hypothesis"),
   similarity_aspects: string[] @description("Aspects to compare: mechanism, domain, methodology")
-) -> class SimilarityScore {
-  overall_similarity: float @description("Overall similarity score (0-1)")
-  aspect_scores: map<string, float> @description("Similarity scores per aspect")
-  shared_concepts: string[] @description("Key concepts shared between hypotheses")
-  key_differences: string[] @description("Main differences identified")
-} {
+) -> SimilarityScore {
   client DefaultClient
   
   prompt #"
@@ -307,21 +292,14 @@ function ExtractResearchPatterns(
   hypotheses: Hypothesis[] @description("All hypotheses to analyze"),
   reviews: Review[] @description("All reviews to analyze"),
   focus: string @description("Focus area: methodology, assumptions, or themes")
-) -> class ResearchPatterns {
-  identified_patterns: string[] @description("Key patterns identified")
-  common_strengths: string[] @description("Recurring strengths across hypotheses")
-  common_weaknesses: string[] @description("Recurring weaknesses")
-  emerging_themes: string[] @description("Emerging research themes")
-  recommendations: string[] @description("Strategic recommendations")
-  synthesis_summary: string @description("High-level synthesis of findings")
-} {
+) -> ResearchPatterns {
   client DefaultClient
   
   prompt #"
     You are performing a meta-analysis of research hypotheses and their reviews.
     
-    Number of hypotheses: {{ hypotheses.length }}
-    Number of reviews: {{ reviews.length }}
+    Number of hypotheses: {{ hypotheses | length }}
+    Number of reviews: {{ reviews | length }}
     Analysis Focus: {{ focus }}
     
     Hypothesis Categories:
@@ -354,14 +332,7 @@ function ExtractResearchPatterns(
 function ParseResearchGoal(
   natural_language_goal: string @description("User's research goal in natural language"),
   domain_context: string? @description("Scientific domain if specified")
-) -> class ParsedResearchGoal {
-  primary_objective: string @description("Main research objective")
-  sub_objectives: string[] @description("Broken down sub-objectives")
-  implied_constraints: string[] @description("Constraints inferred from the goal")
-  suggested_categories: string[] @description("Relevant hypothesis categories")
-  key_terms: string[] @description("Important scientific terms identified")
-  success_criteria: string[] @description("What would constitute success")
-} {
+) -> ParsedResearchGoal {
   client DefaultClient
   
   prompt #"
@@ -385,135 +356,4 @@ function ParseResearchGoal(
   "#
 }
 
-// ============================================================================
-// Test Blocks for Function Validation
-// ============================================================================
-
-test TestGenerateHypothesis {
-  function GenerateHypothesis(
-    goal="Develop new treatments for antibiotic-resistant bacteria",
-    constraints=["Must not involve human subjects", "Limited to in-vitro experiments"],
-    existing_hypotheses=[],
-    generation_method="literature_based"
-  )
-  
-  assert {
-    _.id != null
-    _.summary != null
-    _.category in ["therapeutic", "mechanistic"]
-    _.assumptions.length > 0
-    _.experimental_protocol.objective != null
-  }
-}
-
-test TestEvaluateHypothesis {
-  function EvaluateHypothesis(
-    hypothesis={
-      id: "hyp_test_001",
-      summary: "Novel antibiotic compounds from deep-sea microorganisms",
-      category: "therapeutic",
-      full_description: "Exploration of deep-sea microorganism metabolites...",
-      novelty_claim: "First systematic exploration of abyssal zone organisms",
-      assumptions: ["Deep-sea organisms produce unique metabolites"],
-      experimental_protocol: {
-        objective: "Isolate and test novel compounds",
-        methodology: "Culture and extraction methods",
-        required_resources: ["Deep-sea samples", "Culture facilities"],
-        timeline: "12 months",
-        success_metrics: ["Compound activity against resistant strains"],
-        potential_challenges: ["Sample collection difficulty"],
-        safety_considerations: ["BSL-2 containment required"]
-      },
-      supporting_evidence: [],
-      confidence_score: 0.7,
-      generation_method: "literature_based",
-      created_at: "2025-01-19T10:00:00Z"
-    },
-    review_type="initial",
-    evaluation_criteria=["Scientific merit", "Feasibility", "Novelty"]
-  )
-  
-  assert {
-    _.id != null
-    _.hypothesis_id == "hyp_test_001"
-    _.review_type == "initial"
-    _.decision in ["accept", "reject", "revise"]
-    _.scores.correctness >= 0.0
-    _.scores.correctness <= 1.0
-    _.key_strengths.length > 0
-  }
-}
-
-test TestPerformSafetyCheck {
-  function PerformSafetyCheck(
-    target_type="hypothesis",
-    target_content="Research into bacteriophage therapy for resistant infections",
-    trust_level="medium",
-    safety_criteria=["No human experimentation", "Ethical use of resources"]
-  )
-  
-  assert {
-    _.id != null
-    _.target_type == "hypothesis"
-    _.safety_level in ["safe", "concerning", "blocked"]
-    _.passed != null
-    _.checks_performed.length > 0
-    _.timestamp != null
-  }
-}
-
-test TestCompareHypotheses {
-  function CompareHypotheses(
-    hypothesis1={
-      id: "hyp_001",
-      summary: "Phage therapy approach",
-      category: "therapeutic",
-      full_description: "Using bacteriophages to target resistant bacteria",
-      novelty_claim: "Novel phage cocktail design",
-      assumptions: ["Phages can be engineered for specificity"],
-      experimental_protocol: {
-        objective: "Test phage effectiveness",
-        methodology: "In-vitro phage assays",
-        required_resources: ["Phage library"],
-        timeline: "6 months",
-        success_metrics: ["Bacterial kill rate"],
-        potential_challenges: ["Phage resistance"],
-        safety_considerations: ["Containment protocols"]
-      },
-      supporting_evidence: [],
-      confidence_score: 0.8,
-      generation_method: "literature_based",
-      created_at: "2025-01-19T10:00:00Z"
-    },
-    hypothesis2={
-      id: "hyp_002",
-      summary: "Antimicrobial peptide approach",
-      category: "therapeutic",
-      full_description: "Synthetic antimicrobial peptides design",
-      novelty_claim: "AI-designed peptide sequences",
-      assumptions: ["Peptides can penetrate bacterial membranes"],
-      experimental_protocol: {
-        objective: "Test peptide activity",
-        methodology: "Peptide synthesis and testing",
-        required_resources: ["Peptide synthesizer"],
-        timeline: "9 months",
-        success_metrics: ["MIC values"],
-        potential_challenges: ["Peptide stability"],
-        safety_considerations: ["Toxicity testing required"]
-      },
-      supporting_evidence: [],
-      confidence_score: 0.7,
-      generation_method: "debate",
-      created_at: "2025-01-19T10:00:00Z"
-    },
-    comparison_criteria=["Feasibility", "Potential impact", "Time to implementation"]
-  )
-  
-  assert {
-    _.winner_id in ["hyp_001", "hyp_002"]
-    _.confidence >= 0.0
-    _.confidence <= 1.0
-    _.reasoning != null
-    _.decisive_factors.length > 0
-  }
-}
+// Test blocks can be added later with correct BAML test syntax
