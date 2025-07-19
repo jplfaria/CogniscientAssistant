@@ -10,7 +10,7 @@ This document outlines the integration testing strategy for the AI Co-Scientist 
 - **Use Existing Interfaces**: Test only what's already built using public APIs
 - **Example**:
   ```python
-  # GOOD: tests/integration/phase3_queue_simulation.py
+  # GOOD: tests/integration/test_phase3_queue_simulation.py
   from src.core.task_queue import TaskQueue  # Use existing interface
   
   # BAD: Adding test-only methods to src/core/task_queue.py
@@ -47,7 +47,7 @@ This allows the validation loop to distinguish between:
 
 ### Milestone 1: Task Queue Workflow (Phase 3 - CURRENT)
 **Status**: Ready to implement  
-**Location**: `tests/integration/phase3_task_queue_workflow.py`
+**Location**: `tests/integration/test_phase3_task_queue_workflow.py`
 
 **Key Validations**:
 - ✓ Can enqueue tasks with correct priorities
@@ -76,7 +76,7 @@ This allows the validation loop to distinguish between:
 
 ### Milestone 2: Memory + Queue Integration (Phase 4)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase4_memory_queue.py`
+**Location**: `tests/integration/test_phase4_memory_queue.py`
 
 **Key Validations**:
 - ✓ Memory stores task execution history
@@ -100,7 +100,7 @@ This allows the validation loop to distinguish between:
 
 ### Milestone 3: Safety Framework - Lightweight (Phase 5)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase5_safety_framework.py`
+**Location**: `tests/integration/test_phase5_safety_framework.py`
 
 **Key Validations**:
 - ✓ Safety logging integrated with queue
@@ -116,7 +116,7 @@ This allows the validation loop to distinguish between:
 
 ### Milestone 4: LLM Abstraction (Phase 6)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase6_llm_abstraction.py`
+**Location**: `tests/integration/test_phase6_llm_abstraction.py`
 
 **Key Validations**:
 - ✓ LLM abstraction interface works
@@ -132,7 +132,7 @@ This allows the validation loop to distinguish between:
 
 ### Milestone 5: BAML Infrastructure (Phase 7)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase7_baml_setup.py`
+**Location**: `tests/integration/test_phase7_baml_infrastructure.py`
 
 **Key Validations**:
 - ✓ BAML schemas compile correctly
@@ -146,9 +146,28 @@ This allows the validation loop to distinguish between:
 3. **Error Handling**: Graceful handling of LLM errors
 4. **Response Parsing**: Structured data extracted correctly
 
-### Milestone 6: Supervisor Agent (Phase 8)
+### Milestone 6: Argo Gateway Integration (Phase 8)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase8_supervisor_orchestration.py`
+**Location**: `tests/integration/test_phase8_argo_gateway.py`
+
+**Key Validations**:
+- ✓ Argo proxy connectivity established
+- ✓ Model routing works correctly
+- ✓ Failover mechanisms function
+- ✓ Cost tracking accurate
+- ✓ Circuit breaker protects system
+- ✓ Request queuing during outages
+
+**Test Scenarios**:
+1. **Gateway Connection**: Verify Argo proxy connectivity
+2. **Model Selection**: Route to appropriate models
+3. **Failure Handling**: Failover to alternate models
+4. **Cost Management**: Track usage and costs
+5. **Reliability**: Circuit breaker and queuing work
+
+### Milestone 7: Supervisor Agent (Phase 9)
+**Status**: Pending implementation  
+**Location**: `tests/integration/test_phase9_supervisor_agent.py`
 
 **Key Validations**:
 - ✓ Supervisor creates correct tasks
@@ -162,9 +181,9 @@ This allows the validation loop to distinguish between:
 3. **Completion Tracking**: Supervisor knows when done
 4. **Error Recovery**: Failed tasks handled appropriately
 
-### Milestone 7: Generation Agent (Phase 9)
+### Milestone 8: Generation Agent (Phase 10)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase9_generation_agent.py`
+**Location**: `tests/integration/test_phase10_generation_agent.py`
 
 **Key Validations**:
 - ✓ Generation creates valid hypotheses
@@ -178,9 +197,9 @@ This allows the validation loop to distinguish between:
 3. **External Integration**: Web search works
 4. **Safety Compliance**: Unsafe content filtered
 
-### Milestone 8: Reflection Agent (Phase 10)
+### Milestone 9: Reflection Agent (Phase 11)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase10_reflection_agent.py`
+**Location**: `tests/integration/test_phase11_reflection_agent.py`
 
 **Key Validations**:
 - ✓ Generation creates valid hypotheses
@@ -194,9 +213,9 @@ This allows the validation loop to distinguish between:
 3. **Pipeline Flow**: Generation → Reflection works
 4. **Context Passing**: Information flows between agents
 
-### Milestone 9: Ranking Agent (Phase 11)
+### Milestone 10: Ranking Agent (Phase 12)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase11_ranking_agent.py`
+**Location**: `tests/integration/test_phase12_ranking_agent.py`
 
 **Key Validations**:
 - ✓ Elo ratings update correctly
@@ -210,9 +229,9 @@ This allows the validation loop to distinguish between:
 3. **Ranking Accuracy**: Better hypotheses rank higher
 4. **History Tracking**: All comparisons recorded
 
-### Milestone 10: Evolution Agent (Phase 12)
+### Milestone 11: Evolution Agent (Phase 13)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase12_evolution_agent.py`
+**Location**: `tests/integration/test_phase13_evolution_agent.py`
 
 **Key Validations**:
 - ✓ Evolution strategies work
@@ -226,9 +245,9 @@ This allows the validation loop to distinguish between:
 3. **Simplification**: Complexity reduction works
 4. **Paradigm Shifts**: Novel approaches generated
 
-### Milestone 11: Proximity Agent (Phase 13)
+### Milestone 12: Proximity Agent (Phase 14)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase13_proximity_agent.py`
+**Location**: `tests/integration/test_phase14_proximity_agent.py`
 
 **Key Validations**:
 - ✓ Similarity calculations work
@@ -242,9 +261,9 @@ This allows the validation loop to distinguish between:
 3. **Integration**: Works with hypothesis flow
 4. **Scale**: Handles many hypotheses
 
-### Milestone 12: Meta-Review Agent (Phase 14)
+### Milestone 13: Meta-Review Agent (Phase 15)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase14_meta_review.py`
+**Location**: `tests/integration/test_phase15_meta_review_agent.py`
 
 **Key Validations**:
 - ✓ Pattern extraction works
@@ -258,9 +277,9 @@ This allows the validation loop to distinguish between:
 3. **Synthesis**: Coherent overview
 4. **Integration**: Uses all agent data
 
-### Milestone 13: Natural Language Interface (Phase 15)
+### Milestone 14: Natural Language Interface (Phase 16)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase15_cli_interface.py`
+**Location**: `tests/integration/test_phase16_natural_language_interface.py`
 
 **Key Validations**:
 - ✓ CLI commands work
@@ -274,9 +293,9 @@ This allows the validation loop to distinguish between:
 3. **Interaction**: Responsive interface
 4. **Output**: Clear, formatted results
 
-### Milestone 14: Full Integration (Phase 16)
+### Milestone 15: Full Integration (Phase 17)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase16_full_integration.py`
+**Location**: `tests/integration/test_phase17_system_integration.py`
 
 **Key Validations**:
 - ✓ Complete research cycle works
@@ -290,9 +309,9 @@ This allows the validation loop to distinguish between:
 3. **Output Quality**: Publication-ready
 4. **Performance**: Reasonable time/resources
 
-### Milestone 15: Final Validation (Phase 17)
+### Milestone 16: Final Validation (Phase 18)
 **Status**: Pending implementation  
-**Location**: `tests/integration/phase17_final_validation.py`
+**Location**: `tests/integration/test_phase18_final_validation.py`
 
 **Key Validations**:
 - ✓ Complete research cycle works
@@ -308,7 +327,7 @@ This allows the validation loop to distinguish between:
 
 ## Performance and Temporal Tests
 
-### Performance Requirements (Phase 17)
+### Performance Requirements (Phase 18)
 Tests that validate system performance meets specifications:
 
 **Latency Tests**:
@@ -346,7 +365,7 @@ Tests for time-based and periodic operations:
 pytest tests/integration/ -v
 
 # Run specific phase tests
-pytest tests/integration/phase3_*.py -v
+pytest tests/integration/test_phase3_*.py -v
 
 # Run with coverage
 pytest tests/integration/ --cov=src --cov-report=term-missing
@@ -477,8 +496,8 @@ tests/
 ├── integration/                  # Phase-based integration tests
 │   ├── __init__.py
 │   ├── conftest.py              # Shared fixtures
-│   ├── phase3_task_queue_workflow.py
-│   ├── phase4_memory_queue.py
+│   ├── test_phase3_task_queue_workflow.py
+│   ├── test_phase4_memory_queue.py
 │   └── ...
 └── e2e/                         # Future: Full system tests
 ```

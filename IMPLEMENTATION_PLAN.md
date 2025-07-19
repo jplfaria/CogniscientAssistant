@@ -146,81 +146,139 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 6: LLM Abstraction Layer
 
-### BAML Setup
-- [x] Create BAML schema for Hypothesis
-- [x] Create BAML schema for Review
-- [x] Create BAML schema for SafetyCheck
-- [ ] Set up BAML client configuration
+### Provider-Agnostic Interface
+- [x] Create base LLMProvider abstract class
+- [x] Define standard request/response formats
+- [x] Write tests for abstraction interface
+- [x] Implement request validation
+- [x] Write tests for request validation
 
-### LLM Interface
-- [ ] Create base LLM abstraction class
-- [ ] Write tests for abstraction interface
-- [ ] Implement BAML-based LLM client
-- [ ] Write tests for BAML client
-- [ ] Add rate limiting logic
-- [ ] Write tests for rate limiting
-- [ ] Implement failover mechanism
-- [ ] Write tests for failover
+### Mock Provider Implementation
+- [x] Create MockLLMProvider for testing
+- [x] Implement configurable mock responses
+- [x] Write tests for mock provider
+- [x] Add response delay simulation
+- [x] Write tests for async behavior
+
+### Core Abstraction Features
+- [x] Implement rate limiting logic
+- [x] Write tests for rate limiting
+- [x] Add model capability tracking
+- [x] Write tests for capability management
+- [x] Implement context window management
+- [x] Write tests for context handling
+- [x] Add provider-agnostic error handling
+- [x] Write tests for error scenarios
+
+### Phase 6 Integration Tests
+- [x] Create tests/integration/test_phase6_llm_abstraction.py
+- [x] Implement test_llm_abstraction_interface
+- [x] Implement test_rate_limiting
+- [x] Implement test_model_capability_tracking
+- [x] Implement test_context_management
+- [x] Implement test_provider_failover
+- [x] Implement test_request_transformation
+- [x] Implement test_smart_context_truncation (may_fail)
+- [x] Implement test_llm_response_caching (may_fail)
 
 ## Phase 7: BAML Infrastructure Setup
 
-### Argo Gateway Setup
+### BAML Schemas (Data Models)
+- [x] Set up baml_src directory structure
+- [x] Create models.baml with core data types
+- [x] Create BAML schema for Hypothesis
+- [x] Create BAML schema for Review
+- [x] Create BAML schema for SafetyCheck
+- [ ] Create BAML schema for Task
+- [ ] Create BAML schema for AgentRequest/Response
+- [x] Write unit tests for Hypothesis schema
+- [x] Write unit tests for Review schema
+- [x] Write unit tests for SafetyCheck schema
+
+### BAML Configuration
+- [x] Create clients.baml with mock configuration
+- [ ] Add test client configurations
+- [ ] Set up environment variable mappings
+- [ ] Configure retry policies in BAML
+- [ ] Add timeout configurations
+
+### BAML Functions
+- [ ] Create functions.baml file
+- [ ] Define GenerateHypothesis function
+- [ ] Define EvaluateHypothesis function
+- [ ] Define PerformSafetyCheck function
+- [ ] Define CompareHypotheses function
+- [ ] Write BAML test blocks for each function
+
+### BAML Client Generation
+- [ ] Install BAML CLI tools
+- [ ] Generate Python clients from BAML
+- [ ] Create Python wrapper for BAML clients
+- [ ] Write tests for generated clients
+- [ ] Integrate with LLM abstraction layer
+
+### Phase 7 Integration Tests
+- [ ] Create tests/integration/test_phase7_baml_infrastructure.py
+- [ ] Implement test_baml_schema_compilation
+- [ ] Implement test_baml_client_connectivity
+- [ ] Implement test_baml_mock_responses
+- [ ] Implement test_real_llm_calls (may_fail)
+
+## Phase 8: Argo Gateway Integration
+
+### Argo Proxy Setup
 - [ ] Install argo-proxy package (`pip install argo-proxy`)
 - [ ] Run initial configuration wizard
 - [ ] Create startup helper script
 - [ ] Test connectivity to Argo endpoints
-- [ ] Verify model access (gpt4o, gpto3mini, claudeopus4, gemini25pro)
+- [ ] Verify model access (gpt4o, gpt3.5-turbo, claude-opus-4, gemini-2.5-pro)
 - [ ] Create .env.example with proxy configuration
-- [ ] Document setup process in README
+- [ ] Document Argo setup process in README
 
-### Core BAML Configuration
-- [ ] Set up baml_src directory structure
-- [ ] Create clients.baml with Argo Gateway configuration
-- [ ] Write tests for client connectivity
-- [ ] Create generators.baml with retry logic
-- [ ] Add environment variable configuration
-
-### Agent BAML Schemas
-- [ ] Create models.baml with core data types
-- [ ] Define Hypothesis schema in BAML
-- [ ] Define Review schema in BAML
-- [ ] Define Task schema in BAML
-- [ ] Write BAML tests for schema validation
-
-### Base Agent Functions
-- [ ] Create supervisor.baml with orchestration functions
-- [ ] Create generation.baml with hypothesis generation
-- [ ] Create reflection.baml with review functions
-- [ ] Create ranking.baml with tournament functions
-- [ ] Write BAML test blocks for each function
-
-### Thread and Event System
-- [ ] Implement thread-based state management
-- [ ] Create event serialization format
-- [ ] Write tests for thread persistence
-- [ ] Add event replay functionality
-- [ ] Write tests for event replay
-
-### Integration Layer
-- [ ] Create Python BAML wrapper functions
-- [ ] Write integration tests with TaskQueue
-- [ ] Add error handling and retries
+### Argo Provider Implementation
+- [ ] Create ArgoLLMProvider class (implements LLMProvider)
+- [ ] Implement model mapping (logical → Argo names)
+- [ ] Add authentication header handling
+- [ ] Write tests for Argo provider
+- [ ] Implement Argo-specific error handling
 - [ ] Write tests for error scenarios
-- [ ] Implement logging and monitoring
 
-### Phase 7 Integration Tests
-- [ ] Create tests/integration/test_phase7_baml_infrastructure.py
-- [ ] Implement test_baml_client_connectivity
-- [ ] Implement test_schema_validation
-- [ ] Implement test_thread_state_persistence
-- [ ] Implement test_event_replay_functionality
-- [ ] Implement test_error_handling_and_retries
-- [ ] Implement test_agent_function_invocation
-- [ ] Implement test_concurrent_baml_calls
+### Model Routing and Selection
+- [ ] Implement model selection logic
+- [ ] Add cost tracking per model
+- [ ] Create routing rules based on task type
+- [ ] Write tests for model routing
+- [ ] Implement usage monitoring
+- [ ] Write tests for cost tracking
+
+### Reliability Features
+- [ ] Implement circuit breaker pattern
+- [ ] Add failover to alternate models
+- [ ] Create request queuing during outages
+- [ ] Write tests for reliability features
+- [ ] Add health check monitoring
+- [ ] Write tests for failover scenarios
+
+### Integration with Abstraction Layer
+- [ ] Register ArgoProvider with abstraction layer
+- [ ] Map Argo models to capability matrix
+- [ ] Configure rate limits per model
+- [ ] Write integration tests
+- [ ] Test end-to-end LLM calls via Argo
+
+### Phase 8 Integration Tests
+- [ ] Create tests/integration/test_phase8_argo_gateway.py
+- [ ] Implement test_argo_connectivity
+- [ ] Implement test_model_routing
+- [ ] Implement test_failover_behavior
+- [ ] Implement test_cost_tracking
+- [ ] Implement test_circuit_breaker
+- [ ] Implement test_request_queuing
+- [ ] Implement test_concurrent_requests
 - [ ] Implement test_proxy_failover (may_fail)
 - [ ] Implement test_rate_limiting (may_fail)
 
-## Phase 8: Supervisor Agent
+## Phase 9: Supervisor Agent
 
 ### Agent Structure
 - [ ] Create SupervisorAgent class
@@ -243,8 +301,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Add recovery mechanisms
 - [ ] Write tests for recovery
 
-### Phase 8 Integration Tests
-- [ ] Create tests/integration/test_phase8_supervisor_agent.py
+### Phase 9 Integration Tests
+- [ ] Create tests/integration/test_phase9_supervisor_agent.py
 - [ ] Implement test_supervisor_initialization
 - [ ] Implement test_task_distribution_logic
 - [ ] Implement test_resource_allocation
@@ -255,7 +313,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_multi_agent_coordination (may_fail)
 - [ ] Implement test_supervisor_performance (may_fail)
 
-## Phase 9: Generation Agent
+## Phase 10: Generation Agent
 
 ### Agent Structure
 - [ ] Create GenerationAgent class
@@ -278,8 +336,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Add safety checks to generation
 - [ ] Write tests for safety integration
 
-### Phase 9 Integration Tests
-- [ ] Create tests/integration/test_phase9_generation_agent.py
+### Phase 10 Integration Tests
+- [ ] Create tests/integration/test_phase10_generation_agent.py
 - [ ] Implement test_generation_agent_initialization
 - [ ] Implement test_literature_based_generation
 - [ ] Implement test_simulated_debate_generation
@@ -290,7 +348,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_hypothesis_diversity (may_fail)
 - [ ] Implement test_generation_creativity_metrics (may_fail)
 
-## Phase 10: Reflection Agent
+## Phase 11: Reflection Agent
 
 ### Agent Structure
 - [ ] Create ReflectionAgent class
@@ -311,8 +369,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Add tournament review
 - [ ] Write tests for tournament review
 
-### Phase 10 Integration Tests
-- [ ] Create tests/integration/test_phase10_reflection_agent.py
+### Phase 11 Integration Tests
+- [ ] Create tests/integration/test_phase11_reflection_agent.py
 - [ ] Implement test_reflection_agent_initialization
 - [ ] Implement test_initial_review_process
 - [ ] Implement test_full_review_with_literature
@@ -323,7 +381,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_review_consistency (may_fail)
 - [ ] Implement test_review_quality_metrics (may_fail)
 
-## Phase 11: Ranking Agent
+## Phase 12: Ranking Agent
 
 ### Agent Structure
 - [ ] Create RankingAgent class
@@ -338,8 +396,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement convergence detection
 - [ ] Write tests for convergence
 
-### Phase 11 Integration Tests
-- [ ] Create tests/integration/test_phase11_ranking_agent.py
+### Phase 12 Integration Tests
+- [ ] Create tests/integration/test_phase12_ranking_agent.py
 - [ ] Implement test_ranking_agent_initialization
 - [ ] Implement test_elo_rating_calculations
 - [ ] Implement test_pairwise_comparison
@@ -350,7 +408,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_large_scale_tournament (may_fail)
 - [ ] Implement test_ranking_performance (may_fail)
 
-## Phase 12: Evolution Agent
+## Phase 13: Evolution Agent
 
 ### Agent Structure
 - [ ] Create EvolutionAgent class
@@ -366,8 +424,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Add paradigm shift strategy
 - [ ] Write tests for paradigm shifts
 
-### Phase 12 Integration Tests
-- [ ] Create tests/integration/test_phase12_evolution_agent.py
+### Phase 13 Integration Tests
+- [ ] Create tests/integration/test_phase13_evolution_agent.py
 - [ ] Implement test_evolution_agent_initialization
 - [ ] Implement test_enhancement_strategy
 - [ ] Implement test_combination_strategy
@@ -378,7 +436,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_evolution_diversity (may_fail)
 - [ ] Implement test_evolution_quality_metrics (may_fail)
 
-## Phase 13: Proximity Agent
+## Phase 14: Proximity Agent
 
 ### Agent Structure
 - [ ] Create ProximityAgent class
@@ -390,8 +448,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Add clustering logic
 - [ ] Write tests for clustering
 
-### Phase 13 Integration Tests
-- [ ] Create tests/integration/test_phase13_proximity_agent.py
+### Phase 14 Integration Tests
+- [ ] Create tests/integration/test_phase14_proximity_agent.py
 - [ ] Implement test_proximity_agent_initialization
 - [ ] Implement test_semantic_similarity_calculation
 - [ ] Implement test_hypothesis_clustering
@@ -400,7 +458,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_large_scale_clustering (may_fail)
 - [ ] Implement test_clustering_performance (may_fail)
 
-## Phase 14: Meta-Review Agent
+## Phase 15: Meta-Review Agent
 
 ### Agent Structure
 - [ ] Create MetaReviewAgent class
@@ -414,8 +472,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement research overview
 - [ ] Write tests for overview
 
-### Phase 14 Integration Tests
-- [ ] Create tests/integration/test_phase14_meta_review_agent.py
+### Phase 15 Integration Tests
+- [ ] Create tests/integration/test_phase15_meta_review_agent.py
 - [ ] Implement test_meta_review_initialization
 - [ ] Implement test_pattern_extraction
 - [ ] Implement test_feedback_generation
@@ -425,7 +483,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_meta_review_quality (may_fail)
 - [ ] Implement test_synthesis_performance (may_fail)
 
-## Phase 15: Natural Language Interface
+## Phase 16: Natural Language Interface
 
 ### CLI Interface
 - [ ] Create main CLI entry point
@@ -440,8 +498,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement constraint handling
 - [ ] Write tests for constraints
 
-### Phase 15 Integration Tests
-- [ ] Create tests/integration/test_phase15_natural_language_interface.py
+### Phase 16 Integration Tests
+- [ ] Create tests/integration/test_phase16_natural_language_interface.py
 - [ ] Implement test_cli_entry_point
 - [ ] Implement test_command_parsing
 - [ ] Implement test_interactive_mode
@@ -451,7 +509,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_natural_language_understanding (may_fail)
 - [ ] Implement test_interface_responsiveness (may_fail)
 
-## Phase 16: Integration and Polish
+## Phase 17: Integration and Polish
 
 ### System Integration
 - [ ] Create full system integration tests
@@ -471,8 +529,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Write deployment guide
 - [ ] Create example workflows
 
-### Phase 16 Integration Tests
-- [ ] Create tests/integration/test_phase16_system_integration.py
+### Phase 17 Integration Tests
+- [ ] Create tests/integration/test_phase17_system_integration.py
 - [ ] Implement test_full_system_workflow
 - [ ] Implement test_end_to_end_hypothesis_generation
 - [ ] Implement test_monitoring_dashboard
@@ -482,7 +540,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_system_resilience (may_fail)
 - [ ] Implement test_scalability_limits (may_fail)
 
-## Phase 17: Final Validation
+## Phase 18: Final Validation
 
 - [ ] Run full system tests
 - [ ] Verify ≥80% test coverage
@@ -490,8 +548,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Safety validation
 - [ ] User acceptance testing
 
-### Phase 17 Integration Tests
-- [ ] Create tests/integration/test_phase17_final_validation.py
+### Phase 18 Integration Tests
+- [ ] Create tests/integration/test_phase18_final_validation.py
 - [ ] Implement test_full_system_test_suite
 - [ ] Implement test_code_coverage_validation
 - [ ] Implement test_performance_validation

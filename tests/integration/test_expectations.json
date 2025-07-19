@@ -100,6 +100,22 @@
     "description": "BAML infrastructure must be properly configured"
   },
   "phase_8": {
+    "name": "Argo Gateway Integration",
+    "must_pass": [
+      "test_argo_connectivity",
+      "test_model_routing",
+      "test_failover_behavior",
+      "test_cost_tracking",
+      "test_circuit_breaker",
+      "test_request_queuing"
+    ],
+    "may_fail": [
+      "test_proxy_failover",
+      "test_rate_limiting"
+    ],
+    "description": "Argo Gateway must provide reliable LLM access"
+  },
+  "phase_9": {
     "name": "Supervisor Agent",
     "must_pass": [
       "test_full_task_lifecycle",
@@ -111,7 +127,7 @@
     ],
     "description": "Supervisor must create and manage tasks"
   },
-  "phase_9": {
+  "phase_10": {
     "name": "Generation Agent",
     "must_pass": [
       "test_full_task_lifecycle",
@@ -124,7 +140,7 @@
     ],
     "description": "Hypothesis generation must function"
   },
-  "phase_10": {
+  "phase_11": {
     "name": "Reflection Agent",
     "must_pass": [
       "test_hypothesis_generation",
@@ -136,7 +152,7 @@
     ],
     "description": "Review system must work correctly"
   },
-  "phase_11": {
+  "phase_12": {
     "name": "Ranking Agent",
     "must_pass": [
       "test_hypothesis_generation",
@@ -149,7 +165,7 @@
     ],
     "description": "Tournament ranking system must work"
   },
-  "phase_12": {
+  "phase_13": {
     "name": "Evolution Agent",
     "must_pass": [
       "test_hypothesis_generation",
@@ -162,7 +178,7 @@
     ],
     "description": "Hypothesis evolution must function"
   },
-  "phase_13": {
+  "phase_14": {
     "name": "Proximity Agent",
     "must_pass": [
       "test_hypothesis_generation",
@@ -174,7 +190,7 @@
     ],
     "description": "Similarity and clustering must work"
   },
-  "phase_14": {
+  "phase_15": {
     "name": "Meta-Review Agent",
     "must_pass": [
       "test_full_research_cycle",
@@ -186,7 +202,7 @@
     ],
     "description": "Meta-review synthesis must function"
   },
-  "phase_15": {
+  "phase_16": {
     "name": "Natural Language Interface",
     "must_pass": [
       "test_cli_commands",
@@ -198,7 +214,7 @@
     ],
     "description": "CLI interface must work correctly"
   },
-  "phase_16": {
+  "phase_17": {
     "name": "Integration and Polish",
     "must_pass": [
       "test_full_system_integration",
@@ -217,7 +233,7 @@
     ],
     "description": "Complete system integration must work"
   },
-  "phase_17": {
+  "phase_18": {
     "name": "Final Validation",
     "must_pass": [
       "test_full_system_integration",
