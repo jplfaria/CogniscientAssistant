@@ -147,7 +147,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ## Phase 6: LLM Abstraction Layer
 
 ### BAML Setup
-- [ ] Create BAML schema for Hypothesis
+- [x] Create BAML schema for Hypothesis
 - [ ] Create BAML schema for Review
 - [ ] Create BAML schema for SafetyCheck
 - [ ] Set up BAML client configuration
