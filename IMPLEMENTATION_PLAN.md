@@ -200,16 +200,16 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Create clients.baml with mock configuration
 - [x] Add test client configurations
 - [x] Set up environment variable mappings
-- [ ] Configure retry policies in BAML
-- [ ] Add timeout configurations
+- [x] Configure retry policies in BAML
+- [x] Add timeout configurations
 
 ### BAML Functions
-- [ ] Create functions.baml file
-- [ ] Define GenerateHypothesis function
-- [ ] Define EvaluateHypothesis function
-- [ ] Define PerformSafetyCheck function
-- [ ] Define CompareHypotheses function
-- [ ] Write BAML test blocks for each function
+- [x] Create functions.baml file
+- [x] Define GenerateHypothesis function
+- [x] Define EvaluateHypothesis function
+- [x] Define PerformSafetyCheck function
+- [x] Define CompareHypotheses function
+- [x] Write BAML test blocks for each function
 
 ### BAML Client Generation
 - [ ] Install BAML CLI tools

@@ -57,6 +57,16 @@ configuration {
   
   // Timeout for agent operations in seconds
   AGENT_TIMEOUT_SECONDS int = env.AGENT_TIMEOUT_SECONDS ?? 300
+  
+  // BAML Client Request Timeout Configuration
+  // Default timeout for all BAML client requests in seconds
+  BAML_CLIENT_TIMEOUT_SECONDS int = env.BAML_CLIENT_TIMEOUT_SECONDS ?? 30
+  
+  // Retry timeout multiplier (increases timeout on each retry)
+  BAML_RETRY_TIMEOUT_MULTIPLIER float = env.BAML_RETRY_TIMEOUT_MULTIPLIER ?? 1.5
+  
+  // Maximum timeout for any single request (prevents infinite waits)
+  BAML_MAX_TIMEOUT_SECONDS int = env.BAML_MAX_TIMEOUT_SECONDS ?? 120
 }
 
 // Export environment variables for use in BAML clients
@@ -93,6 +103,9 @@ env {
   // Performance variables
   int MAX_CONCURRENT_AGENTS = configuration.MAX_CONCURRENT_AGENTS
   int AGENT_TIMEOUT_SECONDS = configuration.AGENT_TIMEOUT_SECONDS
+  int BAML_CLIENT_TIMEOUT_SECONDS = configuration.BAML_CLIENT_TIMEOUT_SECONDS
+  float BAML_RETRY_TIMEOUT_MULTIPLIER = configuration.BAML_RETRY_TIMEOUT_MULTIPLIER
+  int BAML_MAX_TIMEOUT_SECONDS = configuration.BAML_MAX_TIMEOUT_SECONDS
 }
 
 // Type definitions for environment variables

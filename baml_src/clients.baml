@@ -8,6 +8,13 @@ client<llm> MockClient {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"  // Mock server endpoint
     default_role "assistant"
+    timeout_seconds 10  // Shorter timeout for mock
+    retry_policy {
+      max_retries 2
+      initial_delay_ms 500
+      max_delay_ms 2000
+      exponential_backoff true
+    }
   }
 }
 
@@ -19,6 +26,13 @@ client<llm> DevelopmentClient {
     temperature 0.7
     max_tokens 2000
     default_role "assistant"
+    timeout_seconds 30
+    retry_policy {
+      max_retries 3
+      initial_delay_ms 1000
+      max_delay_ms 10000
+      exponential_backoff true
+    }
   }
 }
 
@@ -49,6 +63,13 @@ client<llm> DefaultClient {
     temperature 0.7
     max_tokens 2000
     default_role "assistant"
+    timeout_seconds env.BAML_CLIENT_TIMEOUT_SECONDS
+    retry_policy {
+      max_retries 3
+      initial_delay_ms 1000
+      max_delay_ms 10000
+      exponential_backoff true
+    }
   }
 }
 
