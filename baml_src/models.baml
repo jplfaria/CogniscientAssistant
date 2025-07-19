@@ -11,6 +11,38 @@ enum HypothesisCategory {
     other
 }
 
+enum ReviewType {
+    initial
+    full
+    deep_verification
+    observation
+    simulation
+    tournament
+}
+
+enum ReviewDecision {
+    accept
+    reject
+    revise
+}
+
+enum ConfidenceLevel {
+    high
+    medium
+    low
+}
+
+enum Validity {
+    valid
+    questionable
+    invalid
+}
+
+enum Criticality {
+    fundamental
+    peripheral
+}
+
 // Supporting Classes
 
 class Citation {
@@ -58,4 +90,60 @@ class Hypothesis {
     elo_rating float? @description("Elo rating for tournament ranking")
     review_count int? @description("Number of reviews received")
     evolution_count int? @description("Number of times evolved")
+}
+
+// Review-related Classes
+
+class ReviewScores {
+    correctness float @description("0-1 score for scientific accuracy")
+    quality float @description("0-1 score for rigor and completeness")
+    novelty float @description("0-1 score for genuine advancement")
+    safety float @description("0-1 score for ethical considerations")
+    feasibility float @description("0-1 score for practical viability")
+}
+
+class AssumptionDecomposition {
+    assumption string @description("The assumption being evaluated")
+    validity string @description("Assessment: valid, questionable, or invalid")
+    evidence string @description("Evidence supporting the assessment")
+    criticality string @description("Impact level: fundamental or peripheral")
+}
+
+class FailurePoint {
+    step string @description("Description of the step in the mechanism")
+    probability float @description("0-1 probability of failure at this step")
+    impact string @description("Description of impact if failure occurs")
+}
+
+class SimulationResults {
+    mechanism_steps string[] @description("Step-by-step breakdown of the mechanism")
+    failure_points FailurePoint[] @description("Identified points of potential failure")
+    predicted_outcomes string[] @description("Predicted experimental outcomes")
+}
+
+// Main Review Class
+
+class Review {
+    id string @description("Unique identifier for the review")
+    hypothesis_id string @description("ID of the hypothesis being reviewed")
+    reviewer_agent_id string @description("ID of the agent performing the review")
+    review_type ReviewType @description("Type of review performed")
+    decision ReviewDecision @description("Review decision: accept, reject, or revise")
+    scores ReviewScores @description("Quantitative scoring across dimensions")
+    
+    // Narrative components
+    narrative_feedback string @description("Detailed narrative review feedback")
+    key_strengths string[] @description("Major strengths identified")
+    key_weaknesses string[] @description("Major weaknesses identified")
+    improvement_suggestions string[] @description("Specific suggestions for improvement")
+    confidence_level string @description("Reviewer confidence: high, medium, or low")
+    
+    // Optional review-type specific data
+    assumption_decomposition AssumptionDecomposition[]? @description("Deep verification analysis")
+    simulation_results SimulationResults? @description("Results from simulation review")
+    literature_citations Citation[]? @description("Supporting literature references")
+    
+    // Metadata
+    created_at string @description("Review creation timestamp in ISO format")
+    time_spent_seconds float? @description("Time spent on review in seconds")
 }
