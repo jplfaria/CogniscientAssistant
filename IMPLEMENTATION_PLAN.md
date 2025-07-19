@@ -189,11 +189,12 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Create BAML schema for Hypothesis
 - [x] Create BAML schema for Review
 - [x] Create BAML schema for SafetyCheck
-- [ ] Create BAML schema for Task
-- [ ] Create BAML schema for AgentRequest/Response
+- [x] Create BAML schema for Task
+- [x] Create BAML schema for AgentRequest/Response
 - [x] Write unit tests for Hypothesis schema
 - [x] Write unit tests for Review schema
 - [x] Write unit tests for SafetyCheck schema
+- [x] Write unit tests for Task schema
 
 ### BAML Configuration
 - [x] Create clients.baml with mock configuration

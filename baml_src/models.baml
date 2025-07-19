@@ -56,6 +56,46 @@ enum SafetyCategory {
     resource_misuse
 }
 
+enum TaskType {
+    generate_hypothesis
+    reflect_on_hypothesis
+    rank_hypotheses
+    evolve_hypothesis
+    find_similar_hypotheses
+    meta_review
+}
+
+enum TaskState {
+    pending
+    assigned
+    executing
+    completed
+    failed
+}
+
+enum AgentType {
+    generation
+    reflection
+    ranking
+    evolution
+    proximity
+    meta_review
+    supervisor
+}
+
+enum RequestType {
+    generate
+    analyze
+    evaluate
+    compare
+}
+
+enum ResponseStatus {
+    success
+    error
+    partial
+}
+
 // Supporting Classes
 
 class Citation {
@@ -179,4 +219,59 @@ class SafetyCheck {
     // Metadata
     timestamp string @description("When the safety check was performed (ISO format)")
     metadata map<string, any>? @description("Additional context like trust level")
+}
+
+// Task-related Classes
+
+class Task {
+    id string @description("Unique identifier for the task")
+    task_type TaskType @description("Type of task to be performed")
+    priority int @description("Priority level, higher = more important")
+    state TaskState @description("Current state of the task")
+    payload map<string, any> @description("Task-specific data and parameters")
+    
+    // Assignment info
+    assigned_to string? @description("ID of the worker/agent assigned to this task")
+    
+    // Results
+    result map<string, any>? @description("Task execution result data")
+    error string? @description("Error message if task failed")
+    
+    // Timestamps
+    created_at string @description("Task creation timestamp in ISO format")
+    assigned_at string? @description("When task was assigned (ISO format)")
+    completed_at string? @description("When task completed/failed (ISO format)")
+}
+
+// Agent Request/Response Classes
+
+class RequestContent {
+    prompt string @description("Natural language instruction for the agent")
+    context map<string, any> @description("Additional context including previous results, domain knowledge, constraints")
+    parameters map<string, any> @description("Request parameters like max_length, temperature, response_format")
+}
+
+class AgentRequest {
+    request_id string @description("Unique identifier for the request")
+    agent_type AgentType @description("Type of agent making the request")
+    request_type RequestType @description("Type of request being made")
+    content RequestContent @description("Request content and parameters")
+}
+
+class ResponseData {
+    content string @description("Generated or analyzed content")
+    metadata map<string, any> @description("Response metadata including model_used, tokens_used, processing_time")
+}
+
+class ErrorInfo {
+    code string @description("Error type identifier")
+    message string @description("Human-readable error description")
+    recoverable bool @description("Whether the error is recoverable")
+}
+
+class AgentResponse {
+    request_id string @description("Matching input request ID")
+    status ResponseStatus @description("Response status")
+    response ResponseData? @description("Response data if successful")
+    error ErrorInfo? @description("Error information if failed")
 }
