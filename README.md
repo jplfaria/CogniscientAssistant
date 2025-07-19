@@ -16,7 +16,7 @@ A multi-agent system for scientific hypothesis generation and research automatio
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Set up development environment
-./scripts/setup-dev.sh
+./scripts/development/setup-dev.sh
 
 # Activate virtual environment
 source .venv/bin/activate
@@ -26,20 +26,36 @@ source .venv/bin/activate
 
 ```bash
 # Set up development environment
-./scripts/setup-dev.sh
+./scripts/development/setup-dev.sh
 
 # Activate virtual environment
 source venv/bin/activate
+```
+
+### Argo Gateway Setup
+
+The system uses Argo gateway for LLM access. See [docs/argo-setup.md](docs/argo-setup.md) for detailed setup instructions.
+
+```bash
+# Install argo-proxy
+pip install argo-proxy
+
+# Configure environment
+cp .env.example .env
+# Edit .env and set ARGO_USER
+
+# Start the proxy
+./scripts/start-argo-proxy.sh
 ```
 
 ## Quick Start for Implementation
 
 ```bash
 # After environment setup, run the validated implementation loop
-./run-implementation-loop-validated.sh
+./run-loop.sh
 
 # Or run continuously with automatic progression
-./run-implementation-loop-validated.sh --letitrip
+./run-loop.sh --letitrip
 ```
 
 ## Project Structure
@@ -62,7 +78,9 @@ source venv/bin/activate
 ├── INTEGRATION_TESTING_PLAN.md     # Integration testing strategy
 ├── CLAUDE.md                       # Implementation guidelines for AI
 ├── prompt.md                       # Implementation task prompt
-└── run-implementation-loop-validated.sh  # Primary implementation automation
+├── run-loop.sh                     # Quick access symlink
+├── view-logs.sh                    # Quick access symlink
+└── scripts/                        # Utility scripts (see SCRIPTS.md)
 
 ```
 

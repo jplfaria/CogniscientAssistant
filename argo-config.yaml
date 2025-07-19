@@ -1,0 +1,6 @@
+base_url: https://argo.kube-system.svc.cluster.local/api/v1
+host: 127.0.0.1
+port: 8000
+real_stream: true
+username: placeholder_user
+verbose: true

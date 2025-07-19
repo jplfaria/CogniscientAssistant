@@ -228,9 +228,9 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ## Phase 8: Argo Gateway Integration
 
 ### Argo Proxy Setup
-- [ ] Install argo-proxy package (`pip install argo-proxy`)
-- [ ] Run initial configuration wizard
-- [ ] Create startup helper script
+- [x] Install argo-proxy package (`pip install argo-proxy`)
+- [x] Run initial configuration wizard
+- [x] Create startup helper script
 - [ ] Test connectivity to Argo endpoints
 - [ ] Verify model access (gpt4o, gpt3.5-turbo, claude-opus-4, gemini-2.5-pro)
 - [ ] Create .env.example with proxy configuration
