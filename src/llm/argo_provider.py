@@ -9,6 +9,7 @@ import httpx
 from pydantic import BaseModel
 
 from src.llm.base import LLMProvider, LLMRequest, LLMResponse, LLMError
+from src.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
 
 
 class ArgoConnectionError(Exception):
@@ -241,6 +242,15 @@ class ArgoLLMProvider(LLMProvider):
         
         # Initialize model selector
         self.model_selector = ModelSelector()
+        
+        # Initialize circuit breakers per model
+        self._circuit_breakers: Dict[str, CircuitBreaker] = {}
+        for model in self.model_mapping:
+            self._circuit_breakers[model] = CircuitBreaker(
+                failure_threshold=3,
+                recovery_timeout=60.0,
+                half_open_max_calls=2
+            )
     
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for Argo requests."""
@@ -466,3 +476,101 @@ class ArgoLLMProvider(LLMProvider):
             self.model_selector.mark_model_available(model)
         else:
             self.model_selector.mark_model_unavailable(model)
+    
+    def get_circuit_breaker_status(self) -> Dict[str, Dict[str, Any]]:
+        """Get status of all circuit breakers.
+        
+        Returns:
+            Dictionary mapping model names to circuit breaker info
+        """
+        status = {}
+        for model, breaker in self._circuit_breakers.items():
+            status[model] = breaker.get_state_info()
+        return status
+    
+    def reset_circuit_breaker(self, model: str):
+        """Reset circuit breaker for a specific model.
+        
+        Args:
+            model: Model name to reset
+        """
+        if model in self._circuit_breakers:
+            self._circuit_breakers[model].reset()
+    
+    async def _call_with_circuit_breaker(
+        self,
+        model: str,
+        func: Any,
+        *args,
+        **kwargs
+    ) -> Any:
+        """Execute function through circuit breaker for model.
+        
+        Args:
+            model: Model name
+            func: Async function to call
+            *args: Positional arguments
+            **kwargs: Keyword arguments
+            
+        Returns:
+            Function result
+            
+        Raises:
+            CircuitBreakerError: If circuit is open
+        """
+        if model not in self._circuit_breakers:
+            # Fallback to direct call if no breaker
+            return await func(*args, **kwargs)
+        
+        breaker = self._circuit_breakers[model]
+        try:
+            result = await breaker.call(func, *args, **kwargs)
+            return result
+        except CircuitBreakerError:
+            # Mark model as unavailable when circuit opens
+            self.model_selector.mark_model_unavailable(model)
+            raise
+        except Exception:
+            # Check if circuit is now open after the failure
+            if breaker.state == CircuitState.OPEN:
+                self.model_selector.mark_model_unavailable(model)
+            raise
+    
+    async def select_model_with_failover(
+        self,
+        task_type: str,
+        preferred_model: Optional[str] = None
+    ) -> str:
+        """Select a model with failover support.
+        
+        Args:
+            task_type: Type of task
+            preferred_model: Preferred model if any
+            
+        Returns:
+            Selected available model
+            
+        Raises:
+            ValueError: If no models are available
+        """
+        if preferred_model and preferred_model in self.model_selector.available_models:
+            # Check if preferred model's circuit is not open
+            breaker = self._circuit_breakers.get(preferred_model)
+            if breaker and breaker.state.value != "OPEN":
+                return preferred_model
+        
+        # Get candidates based on task type
+        candidates = self.model_selector.task_preferences.get(task_type, list(self.model_mapping.keys()))
+        
+        # Filter by availability and circuit state
+        available_candidates = []
+        for model in candidates:
+            if model in self.model_selector.available_models:
+                breaker = self._circuit_breakers.get(model)
+                if not breaker or breaker.state.value != "OPEN":
+                    available_candidates.append(model)
+        
+        if not available_candidates:
+            raise ValueError(f"No models available for task type: {task_type}")
+        
+        return available_candidates[0]
