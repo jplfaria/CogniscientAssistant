@@ -261,11 +261,11 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for failover scenarios
 
 ### Integration with Abstraction Layer
-- [ ] Register ArgoProvider with abstraction layer
-- [ ] Map Argo models to capability matrix
-- [ ] Configure rate limits per model
-- [ ] Write integration tests
-- [ ] Test end-to-end LLM calls via Argo
+- [x] Register ArgoProvider with abstraction layer
+- [x] Map Argo models to capability matrix
+- [x] Configure rate limits per model
+- [x] Write integration tests
+- [x] Test end-to-end LLM calls via Argo
 
 ### Phase 8 Integration Tests
 - [x] Create tests/integration/test_phase8_argo_gateway.py
