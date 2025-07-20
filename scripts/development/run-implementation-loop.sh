@@ -3,6 +3,48 @@
 # run-implementation-loop-validated.sh
 # Implementation loop with quality gates and validation
 
+# Create logs directory if it doesn't exist
+mkdir -p .implementation_logs
+
+# Function to log iteration results
+log_iteration_result() {
+    local status=$1
+    local iteration=$2
+    local timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
+    local log_file=".implementation_logs/iteration_${iteration}_${status}_${timestamp}.log"
+    
+    echo "=== Iteration $iteration - Status: $status ===" > "$log_file"
+    echo "Timestamp: $timestamp" >> "$log_file"
+    echo "" >> "$log_file"
+    
+    # Capture all output from the iteration
+    if [ -f ".iteration_output_${iteration}.tmp" ]; then
+        cat ".iteration_output_${iteration}.tmp" >> "$log_file"
+    fi
+    
+    # Add summary log
+    echo "" >> "$log_file"
+    echo "=== Summary ===" >> "$log_file"
+    echo "Status: $status" >> "$log_file"
+    echo "Iteration: $iteration" >> "$log_file"
+    
+    # If failed, capture test failures
+    if [ "$status" = "failed" ] && [ -f ".test_failures_${iteration}.tmp" ]; then
+        echo "" >> "$log_file"
+        echo "=== Test Failures ===" >> "$log_file"
+        cat ".test_failures_${iteration}.tmp" >> "$log_file"
+    fi
+    
+    echo "" >> "$log_file"
+    echo "Log saved to: $log_file"
+    
+    # Create a latest symlink for easy access
+    ln -sf "$(basename "$log_file")" ".implementation_logs/latest_${status}.log"
+    
+    # Clean up temp files
+    rm -f ".iteration_output_${iteration}.tmp" ".test_failures_${iteration}.tmp"
+}
+
 # Color codes for better visibility
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -271,27 +313,44 @@ run_quality_gates() {
     if [ -d "src" ] && find src -name "*.py" -type f | grep -q .; then
         # 1. Run tests
         echo -e "${YELLOW}Running tests...${NC}"
-        if pytest tests/ --tb=short -v; then
+        pytest tests/ --tb=short -v 2>&1 | tee ".test_output_${iteration}.tmp"
+        test_exit_status=${PIPESTATUS[0]}
+        
+        if [ $test_exit_status -eq 0 ]; then
             echo -e "${GREEN}✅ All tests passed${NC}"
         else
             echo -e "${RED}❌ Tests failed! Cannot proceed to next iteration.${NC}"
             echo -e "${YELLOW}Fix the failing tests before continuing.${NC}"
+            # Extract test failures for the log
+            grep -E "FAILED|ERROR" ".test_output_${iteration}.tmp" > ".test_failures_${iteration}.tmp" 2>/dev/null || true
+            rm -f ".test_output_${iteration}.tmp"
             return 1
         fi
         
-        # 2. Check coverage
-        echo -e "\n${YELLOW}Checking code coverage...${NC}"
-        coverage_output=$(pytest --cov=src --cov-report=term-missing --cov-fail-under=$COVERAGE_THRESHOLD 2>&1)
-        coverage_status=$?
+        # 2. Check coverage (Unit tests only for threshold)
+        echo -e "\n${YELLOW}Checking unit test coverage...${NC}"
+        echo -e "${CYAN}Note: 80% coverage threshold applies to unit tests only${NC}"
         
-        echo "$coverage_output" | tail -20  # Show last 20 lines of coverage report
+        # Run unit tests with coverage threshold
+        unit_coverage_output=$(pytest tests/unit/ --cov=src --cov-report=term-missing --cov-fail-under=$COVERAGE_THRESHOLD 2>&1)
+        unit_coverage_status=$?
         
-        if [ $coverage_status -eq 0 ]; then
-            echo -e "${GREEN}✅ Coverage meets ${COVERAGE_THRESHOLD}% threshold${NC}"
+        echo "$unit_coverage_output" | tail -20  # Show last 20 lines of coverage report
+        
+        if [ $unit_coverage_status -eq 0 ]; then
+            echo -e "${GREEN}✅ Unit test coverage meets ${COVERAGE_THRESHOLD}% threshold${NC}"
         else
-            echo -e "${RED}❌ Coverage below ${COVERAGE_THRESHOLD}% threshold!${NC}"
-            echo -e "${YELLOW}Improve test coverage before continuing.${NC}"
+            echo -e "${RED}❌ Unit test coverage below ${COVERAGE_THRESHOLD}% threshold!${NC}"
+            echo -e "${YELLOW}Improve unit test coverage before continuing.${NC}"
             return 1
+        fi
+        
+        # Run integration test coverage (informational only)
+        if [ -d "tests/integration" ] && ls tests/integration/test_*.py 2>/dev/null | grep -q .; then
+            echo -e "\n${YELLOW}Running integration test coverage (informational)...${NC}"
+            integration_coverage_output=$(pytest tests/integration/ --cov=src --cov-report=term-missing 2>&1)
+            echo "$integration_coverage_output" | tail -15  # Show coverage summary
+            echo -e "${CYAN}Integration test coverage is informational only (no threshold)${NC}"
         fi
         
         # 3. Type checking (if mypy configured)
@@ -340,6 +399,12 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     ITERATION=$((ITERATION + 1))
     
     echo -e "\n${GREEN}=== Running implementation iteration $ITERATION ===${NC}"
+    
+    # Start capturing all output for this iteration
+    exec 3>&1 4>&2
+    exec 1> >(tee -a ".iteration_output_${ITERATION}.tmp")
+    exec 2>&1
+    
     echo -e "${BLUE}--- Claude is implementing... ---${NC}\n"
     
     # Create temporary file for output
@@ -390,6 +455,13 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
         echo -e "${YELLOW}Please fix the issues above before continuing.${NC}"
         echo -e "${CYAN}The implementation has been paused.${NC}"
         
+        # Restore original stdout/stderr
+        exec 1>&3 2>&4
+        exec 3>&- 4>&-
+        
+        # Log failed iteration
+        log_iteration_result "failed" "$ITERATION"
+        
         # Show helpful commands
         echo -e "\n${YELLOW}Helpful commands:${NC}"
         echo -e "  ${CYAN}Run tests:${NC} pytest tests/ -v"
@@ -411,6 +483,14 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     
     # Pause for review
     echo -e "\n${GREEN}✅ Quality gates passed!${NC}"
+    
+    # Restore original stdout/stderr
+    exec 1>&3 2>&4
+    exec 3>&- 4>&-
+    
+    # Log successful iteration
+    log_iteration_result "success" "$ITERATION"
+    
     echo -e "${CYAN}Press Enter to continue to next iteration, or Ctrl+C to stop...${NC}"
     read -r
 done
@@ -441,7 +521,25 @@ fi
 # Run final quality check
 if [ -d "src" ] && find src -name "*.py" -type f | grep -q .; then
     echo -e "\n${BLUE}=== Final Quality Report ===${NC}"
-    pytest --cov=src --cov-report=term-missing --tb=short -q
+    echo -e "${YELLOW}Unit Test Coverage:${NC}"
+    pytest tests/unit/ --cov=src --cov-report=term-missing --tb=short -q
+    
+    if [ -d "tests/integration" ] && ls tests/integration/test_*.py 2>/dev/null | grep -q .; then
+        echo -e "\n${YELLOW}Integration Test Coverage:${NC}"
+        pytest tests/integration/ --cov=src --cov-report=term-missing --tb=short -q
+    fi
 fi
 
 echo -e "\n${GREEN}✨ Implementation loop completed!${NC}"
+
+# Create summary log
+if [ -d ".implementation_logs" ]; then
+    summary_file=".implementation_logs/session_summary_$(date '+%Y-%m-%d_%H-%M-%S').log"
+    echo "=== Implementation Session Summary ===" > "$summary_file"
+    echo "Total iterations: $ITERATION" >> "$summary_file"
+    echo "" >> "$summary_file"
+    echo "Logs created:" >> "$summary_file"
+    ls -la .implementation_logs/iteration_*.log >> "$summary_file" 2>/dev/null || true
+    echo "" >> "$summary_file"
+    echo "Session summary saved to: $summary_file"
+fi

@@ -1,0 +1,1 @@
+scripts/development/view-loop-logs.sh

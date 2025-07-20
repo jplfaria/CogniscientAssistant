@@ -15,6 +15,19 @@
 - **Large file (500+ lines)**: Read at least 1500 lines
 - **ALWAYS** understand existing code before adding new code
 
+## 📁 Test Organization
+
+### Test Directory Structure
+- **Unit tests**: `tests/unit/test_*.py` - Test individual components
+- **Integration tests**: `tests/integration/test_phase*_*.py` - Test system workflows
+- **NO other test subdirectories** - Don't create tests/baml/, tests/agents/, etc.
+- **NO tests in root tests/ directory** - All tests must be in unit/ or integration/
+
+### Test Naming Convention
+- Unit test: `tests/unit/test_<module_name>.py`
+- Integration test: `tests/integration/test_phase<N>_<feature>.py`
+- Example: `tests/unit/test_task_queue.py`, `tests/integration/test_phase3_queue_workflow.py`
+
 ## 🔄 Implementation Workflow
 
 ### 1. Check Status

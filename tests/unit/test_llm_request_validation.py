@@ -3,11 +3,12 @@
 import pytest
 from typing import Dict, Any
 
-from src.llm.base import validate_request, validate_parameters
 from src.llm.validation import (
     ParameterValidator,
     ContentValidator,
-    RequestValidator
+    RequestValidator,
+    validate_request,
+    validate_parameters
 )
 
 

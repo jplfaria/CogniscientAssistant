@@ -1,5 +1,7 @@
 # AI-Assisted Development Workflow: From Specs to Implementation
 
+**Last Updated: July 2025 - Phase 8 (Argo Gateway Integration)**
+
 This document captures the complete workflow and lessons learned from building the AI Co-Scientist project using AI-assisted development.
 
 ## Overview
@@ -137,7 +139,73 @@ Created integration testing framework:
 5. **Test Expectations**: `test_expectations.json` defines must_pass vs may_fail tests
 6. **Non-blocking Failures**: Only expected failures are non-blocking
 
-## Phase 5: Current State
+## Phase 5: BAML Integration and Test Organization
+
+### BAML Integration (Phase 7-8)
+We integrated BAML (Basically A Modeling Language) for LLM interactions:
+
+1. **BAML Configuration Structure**:
+   - `baml_src/` directory for all BAML files
+   - `models.baml` - Data structures with aliases for flexibility
+   - `clients.baml` - LLM client configurations
+   - `environment.baml` - Environment variable mappings
+   - `functions.baml` - LLM function definitions
+
+2. **Key BAML Lessons**:
+   - Keep environment variables synchronized between `.env.example` and `environment.baml`
+   - Use aliases for enum values to support multiple formats
+   - BAML handles all LLM interactions - no direct API calls
+   - Test BAML schemas separately from implementation
+
+### Test Organization Discovery
+
+During Phase 8, we discovered a critical issue with test file placement:
+
+1. **The Problem**: 
+   - LLM module tests ended up in `tests/` root directory
+   - Other tests correctly placed in `tests/unit/`
+   - Caused misleading coverage reports (showing 21% when actual was 95%)
+
+2. **Root Cause**:
+   - No explicit test directory guidelines in IMPLEMENTATION_PLAN.md
+   - Phase 6 mixed BAML schemas with LLM abstraction
+   - Implementation happened at different times with inconsistent decisions
+
+3. **The Fix**:
+   - Added explicit test organization rules to CLAUDE.md
+   - All unit tests must go in `tests/unit/`
+   - All integration tests must go in `tests/integration/`
+   - NO other subdirectories or root-level test files
+
+4. **Coverage Reality**:
+   - Moving tests to correct location revealed true coverage
+   - Unit test coverage: 74.81% → 83.79%
+   - Most LLM modules already had >90% coverage
+
+### Test Coverage Strategy Update
+
+We refined our approach to test coverage:
+
+1. **Separate Coverage Metrics**:
+   - Unit tests: 80% threshold (enforced)
+   - Integration tests: Informational only (no threshold)
+   - Run and report separately
+
+2. **Why This Makes Sense**:
+   - Unit tests should comprehensively test components
+   - Integration tests verify workflows, not every code path
+   - Combined coverage can mask poorly tested units
+
+3. **Implementation in run-loop.sh**:
+   ```bash
+   # Unit tests with threshold
+   pytest tests/unit/ --cov=src --cov-fail-under=80
+   
+   # Integration tests for information
+   pytest tests/integration/ --cov=src --cov-report=term
+   ```
+
+## Phase 6: Current State
 
 ### Active Workflow Files
 - `CLAUDE.md` - Simplified implementation guidelines (71% smaller, more focused)
@@ -179,6 +247,11 @@ Created integration testing framework:
 3. **Checkpoint Often**: Easy rollback when experiments fail
 4. **Verify Output**: Always check AI's work with automated tests
 5. **Iterative Refinement**: Workflow improves through usage
+6. **Test Placement Matters**: Without explicit directory rules, AI makes inconsistent decisions
+7. **Coverage Can Mislead**: Always check coverage at the right granularity
+8. **BAML for LLM**: Using BAML eliminates direct API call complexity
+9. **Sync Configuration**: Keep all config files (env, BAML, etc.) synchronized
+10. **Fix Tests Immediately**: Two small test failures can block entire pipeline
 
 ## Reproducible Process
 
@@ -389,13 +462,19 @@ cd new-project
 
 ## Core Philosophy: IMPLEMENT FROM SPECS. Build behavior exactly as specified.
 
+## Test Organization
+- Unit tests: tests/unit/test_*.py
+- Integration tests: tests/integration/test_phase*_*.py
+- NO other test subdirectories
+- NO tests in root tests/ directory
+
 ## Implementation Workflow
 1. Check for flags: .implementation_flags (REGRESSION/ERROR)
 2. One task per iteration from IMPLEMENTATION_PLAN.md
 3. Write failing tests FIRST (TDD)
 4. Implement minimal code to pass
 5. All tests must pass before commit
-6. Coverage must meet 80% threshold
+6. Coverage must meet 80% threshold (unit tests only)
 
 ## Integration Testing
 - Phase 3+: Integration tests define behavior
@@ -407,6 +486,8 @@ cd new-project
 2. Every file should get smaller after iteration 10+
 3. One atomic feature per iteration
 4. Read ENTIRE file before modifying
+5. Use BAML for all LLM interactions
+6. Keep .env.example and environment.baml synchronized
 ```
 
 **prompt.md** (Implementation Task Template):
@@ -507,10 +588,24 @@ fi
 # Detect current phase from IMPLEMENTATION_PLAN.md
 CURRENT_PHASE=$(grep -E "^## Phase [0-9]+" IMPLEMENTATION_PLAN.md | grep -B1 "\[ \]" | head -1 | sed 's/.*Phase \([0-9]\+\).*/\1/')
 
-# Run phase-appropriate tests
+# Run tests with proper exit status handling
+pytest tests/ --tb=short -v 2>&1 | tee ".test_output_${iteration}.tmp"
+test_exit_status=${PIPESTATUS[0]}
+
+if [ $test_exit_status -eq 0 ]; then
+    echo "✅ All tests passed"
+else
+    echo "❌ Tests failed!"
+    return 1
+fi
+
+# Separate coverage for unit and integration tests
+echo "Checking unit test coverage..."
+pytest tests/unit/ --cov=src --cov-fail-under=80
+
+echo "Running integration test coverage (informational)..."
 if [ "$CURRENT_PHASE" -ge 3 ]; then
-    echo "Running integration tests for Phase $CURRENT_PHASE..."
-    pytest tests/integration/test_phase_${CURRENT_PHASE}_*.py
+    pytest tests/integration/ --cov=src --cov-report=term
 fi
 ```
 
@@ -595,11 +690,47 @@ Be explicit about what the loop can and cannot do:
 ✗ CANNOT: Update tests without human review
 ```
 
-### 7. Optimal Project Structure
+### 7. Test Organization Best Practices
+
+#### Preventing Test Location Issues
+
+Based on our Phase 8 experience, enforce test organization from day one:
+
+1. **Pre-create test directories**:
+   ```bash
+   mkdir -p tests/{unit,integration}
+   touch tests/__init__.py
+   touch tests/unit/__init__.py
+   touch tests/integration/__init__.py
+   ```
+
+2. **Add .gitkeep files**:
+   ```bash
+   # Ensure directories exist in git
+   touch tests/unit/.gitkeep
+   touch tests/integration/.gitkeep
+   ```
+
+3. **Add validation to implementation loop**:
+   ```bash
+   # Check for misplaced tests
+   MISPLACED_TESTS=$(find tests -name "test_*.py" -type f | \
+                     grep -v "/unit/" | grep -v "/integration/" | \
+                     grep -v "__pycache__")
+   
+   if [ -n "$MISPLACED_TESTS" ]; then
+       echo "❌ Tests found in wrong location:"
+       echo "$MISPLACED_TESTS"
+       echo "Move to tests/unit/ or tests/integration/"
+       exit 1
+   fi
+   ```
+
+### 8. Optimal Project Structure
 
 ```
 project/
-├── CLAUDE.md                    # Implementation guidelines
+├── CLAUDE.md                    # Implementation guidelines with test rules
 ├── prompt.md                    # Task prompt template
 ├── IMPLEMENTATION_PLAN.md       # Progress tracking (starts empty)
 ├── test_expectations.json       # Phase-based test requirements
@@ -608,16 +739,25 @@ project/
 │   ├── 001-system-overview.md
 │   └── ... (all specs with integration points marked)
 ├── tests/
-│   ├── unit/               # Implementation tests
-│   └── integration/        # Spec behavior tests
+│   ├── __init__.py
+│   ├── unit/               # ALL unit tests go here
+│   │   ├── __init__.py
+│   │   └── test_*.py
+│   └── integration/        # ALL integration tests go here
+│       ├── __init__.py
 │       ├── test_phase_3_*.py
-│       └── conftest.py     # Shared fixtures
+│       └── conftest.py
+├── baml_src/              # BAML configuration
+│   ├── models.baml
+│   ├── clients.baml
+│   ├── environment.baml
+│   └── functions.baml
 └── scripts/
     ├── setup-dev.sh
     └── check_quality_gates.py
 ```
 
-### 8. First Day Checklist
+### 9. First Day Checklist
 
 1. ✓ Create all workflow files (don't evolve them)
 2. ✓ Write specs with integration points marked  
@@ -628,7 +768,7 @@ project/
 7. ✓ Review plan for integration test tasks
 8. ✓ Start implementation loop
 
-### 9. The Complete Workflow Command Sequence
+### 10. The Complete Workflow Command Sequence
 
 ```bash
 # Day 1: Setup and Specs

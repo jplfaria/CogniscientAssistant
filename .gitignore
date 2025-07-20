@@ -170,3 +170,18 @@ cython_debug/
 # Integration test tracking files
 .integration_test_state
 .implementation_flags
+
+# Implementation loop logs
+.implementation_logs/
+.iteration_output_*.tmp
+.test_output_*.tmp
+.test_failures_*.tmp
+.last_iteration_output.tmp
+
+# Test result logs
+.baml_test_results.log
+*_test_results.log
+
+# Temporary script outputs
+scripts/**/*.tmp
+scripts/**/*.log

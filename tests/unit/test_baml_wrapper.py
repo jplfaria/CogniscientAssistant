@@ -236,3 +236,65 @@ class TestBAMLWrapper:
                 )
             
             assert "API Error" in str(exc_info.value)
+    
+    @pytest.mark.asyncio
+    async def test_evaluate_hypothesis_error_handling(self, baml_wrapper, mock_hypothesis):
+        """Test error handling in evaluate_hypothesis."""
+        with patch.object(baml_wrapper._client, 'EvaluateHypothesis',
+                         side_effect=Exception("Evaluation Error")):
+            
+            with pytest.raises(Exception) as exc_info:
+                await baml_wrapper.evaluate_hypothesis(
+                    hypothesis=mock_hypothesis,
+                    review_type=ReviewType.Initial,
+                    evaluation_criteria=["scientific_merit", "feasibility"],
+                    context={"goal": "Test goal"}
+                )
+            
+            assert "Evaluation Error" in str(exc_info.value)
+    
+    @pytest.mark.asyncio
+    async def test_perform_safety_check_error_handling(self, baml_wrapper):
+        """Test error handling in perform_safety_check."""
+        with patch.object(baml_wrapper._client, 'PerformSafetyCheck',
+                         side_effect=Exception("Safety Check Error")):
+            
+            with pytest.raises(Exception) as exc_info:
+                await baml_wrapper.perform_safety_check(
+                    target_type="hypothesis",
+                    target_content="Test content",
+                    trust_level="high",
+                    safety_criteria=["ethical", "safe"]
+                )
+            
+            assert "Safety Check Error" in str(exc_info.value)
+    
+    @pytest.mark.asyncio
+    async def test_compare_hypotheses_error_handling(self, baml_wrapper, mock_hypothesis):
+        """Test error handling in compare_hypotheses."""
+        with patch.object(baml_wrapper._client, 'CompareHypotheses',
+                         side_effect=Exception("Comparison Error")):
+            
+            with pytest.raises(Exception) as exc_info:
+                await baml_wrapper.compare_hypotheses(
+                    hypothesis1=mock_hypothesis,
+                    hypothesis2=mock_hypothesis,
+                    comparison_criteria=["novelty", "impact"],
+                    debate_context="Test context"
+                )
+            
+            assert "Comparison Error" in str(exc_info.value)
+    
+    @pytest.mark.asyncio
+    async def test_parse_research_goal_error_handling(self, baml_wrapper):
+        """Test error handling in parse_research_goal."""
+        with patch.object(baml_wrapper._client, 'ParseResearchGoal',
+                         side_effect=Exception("Parse Error")):
+            
+            with pytest.raises(Exception) as exc_info:
+                await baml_wrapper.parse_research_goal(
+                    natural_language_goal="Test goal",
+                    domain_context="Test context"
+                )
+            
+            assert "Parse Error" in str(exc_info.value)

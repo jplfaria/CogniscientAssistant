@@ -357,3 +357,25 @@ function ParseResearchGoal(
 }
 
 // Test blocks can be added later with correct BAML test syntax
+
+// Test configurations
+test TestClient {
+    functions [GenerateHypothesis, EvaluateHypothesis, PerformSafetyCheck, CompareHypotheses]
+    
+    // Test data can be added here
+}
+
+test ErrorScenarios {
+    client TestErrorClient
+    functions [GenerateHypothesis]
+}
+
+test PerformanceScenarios {
+    client TestSlowClient  
+    functions [GenerateHypothesis]
+}
+
+test EdgeCaseScenarios {
+    client TestContextClient
+    functions [GenerateHypothesis]
+}

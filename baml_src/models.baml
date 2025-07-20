@@ -3,57 +3,57 @@
 // Enums
 
 enum HypothesisCategory {
-    Mechanistic
-    Therapeutic
-    Diagnostic
-    Biomarker
-    Methodology
-    Other
+    Mechanistic @alias("mechanistic")
+    Therapeutic @alias("therapeutic")
+    Diagnostic @alias("diagnostic")
+    Biomarker @alias("biomarker")
+    Methodology @alias("methodology")
+    Other @alias("other")
 }
 
 enum ReviewType {
-    Initial
-    Full
-    DeepVerification
-    Observation
-    Simulation
-    Tournament
+    Initial @alias("initial")
+    Full @alias("full")
+    DeepVerification @alias("deep_verification")
+    Observation @alias("observation")
+    Simulation @alias("simulation")
+    Tournament @alias("tournament")
 }
 
 enum ReviewDecision {
-    Accept
-    Reject
-    Revise
+    Accept @alias("accept")
+    Reject @alias("reject")
+    Revise @alias("revise")
 }
 
 enum ConfidenceLevel {
-    High
-    Medium
-    Low
+    High @alias("high")
+    Medium @alias("medium")
+    Low @alias("low")
 }
 
 enum Validity {
-    Valid
-    Questionable
-    Invalid
+    Valid @alias("valid")
+    Questionable @alias("questionable")
+    Invalid @alias("invalid")
 }
 
 enum Criticality {
-    Fundamental
-    Peripheral
+    Fundamental @alias("fundamental")
+    Peripheral @alias("peripheral")
 }
 
 enum SafetyLevel {
-    Safe
-    Concerning
-    Blocked
+    Safe @alias("safe")
+    Concerning @alias("concerning")
+    Blocked @alias("blocked")
 }
 
 enum SafetyCategory {
-    ContentSafety
-    GoalViolation
-    EthicalConcern
-    ResourceMisuse
+    ContentSafety @alias("content_safety")
+    GoalViolation @alias("goal_violation")
+    EthicalConcern @alias("ethical_concern")
+    ResourceMisuse @alias("resource_misuse")
 }
 
 enum TaskType {

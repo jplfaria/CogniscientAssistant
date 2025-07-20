@@ -50,16 +50,31 @@ python_classes = "Test*"
 python_functions = "test_*"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: Unit tests for isolated components",
+    "integration: Integration tests for system workflows",
+    "slow: Tests that take significant time to run",
+    "requires_llm: Tests that require LLM connectivity"
+]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/test_*"]
+omit = ["*/tests/*", "*/test_*", "*/__init__.py"]
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
 skip_covered = false
 fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:"
+]
 
 [tool.mypy]
 python_version = "3.11"

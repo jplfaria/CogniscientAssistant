@@ -22,33 +22,41 @@ client<llm> DevelopmentClient {
   }
 }
 
-// Future Argo Gateway configuration (to be implemented in Phase 8)
+// Default client using environment variables
+client<llm> DefaultClient {
+  provider env.BAML_CLIENT_PROVIDER
+  options {
+    model env.BAML_MODEL
+    base_url env.BAML_BASE_URL
+    api_key env.BAML_API_KEY
+  }
+}
+
+// Production client using Argo Gateway (commented out by default)
 // client<llm> ArgoClient {
-//   provider custom
+//   provider openai
 //   options {
+//     model env.DEFAULT_MODEL
 //     base_url env.ARGO_GATEWAY_URL
 //     api_key env.ARGO_API_KEY
-//     model "gpt4o"
-//     temperature 0.7
-//     max_tokens 4000
 //     timeout_seconds 60
-//     retry_policy {
-//       max_retries 3
-//       initial_delay_ms 1000
-//       max_delay_ms 10000
-//       exponential_backoff true
-//     }
+//   }
+//   retry_policy {
+//     max_retries 3
+//     initial_delay_ms 1000
+//     max_delay_ms 10000
+//     exponential_backoff true
 //   }
 // }
 
-// Default client selection based on environment
-client<llm> DefaultClient {
+// Production client (will use Argo Gateway in production)
+client<llm> ProductionClient {
   provider openai
   options {
     model "gpt-3.5-turbo"
     temperature 0.7
-    max_tokens 2000
-    timeout_seconds 30
+    max_tokens 4000
+    timeout_seconds 60
   }
 }
 
@@ -81,6 +89,7 @@ client<llm> TestRateLimitedClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
+    max_retries 5
   }
 }
 
@@ -100,6 +109,8 @@ client<llm> TestRetryClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
+    max_retries 3
+    exponential_backoff true
   }
 }
 
@@ -109,7 +120,27 @@ client<llm> TestNoRetryClient {
   options {
     model "gpt-3.5-turbo"
     base_url "http://localhost:8000/v1"
+    max_retries 0
   }
 }
 
-// Test configurations are now handled in individual test blocks in functions.baml
+// Test configurations
+test TestClient {
+  default_client MockClient
+  functions [GenerateHypothesis, EvaluateHypothesis, PerformSafetyCheck, CompareHypotheses]
+}
+
+test ErrorScenarios {
+  default_client TestErrorClient
+  functions [GenerateHypothesis]
+}
+
+test PerformanceScenarios {
+  default_client TestSlowClient
+  functions [GenerateHypothesis]
+}
+
+test EdgeCaseScenarios {
+  default_client TestContextClient
+  functions [GenerateHypothesis]
+}

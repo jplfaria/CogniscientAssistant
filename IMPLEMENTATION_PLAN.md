@@ -231,7 +231,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Install argo-proxy package (`pip install argo-proxy`)
 - [x] Run initial configuration wizard
 - [x] Create startup helper script
-- [ ] Test connectivity to Argo endpoints
+- [x] Test connectivity to Argo endpoints
 - [ ] Verify model access (gpt4o, gpt3.5-turbo, claude-opus-4, gemini-2.5-pro)
 - [ ] Create .env.example with proxy configuration
 - [ ] Document Argo setup process in README
