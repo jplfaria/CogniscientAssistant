@@ -232,25 +232,25 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Run initial configuration wizard
 - [x] Create startup helper script
 - [x] Test connectivity to Argo endpoints
-- [ ] Verify model access (gpt4o, gpt3.5-turbo, claude-opus-4, gemini-2.5-pro)
-- [ ] Create .env.example with proxy configuration
-- [ ] Document Argo setup process in README
+- [x] Verify model access (gpt4o, gpt3.5-turbo, claude-opus-4, gemini-2.5-pro)
+- [x] Create .env.example with proxy configuration
+- [x] Document Argo setup process in README
 
 ### Argo Provider Implementation
-- [ ] Create ArgoLLMProvider class (implements LLMProvider)
-- [ ] Implement model mapping (logical → Argo names)
-- [ ] Add authentication header handling
-- [ ] Write tests for Argo provider
-- [ ] Implement Argo-specific error handling
-- [ ] Write tests for error scenarios
+- [x] Create ArgoLLMProvider class (implements LLMProvider)
+- [x] Implement model mapping (logical → Argo names)
+- [x] Add authentication header handling
+- [x] Write tests for Argo provider
+- [x] Implement Argo-specific error handling
+- [x] Write tests for error scenarios
 
 ### Model Routing and Selection
-- [ ] Implement model selection logic
-- [ ] Add cost tracking per model
-- [ ] Create routing rules based on task type
-- [ ] Write tests for model routing
-- [ ] Implement usage monitoring
-- [ ] Write tests for cost tracking
+- [x] Implement model selection logic
+- [x] Add cost tracking per model
+- [x] Create routing rules based on task type
+- [x] Write tests for model routing
+- [x] Implement usage monitoring
+- [x] Write tests for cost tracking
 
 ### Reliability Features
 - [ ] Implement circuit breaker pattern
@@ -268,16 +268,16 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Test end-to-end LLM calls via Argo
 
 ### Phase 8 Integration Tests
-- [ ] Create tests/integration/test_phase8_argo_gateway.py
-- [ ] Implement test_argo_connectivity
-- [ ] Implement test_model_routing
-- [ ] Implement test_failover_behavior
-- [ ] Implement test_cost_tracking
-- [ ] Implement test_circuit_breaker
-- [ ] Implement test_request_queuing
-- [ ] Implement test_concurrent_requests
-- [ ] Implement test_proxy_failover (may_fail)
-- [ ] Implement test_rate_limiting (may_fail)
+- [x] Create tests/integration/test_phase8_argo_gateway.py
+- [x] Implement test_argo_connectivity
+- [x] Implement test_model_routing
+- [x] Implement test_failover_behavior
+- [x] Implement test_cost_tracking
+- [x] Implement test_circuit_breaker
+- [x] Implement test_request_queuing
+- [x] Implement test_concurrent_requests
+- [x] Implement test_proxy_failover (may_fail)
+- [x] Implement test_rate_limiting (may_fail)
 
 ## Phase 9: Supervisor Agent
 

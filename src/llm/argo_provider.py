@@ -2,7 +2,8 @@
 
 import asyncio
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from collections import defaultdict
 
 import httpx
 from pydantic import BaseModel
@@ -13,6 +14,189 @@ from src.llm.base import LLMProvider, LLMRequest, LLMResponse, LLMError
 class ArgoConnectionError(Exception):
     """Raised when connection to Argo Gateway fails."""
     pass
+
+
+class ModelSelector:
+    """Handles model selection logic and usage tracking."""
+    
+    def __init__(self):
+        """Initialize model selector with costs and capabilities."""
+        # Model costs per 1M tokens (input, output)
+        self.model_costs = {
+            "gpt-4o": (5.0, 15.0),  # $5/$15 per 1M tokens
+            "gpt-3.5-turbo": (0.5, 1.5),  # $0.50/$1.50 per 1M tokens
+            "claude-opus-4": (15.0, 75.0),  # $15/$75 per 1M tokens
+            "claude-3-sonnet": (3.0, 15.0),  # $3/$15 per 1M tokens
+            "gemini-2.5-pro": (3.5, 10.5),  # $3.50/$10.50 per 1M tokens
+            "gemini-2.5-flash": (0.075, 0.3),  # $0.075/$0.30 per 1M tokens
+        }
+        
+        # Model capabilities
+        self.model_capabilities = {
+            "gpt-4o": ["reasoning", "generation", "analysis", "coding"],
+            "gpt-3.5-turbo": ["simple_query", "summarization", "basic_analysis"],
+            "claude-opus-4": ["reasoning", "generation", "creative", "long_context"],
+            "claude-3-sonnet": ["analysis", "summarization", "moderate_reasoning"],
+            "gemini-2.5-pro": ["reasoning", "analysis", "multimodal"],
+            "gemini-2.5-flash": ["simple_query", "fast_response", "basic_analysis"],
+        }
+        
+        # Task type to preferred models mapping
+        self.task_preferences = {
+            "generation": ["claude-opus-4", "gpt-4o"],
+            "reasoning": ["gpt-4o", "claude-opus-4", "gemini-2.5-pro"],
+            "simple_query": ["gpt-3.5-turbo", "gemini-2.5-flash"],
+            "analysis": ["gpt-4o", "gemini-2.5-pro", "claude-3-sonnet"],
+            "summarization": ["claude-3-sonnet", "gpt-3.5-turbo"],
+        }
+        
+        # Usage tracking
+        self.usage_stats = defaultdict(lambda: {
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "request_count": 0,
+            "total_cost": 0.0
+        })
+        
+        # Model availability
+        self.available_models = set(self.model_costs.keys())
+        
+        # Custom routing rules (can be overridden)
+        self.routing_rules = {}
+    
+    def select_model_for_task(self, task_type: str, budget_conscious: bool = False) -> str:
+        """Select the best model for a given task type.
+        
+        Args:
+            task_type: Type of task (generation, reasoning, etc.)
+            budget_conscious: Whether to prioritize cost over capability
+            
+        Returns:
+            Selected model name
+        """
+        # Get preferred models for task
+        preferred = self.task_preferences.get(task_type, ["gpt-4o"])
+        
+        # Filter by availability
+        available_preferred = [m for m in preferred if m in self.available_models]
+        
+        if not available_preferred:
+            # Fallback to any available model
+            if self.available_models:
+                available_preferred = list(self.available_models)
+            else:
+                raise ValueError("No models available")
+        
+        if budget_conscious:
+            # Sort by cost (cheapest first)
+            available_preferred.sort(key=lambda m: self.model_costs.get(m, (999, 999))[0])
+        
+        return available_preferred[0]
+    
+    def select_model_for_agent(self, agent_type: str) -> str:
+        """Select model based on agent-specific routing rules.
+        
+        Args:
+            agent_type: Type of agent (supervisor, generation, etc.)
+            
+        Returns:
+            Selected model name
+        """
+        # Check custom routing rules first
+        if agent_type in self.routing_rules:
+            model = self.routing_rules[agent_type]
+            if model in self.available_models:
+                return model
+        
+        # Default agent to task mapping
+        agent_task_map = {
+            "supervisor": "reasoning",
+            "generation": "generation",
+            "reflection": "analysis",
+            "ranking": "simple_query",
+            "evolution": "generation",
+            "proximity": "simple_query",
+            "meta_review": "analysis"
+        }
+        
+        task_type = agent_task_map.get(agent_type, "reasoning")
+        return self.select_model_for_task(task_type)
+    
+    def get_estimated_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """Calculate estimated cost for a request.
+        
+        Args:
+            model: Model name
+            input_tokens: Number of input tokens
+            output_tokens: Number of output tokens
+            
+        Returns:
+            Estimated cost in dollars
+        """
+        if model not in self.model_costs:
+            return 0.0
+        
+        input_cost, output_cost = self.model_costs[model]
+        
+        # Calculate cost (prices are per 1M tokens)
+        total_cost = (input_tokens * input_cost / 1_000_000) + (output_tokens * output_cost / 1_000_000)
+        
+        return round(total_cost, 6)
+    
+    def track_usage(self, model: str, input_tokens: int, output_tokens: int):
+        """Track usage statistics for a model.
+        
+        Args:
+            model: Model name
+            input_tokens: Number of input tokens used
+            output_tokens: Number of output tokens generated
+        """
+        stats = self.usage_stats[model]
+        stats["total_input_tokens"] += input_tokens
+        stats["total_output_tokens"] += output_tokens
+        stats["request_count"] += 1
+        stats["total_cost"] += self.get_estimated_cost(model, input_tokens, output_tokens)
+    
+    def get_usage_stats(self) -> Dict[str, Dict[str, Any]]:
+        """Get usage statistics for all models.
+        
+        Returns:
+            Dictionary of usage stats by model
+        """
+        return dict(self.usage_stats)
+    
+    def set_routing_rules(self, rules: Dict[str, str]):
+        """Set custom routing rules for agents.
+        
+        Args:
+            rules: Dictionary mapping agent types to model names
+        """
+        self.routing_rules = rules
+    
+    def mark_model_unavailable(self, model: str):
+        """Mark a model as unavailable.
+        
+        Args:
+            model: Model name to mark unavailable
+        """
+        self.available_models.discard(model)
+    
+    def mark_model_available(self, model: str):
+        """Mark a model as available.
+        
+        Args:
+            model: Model name to mark available
+        """
+        if model in self.model_costs:
+            self.available_models.add(model)
+    
+    def get_available_models(self) -> List[str]:
+        """Get list of available models.
+        
+        Returns:
+            List of available model names
+        """
+        return list(self.available_models)
 
 
 class ArgoLLMProvider(LLMProvider):
@@ -54,6 +238,9 @@ class ArgoLLMProvider(LLMProvider):
             "gemini-2.5-pro": "argo:gemini-2.5-pro",
             "gemini-2.5-flash": "argo:gemini-2.5-flash"
         }
+        
+        # Initialize model selector
+        self.model_selector = ModelSelector()
     
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for Argo requests."""
@@ -205,3 +392,77 @@ class ArgoLLMProvider(LLMProvider):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self._client.aclose()
+    
+    def select_model_for_task(self, task_type: str, budget_conscious: bool = False) -> str:
+        """Select the best model for a given task type.
+        
+        Args:
+            task_type: Type of task (generation, reasoning, etc.)
+            budget_conscious: Whether to prioritize cost over capability
+            
+        Returns:
+            Selected model name
+        """
+        return self.model_selector.select_model_for_task(task_type, budget_conscious)
+    
+    def select_model_for_agent(self, agent_type: str) -> str:
+        """Select model based on agent-specific routing rules.
+        
+        Args:
+            agent_type: Type of agent (supervisor, generation, etc.)
+            
+        Returns:
+            Selected model name
+        """
+        return self.model_selector.select_model_for_agent(agent_type)
+    
+    def estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """Calculate estimated cost for a request.
+        
+        Args:
+            model: Model name
+            input_tokens: Number of input tokens
+            output_tokens: Number of output tokens
+            
+        Returns:
+            Estimated cost in dollars
+        """
+        return self.model_selector.get_estimated_cost(model, input_tokens, output_tokens)
+    
+    def track_request(self, model: str, input_tokens: int, output_tokens: int):
+        """Track usage for a completed request.
+        
+        Args:
+            model: Model name used
+            input_tokens: Number of input tokens used
+            output_tokens: Number of output tokens generated
+        """
+        self.model_selector.track_usage(model, input_tokens, output_tokens)
+    
+    def get_usage_report(self) -> Dict[str, Dict[str, Any]]:
+        """Get usage report for all models.
+        
+        Returns:
+            Dictionary of usage statistics by model
+        """
+        return self.model_selector.get_usage_stats()
+    
+    def set_routing_rules(self, rules: Dict[str, str]):
+        """Set custom routing rules for agents.
+        
+        Args:
+            rules: Dictionary mapping agent types to model names
+        """
+        self.model_selector.set_routing_rules(rules)
+    
+    def mark_model_status(self, model: str, available: bool):
+        """Update model availability status.
+        
+        Args:
+            model: Model name
+            available: Whether model is available
+        """
+        if available:
+            self.model_selector.mark_model_available(model)
+        else:
+            self.model_selector.mark_model_unavailable(model)
