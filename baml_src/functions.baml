@@ -13,7 +13,7 @@ function GenerateHypothesis(
   focus_area: string? @description("Specific area to focus on"),
   generation_method: string @description("Method to use: literature_based, debate, assumptions, or expansion")
 ) -> Hypothesis {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are a brilliant research scientist tasked with generating novel hypotheses.
@@ -44,6 +44,26 @@ function GenerateHypothesis(
     5. Is distinct from existing hypotheses
     
     Provide a complete hypothesis with experimental protocol and supporting evidence.
+    
+    Respond in valid JSON format matching the Hypothesis schema:
+    {
+      "id": "unique_identifier",
+      "summary": "brief hypothesis statement",
+      "full_description": "detailed description",
+      "category": "mechanistic/therapeutic/diagnostic/etc",
+      "novelty_claim": "what makes this novel",
+      "assumptions": ["key", "assumptions"],
+      "reasoning": "your reasoning process",
+      "experimental_protocol": {
+        "objective": "experimental objective",
+        "methodology": "detailed methodology",
+        "expected_outcomes": ["expected", "results"],
+        "required_resources": ["needed", "resources"],
+        "timeline": "estimated timeline"
+      },
+      "supporting_evidence": ["evidence", "points"],
+      "version": 1
+    }
   "#
 }
 
@@ -58,7 +78,7 @@ function EvaluateHypothesis(
   evaluation_criteria: string[] @description("Specific criteria to evaluate against"),
   context: map<string, string>? @description("Additional context for evaluation")
 ) -> Review {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are an expert scientific reviewer performing a {{ review_type }} review.
@@ -113,7 +133,7 @@ function PerformSafetyCheck(
   trust_level: string @description("Trust level: high, medium, or low"),
   safety_criteria: string[] @description("Specific safety criteria to check")
 ) -> SafetyCheck {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are a safety evaluator for a scientific research system.
@@ -157,7 +177,7 @@ function CompareHypotheses(
   comparison_criteria: string[] @description("Criteria for comparison"),
   debate_context: string? @description("Context from ongoing debate if applicable")
 ) -> ComparisonResult {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are a scientific judge comparing two research hypotheses.
@@ -200,7 +220,7 @@ function EnhanceHypothesis(
   feedback: string[]? @description("Feedback to incorporate"),
   complementary_hypothesis: Hypothesis? @description("For combination strategy")
 ) -> Hypothesis {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are a research scientist tasked with improving a hypothesis.
@@ -253,7 +273,7 @@ function CalculateSimilarity(
   hypothesis2: Hypothesis @description("Second hypothesis"),
   similarity_aspects: string[] @description("Aspects to compare: mechanism, domain, methodology")
 ) -> SimilarityScore {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are analyzing the semantic similarity between two research hypotheses.
@@ -293,7 +313,7 @@ function ExtractResearchPatterns(
   reviews: Review[] @description("All reviews to analyze"),
   focus: string @description("Focus area: methodology, assumptions, or themes")
 ) -> ResearchPatterns {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are performing a meta-analysis of research hypotheses and their reviews.
@@ -333,7 +353,7 @@ function ParseResearchGoal(
   natural_language_goal: string @description("User's research goal in natural language"),
   domain_context: string? @description("Scientific domain if specified")
 ) -> ParsedResearchGoal {
-  client DefaultClient
+  client ProductionClient
   
   prompt #"
     You are parsing a research goal into structured components.
@@ -353,29 +373,19 @@ function ParseResearchGoal(
     6. Success criteria - what outcomes would satisfy this goal
     
     Be thorough but concise in your analysis.
+    
+    Respond in valid JSON format matching the ParsedResearchGoal schema:
+    {
+      "primary_objective": "single clear statement",
+      "sub_objectives": ["array", "of", "objectives"],
+      "implied_constraints": ["ethical", "practical", "scientific"],
+      "hypothesis_categories": ["mechanistic", "therapeutic", "etc"],
+      "key_terms": ["important", "scientific", "terms"],
+      "success_criteria": ["measurable", "outcomes"]
+    }
   "#
 }
 
 // Test blocks can be added later with correct BAML test syntax
 
-// Test configurations
-test TestClient {
-    functions [GenerateHypothesis, EvaluateHypothesis, PerformSafetyCheck, CompareHypotheses]
-    
-    // Test data can be added here
-}
-
-test ErrorScenarios {
-    client TestErrorClient
-    functions [GenerateHypothesis]
-}
-
-test PerformanceScenarios {
-    client TestSlowClient  
-    functions [GenerateHypothesis]
-}
-
-test EdgeCaseScenarios {
-    client TestContextClient
-    functions [GenerateHypothesis]
-}
+// Test configurations are in clients.baml

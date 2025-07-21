@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 import logging
 from datetime import datetime
 
-from baml_client import b
-from baml_client.types import (
+from baml_client.baml_client import b
+from baml_client.baml_client.types import (
     AgentRequest,
     AgentResponse,
     AgentType,

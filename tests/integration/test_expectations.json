@@ -185,6 +185,10 @@
     "may_fail": [
       "test_evolution_enhancement"
     ],
+    "real_llm_tests": [
+      "test_comparison_reasoning",
+      "test_ranking_consistency"
+    ],
     "description": "Tournament ranking system must work"
   },
   "phase_13": {
@@ -198,6 +202,10 @@
     "may_fail": [
       "test_proximity_clustering"
     ],
+    "real_llm_tests": [
+      "test_enhancement_creativity",
+      "test_evolution_coherence"
+    ],
     "description": "Hypothesis evolution must function"
   },
   "phase_14": {
@@ -210,6 +218,10 @@
     "may_fail": [
       "test_meta_review"
     ],
+    "real_llm_tests": [
+      "test_similarity_understanding",
+      "test_cluster_coherence"
+    ],
     "description": "Similarity and clustering must work"
   },
   "phase_15": {
@@ -221,6 +233,10 @@
     ],
     "may_fail": [
       "test_cli_integration"
+    ],
+    "real_llm_tests": [
+      "test_synthesis_quality",
+      "test_pattern_identification"
     ],
     "description": "Meta-review synthesis must function"
   },

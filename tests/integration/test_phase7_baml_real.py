@@ -2,8 +2,12 @@
 
 import pytest
 import os
-from baml_client import b
+from dotenv import load_dotenv
+from baml_client.baml_client import b
 from src.llm.baml_wrapper import BAMLWrapper
+
+# Load environment variables
+load_dotenv()
 
 
 @pytest.mark.real_llm
@@ -38,20 +42,22 @@ class TestBAMLRealBehavior:
         wrapper = BAMLWrapper()
         
         # Test hypothesis generation with complex prompt
-        context = """
-        Recent observations show that certain jellyfish can revert to their polyp stage,
-        essentially becoming biologically younger. This process involves cellular
-        transdifferentiation.
+        goal = """
+        Understand biological immortality based on recent observations that certain
+        jellyfish can revert to their polyp stage, essentially becoming biologically
+        younger through cellular transdifferentiation.
         """
         
         hypothesis = await wrapper.generate_hypothesis(
-            context=context,
-            research_goal="Understand biological immortality",
-            constraints=["Must be testable", "Focus on cellular mechanisms"]
+            goal=goal,
+            constraints=["Must be testable", "Focus on cellular mechanisms"],
+            existing_hypotheses=[],  # No existing hypotheses
+            focus_area="cellular rejuvenation mechanisms",
+            generation_method="literature_based"  # Required parameter
         )
         
         # o3 should provide detailed reasoning
-        assert len(hypothesis.description) > 200
+        assert len(hypothesis.full_description) > 200
         assert hypothesis.reasoning is not None
         
         # Check for step-by-step thinking markers

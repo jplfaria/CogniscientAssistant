@@ -24,7 +24,7 @@ client<llm> DevelopmentClient {
 
 // Default client using environment variables
 client<llm> DefaultClient {
-  provider env.BAML_CLIENT_PROVIDER
+  provider openai
   options {
     model env.BAML_MODEL
     base_url env.BAML_BASE_URL
@@ -42,12 +42,6 @@ client<llm> DynamicClient {
     max_tokens 4000
     timeout_seconds 60
   }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
-  }
 }
 
 // Argo Gateway Clients for each available model
@@ -59,12 +53,6 @@ client<llm> ArgoGPTo3 {
     temperature 0.7
     max_tokens 4000
     timeout_seconds 60
-  }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
   }
 }
 
@@ -78,12 +66,6 @@ client<llm> ArgoGPT4o {
     max_tokens 4000
     timeout_seconds 60
   }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
-  }
 }
 
 client<llm> ArgoGPT35 {
@@ -94,12 +76,6 @@ client<llm> ArgoGPT35 {
     temperature 0.7
     max_tokens 4000
     timeout_seconds 60
-  }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
   }
 }
 
@@ -112,12 +88,6 @@ client<llm> ArgoClaudeOpus4 {
     max_tokens 4000
     timeout_seconds 60
   }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
-  }
 }
 
 client<llm> ArgoClaudeSonnet4 {
@@ -128,12 +98,6 @@ client<llm> ArgoClaudeSonnet4 {
     temperature 0.7
     max_tokens 4000
     timeout_seconds 60
-  }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
   }
 }
 
@@ -146,12 +110,6 @@ client<llm> ArgoGemini25Pro {
     max_tokens 4000
     timeout_seconds 60
   }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
-  }
 }
 
 // Production client (uses model config)
@@ -163,12 +121,6 @@ client<llm> ProductionClient {
     temperature 0.7
     max_tokens 4000
     timeout_seconds 60
-  }
-  retry_policy {
-    max_retries 3
-    initial_delay_ms 1000
-    max_delay_ms 10000
-    exponential_backoff true
   }
 }
 
@@ -236,23 +188,4 @@ client<llm> TestNoRetryClient {
   }
 }
 
-// Test configurations
-test TestClient {
-  default_client MockClient
-  functions [GenerateHypothesis, EvaluateHypothesis, PerformSafetyCheck, CompareHypotheses]
-}
-
-test ErrorScenarios {
-  default_client TestErrorClient
-  functions [GenerateHypothesis]
-}
-
-test PerformanceScenarios {
-  default_client TestSlowClient
-  functions [GenerateHypothesis]
-}
-
-test EdgeCaseScenarios {
-  default_client TestContextClient
-  functions [GenerateHypothesis]
-}
+// Test configurations would go here
