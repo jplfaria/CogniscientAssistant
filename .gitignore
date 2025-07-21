@@ -185,3 +185,5 @@ cython_debug/
 # Temporary script outputs
 scripts/**/*.tmp
 scripts/**/*.log
+argo-config.yaml
+test_results/

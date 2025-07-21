@@ -3,5 +3,5 @@ argo_stream_url: https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamc
 argo_url: https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/
 host: 127.0.0.1
 port: 8000
-user: jplfaria
+user: YOUR_USERNAME_HERE
 verbose: true
