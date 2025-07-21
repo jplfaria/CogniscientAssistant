@@ -77,6 +77,45 @@ git commit -m "feat: implement [component] - [what you did]"
 The file `tests/integration/test_expectations.json` defines:
 - `must_pass`: Critical tests that block progress
 - `may_fail`: Tests allowed to fail (waiting for future components)
+- `real_llm_tests`: Optional tests that verify actual AI behavior
+
+## 🤖 Real LLM Testing
+
+### Purpose
+Verify that agents exhibit expected AI behaviors with actual models (not mocked).
+
+### Implementation
+- Write alongside regular integration tests
+- Use naming: `test_phaseN_component_real.py`
+- Mark with `@pytest.mark.real_llm`
+- Test behaviors, not exact outputs
+- Keep token usage minimal (<100 per test)
+
+### Example Structure
+```python
+@pytest.mark.real_llm
+async def test_supervisor_real_orchestration():
+    """Test Supervisor exhibits planning behavior with o3."""
+    supervisor = SupervisorAgent()
+    result = await supervisor.plan_research("Why does ice float?")
+    
+    # Test behavioral expectations
+    assert len(result.subtasks) >= 3  # Proper decomposition
+    assert "density" in str(result).lower()  # Key concepts
+    # Verify o3 shows reasoning steps
+    assert any(marker in result.reasoning.lower() 
+              for marker in ["step", "first", "then"])
+```
+
+### When to Write
+- For agent phases (9+) that use LLMs
+- Focus on model-specific behaviors (o3 reasoning, Claude creativity)
+- Not needed for infrastructure phases
+
+### Execution
+- NOT part of automated loop (too slow/expensive)
+- Run manually: `pytest tests/integration/*_real.py -v --real-llm`
+- Run before major releases or when debugging AI behavior
 
 ## 🛡️ Safety & Security
 

@@ -530,6 +530,20 @@ if [ -d "src" ] && find src -name "*.py" -type f | grep -q .; then
     fi
 fi
 
+# Check for available real LLM tests
+REAL_LLM_COUNT=$(find tests/integration -name "*_real.py" -type f 2>/dev/null | wc -l | tr -d ' ')
+if [ "$REAL_LLM_COUNT" -gt 0 ]; then
+    echo -e "\n${BLUE}💡 Real LLM Tests Available${NC}"
+    echo -e "${YELLOW}Found $REAL_LLM_COUNT real LLM test files${NC}"
+    echo -e "Run with: ${CYAN}pytest tests/integration/*_real.py -v --real-llm${NC}"
+    
+    # Get current phase
+    CURRENT_PHASE=$(detect_implementation_phase)
+    if [ -n "$CURRENT_PHASE" ]; then
+        echo -e "For current phase: ${CYAN}pytest tests/integration/test_phase${CURRENT_PHASE}_*_real.py -v --real-llm${NC}"
+    fi
+fi
+
 echo -e "\n${GREEN}✨ Implementation loop completed!${NC}"
 
 # Create summary log

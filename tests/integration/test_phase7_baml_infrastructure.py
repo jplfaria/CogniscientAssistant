@@ -138,10 +138,7 @@ class TestPhase7BAMLInfrastructure:
             assert result.confidence_score == 0.85
     
     @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.getenv("ENABLE_REAL_LLM_TESTS", "false").lower() != "true",
-        reason="Real LLM tests disabled - set ENABLE_REAL_LLM_TESTS=true to run"
-    )
+    @pytest.mark.real_llm
     async def test_real_llm_calls(self):
         """Test actual LLM calls through BAML (when enabled).
         

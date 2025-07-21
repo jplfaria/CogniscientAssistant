@@ -225,6 +225,54 @@ We refined our approach to test coverage:
 7. Integration tests run at phase boundaries
 8. Regression detection flags issues
 
+## Phase 7: Real LLM Testing Integration
+
+### The Need for Behavioral Testing
+
+During Phase 8 (Argo Gateway), we realized that while mocked tests verify functionality, they don't verify AI behavior quality. This led to implementing a parallel real LLM testing strategy.
+
+### Implementation Approach
+
+1. **Separate Test Files**: `test_phaseN_*_real.py` pattern
+2. **Consistent Marking**: `@pytest.mark.real_llm` (not environment variables)
+3. **test_expectations.json Enhancement**:
+   ```json
+   {
+     "phase_9": {
+       "must_pass": [...],
+       "may_fail": [...],
+       "real_llm_tests": [
+         "test_task_decomposition_quality",
+         "test_o3_reasoning_visibility"
+       ]
+     }
+   }
+   ```
+
+### Integration with Development Loop
+
+The implementation loop now shows available real LLM tests:
+```
+💡 Real LLM Tests Available
+Found 2 real LLM test files
+Run with: pytest tests/integration/*_real.py -v --real-llm
+```
+
+### Key Benefits Discovered
+
+1. **Early Detection**: Found that Gemini models often return empty responses
+2. **Behavioral Validation**: Verified o3 actually shows step-by-step reasoning
+3. **Model Selection**: Led to switching default from Gemini to GPT-o3
+4. **Integration Confidence**: Actual LLM calls work through BAML/Argo
+
+### Best Practices Established
+
+1. **Write Alongside Regular Tests**: Same phase, different file
+2. **Focus on Behaviors**: Test reasoning patterns, not exact text
+3. **Minimal Token Usage**: Keep tests under 100 tokens each
+4. **Optional Execution**: Not part of automated loop
+5. **Helper Scripts**: `scripts/run-real-llm-tests.sh` for easy execution
+
 ## Lessons Learned
 
 ### What Works Well
@@ -252,6 +300,9 @@ We refined our approach to test coverage:
 8. **BAML for LLM**: Using BAML eliminates direct API call complexity
 9. **Sync Configuration**: Keep all config files (env, BAML, etc.) synchronized
 10. **Fix Tests Immediately**: Two small test failures can block entire pipeline
+11. **Real LLM Tests Valuable**: Behavioral verification catches issues mocked tests miss
+12. **Separate Test Tracking**: Real LLM tests tracked separately from regular tests
+13. **Model Selection Matters**: GPT-o3 for reasoning, Claude for creativity, GPT-3.5 for simple tasks
 
 ## Reproducible Process
 

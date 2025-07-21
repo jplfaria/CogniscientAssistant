@@ -97,6 +97,10 @@
     "may_fail": [
       "test_real_llm_calls"
     ],
+    "real_llm_tests": [
+      "test_real_llm_calls",
+      "test_baml_with_real_models"
+    ],
     "description": "BAML infrastructure must be properly configured"
   },
   "phase_8": {
@@ -113,6 +117,12 @@
       "test_proxy_failover",
       "test_rate_limiting"
     ],
+    "real_llm_tests": [
+      "test_simple_prompt_all_models",
+      "test_model_capabilities",
+      "test_streaming_response",
+      "test_error_handling"
+    ],
     "description": "Argo Gateway must provide reliable LLM access"
   },
   "phase_9": {
@@ -124,6 +134,10 @@
     ],
     "may_fail": [
       "test_full_research_cycle"
+    ],
+    "real_llm_tests": [
+      "test_task_decomposition_quality",
+      "test_o3_reasoning_visibility"
     ],
     "description": "Supervisor must create and manage tasks"
   },
@@ -138,6 +152,10 @@
       "test_hypothesis_reflection",
       "test_ranking_tournament"
     ],
+    "real_llm_tests": [
+      "test_hypothesis_creativity",
+      "test_hypothesis_scientific_validity"
+    ],
     "description": "Hypothesis generation must function"
   },
   "phase_11": {
@@ -149,6 +167,10 @@
     ],
     "may_fail": [
       "test_ranking_tournament"
+    ],
+    "real_llm_tests": [
+      "test_critique_quality",
+      "test_review_thoroughness"
     ],
     "description": "Review system must work correctly"
   },

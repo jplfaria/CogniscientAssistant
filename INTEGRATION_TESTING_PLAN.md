@@ -512,3 +512,100 @@ Each milestone's tests should demonstrate:
 5. **Performance Adequacy**: Reasonable response times
 
 Integration testing ensures that as we build the AI Co-Scientist, each phase produces working functionality that integrates properly with what came before.
+
+## Real LLM Testing Strategy
+
+### Purpose
+While mocked tests verify functionality, real LLM tests verify that AI agents exhibit expected behaviors when using actual language models. This is critical for ensuring the system works with real AI, not just our mocked responses.
+
+### Implementation Approach
+
+#### Test Organization
+- **Location**: `tests/integration/test_phaseN_*_real.py`
+- **Marking**: `@pytest.mark.real_llm`
+- **Execution**: Manual via `--real-llm` flag
+- **Coverage**: Not counted toward coverage requirements
+
+#### What to Test
+1. **Behavioral Validation**: Does the AI exhibit expected reasoning patterns?
+2. **Model-Specific Features**: 
+   - o3: Step-by-step reasoning visibility
+   - Claude: Creative and thorough analysis
+   - GPT-4: Balanced general capability
+3. **Integration Points**: BAML correctly handles real responses
+4. **Error Handling**: Graceful handling of model failures
+
+#### Example Test Structure
+```python
+# tests/integration/test_phase9_supervisor_real.py
+@pytest.mark.real_llm
+class TestSupervisorRealBehavior:
+    async def test_task_decomposition_quality(self):
+        """Verify Supervisor decomposes tasks intelligently."""
+        supervisor = SupervisorAgent()
+        result = await supervisor.plan_research("Why does ice float?")
+        
+        # Behavioral assertions
+        assert len(result.subtasks) >= 3
+        assert "density" in str(result).lower()
+        
+        # o3 specific: reasoning visibility
+        assert any(word in result.reasoning.lower() 
+                  for word in ["step", "first", "then"])
+```
+
+### Execution Strategy
+
+#### When to Run
+- **Not in CI/CD**: Too expensive and slow
+- **Before releases**: Verify AI behavior unchanged
+- **After model updates**: Ensure compatibility
+- **During debugging**: When mocked tests pass but system fails
+
+#### Running Tests
+```bash
+# All real LLM tests
+pytest tests/integration/*_real.py -v --real-llm
+
+# Specific phase
+pytest tests/integration/test_phase9_*_real.py -v --real-llm
+
+# With cost tracking
+pytest tests/integration/*_real.py -v --real-llm --tb=short
+```
+
+### Test Design Guidelines
+
+1. **Keep Tests Focused**: One behavior per test
+2. **Minimize Token Usage**: Use concise prompts
+3. **Test Behaviors, Not Text**: Don't match exact outputs
+4. **Handle Variability**: Allow reasonable response ranges
+5. **Document Expected Behavior**: Clear test names and docstrings
+
+### Phase-Specific Real LLM Tests
+
+| Phase | Component | Key Behaviors to Test |
+|-------|-----------|---------------------|
+| 7 | BAML | Schema parsing, response handling |
+| 8 | Argo Gateway | Multi-model support, failover |
+| 9 | Supervisor | Task decomposition, planning |
+| 10 | Generation | Hypothesis creativity, validity |
+| 11 | Reflection | Critique depth, scientific accuracy |
+| 12 | Ranking | Comparison reasoning |
+| 13 | Evolution | Enhancement strategies |
+| 14 | Proximity | Similarity understanding |
+| 15 | Meta-Review | Pattern synthesis |
+
+### Cost Considerations
+
+- **Estimated Usage**: ~100 tokens per test
+- **Phase Coverage**: ~10 tests per agent phase
+- **Total Estimate**: ~10,000 tokens for full suite
+- **Cost at GPT-4 rates**: ~$0.30-0.50 per full run
+
+### Integration with Development Workflow
+
+1. **Development Loop**: Shows available real LLM tests at completion
+2. **test_expectations.json**: Tracks real LLM tests separately
+3. **No Blocking**: Failures don't prevent commits
+4. **Optional Execution**: Developer choice when to run
