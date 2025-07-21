@@ -14,7 +14,7 @@ from src.llm.argo_provider import ArgoLLMProvider, ArgoConnectionError
 def argo_provider():
     """Create an ArgoLLMProvider instance for testing."""
     with patch.dict(os.environ, {
-        "ARGO_PROXY_URL": "http://localhost:8050/v1",
+        "ARGO_PROXY_URL": "http://localhost:8000/v1",
         "ARGO_AUTH_USER": "test_user",
         "ARGO_REQUEST_TIMEOUT": "30",
         "ARGO_MAX_RETRIES": "3"
@@ -35,13 +35,13 @@ class TestArgoProviderInitialization:
     def test_init_with_env_vars(self):
         """Test initialization with environment variables."""
         with patch.dict(os.environ, {
-            "ARGO_PROXY_URL": "http://test.argo:8050/v1",
+            "ARGO_PROXY_URL": "http://test.argo:8000/v1",
             "ARGO_AUTH_USER": "scientist_123",
             "ARGO_REQUEST_TIMEOUT": "60",
             "ARGO_MAX_RETRIES": "5"
         }):
             provider = ArgoLLMProvider()
-            assert provider.proxy_url == "http://test.argo:8050/v1"
+            assert provider.proxy_url == "http://test.argo:8000/v1"
             assert provider.auth_user == "scientist_123"
             assert provider.timeout == 60
             assert provider.max_retries == 5
@@ -50,7 +50,7 @@ class TestArgoProviderInitialization:
         """Test initialization with default values."""
         with patch.dict(os.environ, clear=True):
             provider = ArgoLLMProvider()
-            assert provider.proxy_url == "http://localhost:8050/v1"
+            assert provider.proxy_url == "http://localhost:8000/v1"
             assert provider.auth_user == ""
             assert provider.timeout == 30
             assert provider.max_retries == 3

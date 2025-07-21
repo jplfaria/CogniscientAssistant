@@ -31,7 +31,7 @@ sleep 2
 
 # Check if it started successfully
 if pgrep -f "argo-proxy" > /dev/null; then
-    echo -e "${GREEN}✓ argo-proxy started successfully on port 8050${NC}"
+    echo -e "${GREEN}✓ argo-proxy started successfully on port 8000${NC}"
     echo "Logs are available at: ~/.argo-proxy.log"
     echo ""
     echo "To stop the proxy: pkill -f argo-proxy"

@@ -32,31 +32,143 @@ client<llm> DefaultClient {
   }
 }
 
-// Production client using Argo Gateway (commented out by default)
-// client<llm> ArgoClient {
-//   provider openai
-//   options {
-//     model env.DEFAULT_MODEL
-//     base_url env.ARGO_GATEWAY_URL
-//     api_key env.ARGO_API_KEY
-//     timeout_seconds 60
-//   }
-//   retry_policy {
-//     max_retries 3
-//     initial_delay_ms 1000
-//     max_delay_ms 10000
-//     exponential_backoff true
-//   }
-// }
-
-// Production client (will use Argo Gateway in production)
-client<llm> ProductionClient {
+// Dynamic client for agent-specific models
+client<llm> DynamicClient {
   provider openai
   options {
-    model "gpt-3.5-turbo"
+    model env.AGENT_MODEL
+    base_url "http://localhost:8000/v1"  // Argo proxy
     temperature 0.7
     max_tokens 4000
     timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+// Argo Gateway Clients for each available model
+client<llm> ArgoGPTo3 {
+  provider openai
+  options {
+    model "gpto3"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+// Argo Gateway Clients for each available model
+client<llm> ArgoGPT4o {
+  provider openai
+  options {
+    model "gpt4o"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+client<llm> ArgoGPT35 {
+  provider openai
+  options {
+    model "gpt35"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+client<llm> ArgoClaudeOpus4 {
+  provider openai
+  options {
+    model "claudeopus4"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+client<llm> ArgoClaudeSonnet4 {
+  provider openai
+  options {
+    model "claudesonnet4"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+client<llm> ArgoGemini25Pro {
+  provider openai
+  options {
+    model "gemini25pro"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
+  }
+}
+
+// Production client (uses model config)
+client<llm> ProductionClient {
+  provider openai
+  options {
+    model env.DEFAULT_MODEL
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    temperature 0.7
+    max_tokens 4000
+    timeout_seconds 60
+  }
+  retry_policy {
+    max_retries 3
+    initial_delay_ms 1000
+    max_delay_ms 10000
+    exponential_backoff true
   }
 }
 

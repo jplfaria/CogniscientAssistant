@@ -121,7 +121,7 @@ The integration MUST:
 
 Example configuration:
 ```
-ARGO_PROXY_URL=http://localhost:8050/v1
+ARGO_PROXY_URL=http://localhost:8000/v1
 ARGO_AUTH_USER=scientist_id
 ARGO_REQUEST_TIMEOUT=30
 ARGO_MAX_RETRIES=3

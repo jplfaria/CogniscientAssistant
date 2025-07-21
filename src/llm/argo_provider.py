@@ -24,31 +24,33 @@ class ModelSelector:
         """Initialize model selector with costs and capabilities."""
         # Model costs per 1M tokens (input, output)
         self.model_costs = {
-            "gpt-4o": (5.0, 15.0),  # $5/$15 per 1M tokens
-            "gpt-3.5-turbo": (0.5, 1.5),  # $0.50/$1.50 per 1M tokens
-            "claude-opus-4": (15.0, 75.0),  # $15/$75 per 1M tokens
-            "claude-3-sonnet": (3.0, 15.0),  # $3/$15 per 1M tokens
-            "gemini-2.5-pro": (3.5, 10.5),  # $3.50/$10.50 per 1M tokens
-            "gemini-2.5-flash": (0.075, 0.3),  # $0.075/$0.30 per 1M tokens
+            "gpto3": (15.0, 60.0),  # $15/$60 per 1M tokens (reasoning model)
+            "gpt4o": (5.0, 15.0),  # $5/$15 per 1M tokens
+            "gpt35": (0.5, 1.5),  # $0.50/$1.50 per 1M tokens
+            "claudeopus4": (15.0, 75.0),  # $15/$75 per 1M tokens
+            "claudesonnet4": (3.0, 15.0),  # $3/$15 per 1M tokens
+            "gemini25pro": (3.5, 10.5),  # $3.50/$10.50 per 1M tokens
+            "gemini25flash": (0.075, 0.3),  # $0.075/$0.30 per 1M tokens
         }
         
         # Model capabilities
         self.model_capabilities = {
-            "gpt-4o": ["reasoning", "generation", "analysis", "coding"],
-            "gpt-3.5-turbo": ["simple_query", "summarization", "basic_analysis"],
-            "claude-opus-4": ["reasoning", "generation", "creative", "long_context"],
-            "claude-3-sonnet": ["analysis", "summarization", "moderate_reasoning"],
-            "gemini-2.5-pro": ["reasoning", "analysis", "multimodal"],
-            "gemini-2.5-flash": ["simple_query", "fast_response", "basic_analysis"],
+            "gpto3": ["deep_reasoning", "complex_analysis", "step_by_step", "verification"],
+            "gpt4o": ["reasoning", "generation", "analysis", "coding"],
+            "gpt35": ["simple_query", "summarization", "basic_analysis"],
+            "claudeopus4": ["reasoning", "generation", "creative", "long_context"],
+            "claudesonnet4": ["analysis", "summarization", "moderate_reasoning"],
+            "gemini25pro": ["reasoning", "analysis", "multimodal"],
+            "gemini25flash": ["simple_query", "fast_response", "basic_analysis"],
         }
         
         # Task type to preferred models mapping
         self.task_preferences = {
-            "generation": ["claude-opus-4", "gpt-4o"],
-            "reasoning": ["gpt-4o", "claude-opus-4", "gemini-2.5-pro"],
-            "simple_query": ["gpt-3.5-turbo", "gemini-2.5-flash"],
-            "analysis": ["gpt-4o", "gemini-2.5-pro", "claude-3-sonnet"],
-            "summarization": ["claude-3-sonnet", "gpt-3.5-turbo"],
+            "generation": ["claudeopus4", "gpt4o"],
+            "reasoning": ["gpto3", "gpt4o", "claudeopus4", "gemini25pro"],
+            "simple_query": ["gpt35", "gemini25flash"],
+            "analysis": ["gpt4o", "gemini25pro", "claudesonnet4"],
+            "summarization": ["claudesonnet4", "gpt35"],
         }
         
         # Usage tracking
@@ -76,7 +78,7 @@ class ModelSelector:
             Selected model name
         """
         # Get preferred models for task
-        preferred = self.task_preferences.get(task_type, ["gpt-4o"])
+        preferred = self.task_preferences.get(task_type, ["gpt4o"])
         
         # Filter by availability
         available_preferred = [m for m in preferred if m in self.available_models]
@@ -230,22 +232,21 @@ class ArgoLLMProvider(LLMProvider):
             headers=self._get_default_headers()
         )
         
-        # Model mapping from logical names to Argo names
-        self.model_mapping = {
-            "gpt-4o": "argo:gpt-4o",
-            "gpt-3.5-turbo": "argo:gpt-3.5-turbo",
-            "claude-opus-4": "argo:claude-opus-4",
-            "claude-3-sonnet": "argo:claude-3-sonnet",
-            "gemini-2.5-pro": "argo:gemini-2.5-pro",
-            "gemini-2.5-flash": "argo:gemini-2.5-flash"
-        }
+        # Available models - using Argo model IDs directly
+        self.available_models = [
+            "gpt4o", "gpt35", "gpt35large", "gpt4turbo",
+            "claudeopus4", "claudesonnet4", "claudesonnet37",
+            "gemini25pro", "gemini25flash"
+        ]
         
         # Initialize model selector
         self.model_selector = ModelSelector()
+        # Update model selector with Argo's available models
+        self.model_selector.available_models = set(self.available_models)
         
         # Initialize circuit breakers per model
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
-        for model in self.model_mapping:
+        for model in self.available_models:
             self._circuit_breakers[model] = CircuitBreaker(
                 failure_threshold=3,
                 recovery_timeout=60.0,
@@ -268,7 +269,8 @@ class ArgoLLMProvider(LLMProvider):
             True if connection is successful, False otherwise
         """
         try:
-            response = await self._client.get("/health", timeout=5.0)
+            # Test with OpenAI-compatible models endpoint
+            response = await self._client.get("/models", timeout=5.0)
             return response.status_code == 200
         except Exception:
             return False
@@ -297,8 +299,8 @@ class ArgoLLMProvider(LLMProvider):
             # Check each requested model
             result = {}
             for model in models:
-                argo_name = self.model_mapping.get(model, f"argo:{model}")
-                result[model] = argo_name in argo_models
+                # Models are already in Argo format
+                result[model] = model in argo_models
                 
             return result
             
@@ -377,7 +379,7 @@ class ArgoLLMProvider(LLMProvider):
             "supports_streaming": False,
             "supports_multimodal": True,
             "supports_function_calling": True,
-            "models": list(self.model_mapping.keys()),
+            "models": self.available_models,
             "max_retries": self.max_retries,
             "timeout": self.timeout
         }
@@ -391,7 +393,7 @@ class ArgoLLMProvider(LLMProvider):
         return {
             "provider": "argo",
             "proxy_url": self.proxy_url,
-            "available_models": list(self.model_mapping.keys()),
+            "available_models": self.available_models,
             "auth_configured": bool(self.auth_user)
         }
     
@@ -560,7 +562,7 @@ class ArgoLLMProvider(LLMProvider):
                 return preferred_model
         
         # Get candidates based on task type
-        candidates = self.model_selector.task_preferences.get(task_type, list(self.model_mapping.keys()))
+        candidates = self.model_selector.task_preferences.get(task_type, self.available_models)
         
         # Filter by availability and circuit state
         available_candidates = []

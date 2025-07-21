@@ -10,7 +10,7 @@ configuration {
     
     // Argo Gateway Configuration
     ARGO_GATEWAY_URL: string = env.ARGO_GATEWAY_URL or "http://localhost:8000"
-    ARGO_PROXY_URL: string = env.ARGO_PROXY_URL or "http://localhost:8050/v1"
+    ARGO_PROXY_URL: string = env.ARGO_PROXY_URL or "http://localhost:8000/v1"
     ARGO_PROXY_HOST: string = env.ARGO_PROXY_HOST or "127.0.0.1"
     ARGO_PROXY_PORT: string = env.ARGO_PROXY_PORT or "8000"
     ARGO_USERNAME: string = env.ARGO_USERNAME or ""

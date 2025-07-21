@@ -18,7 +18,7 @@ class TestArgoGatewayIntegration:
         """Test basic connectivity to Argo Gateway."""
         # Test with mock environment
         with patch.dict(os.environ, {
-            "ARGO_PROXY_URL": "http://localhost:8050/v1",
+            "ARGO_PROXY_URL": "http://localhost:8000/v1",
             "ARGO_AUTH_USER": "test_scientist"
         }):
             provider = ArgoLLMProvider()

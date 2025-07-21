@@ -20,7 +20,7 @@ except ImportError:
 
 # Initialize client
 client = OpenAI(
-    base_url=os.getenv("ARGO_PROXY_URL", "http://localhost:8050/v1"),
+    base_url=os.getenv("ARGO_PROXY_URL", "http://localhost:8000/v1"),
     api_key=""  # Argo proxy doesn't require an API key
 )
 
@@ -33,7 +33,7 @@ models = [
 ]
 
 print("Testing Argo model access through proxy...")
-print(f"Proxy URL: {os.getenv('ARGO_PROXY_URL', 'http://localhost:8050/v1')}")
+print(f"Proxy URL: {os.getenv('ARGO_PROXY_URL', 'http://localhost:8000/v1')}")
 print("-" * 60)
 
 # Test each model
