@@ -410,8 +410,11 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     # Create temporary file for output
     TEMP_OUTPUT=".claude-implementation-output-$$.tmp"
     
+    # Read the prompt content
+    PROMPT_CONTENT=$(cat prompt.md)
+    
     # Run Claude with implementation prompt
-    cat prompt.md | claude -p --dangerously-skip-permissions 2>&1 | tee "$TEMP_OUTPUT"
+    claude -p --dangerously-skip-permissions "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"
     
     echo -e "\n${MAGENTA}--- End of Claude's implementation ---${NC}"
     

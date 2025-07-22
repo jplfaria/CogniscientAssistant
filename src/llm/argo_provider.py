@@ -11,7 +11,7 @@ import httpx
 from pydantic import BaseModel
 
 from src.llm.base import LLMProvider, LLMRequest, LLMResponse, LLMError
-from src.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
+from src.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError, CircuitState
 
 
 class ArgoConnectionError(Exception):
@@ -350,6 +350,15 @@ class ArgoLLMProvider(LLMProvider):
         # Queue processor task
         self._queue_processor_task = None
         self._stop_queue_processor = False
+        
+        # Health monitoring
+        self._health_monitor_task = None
+        self._stop_health_monitor = False
+        self._last_health_status = None
+        self._health_history = []
+        self._health_check_count = 0
+        self._health_error_count = 0
+        self._on_status_change_callback = None
     
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for Argo requests."""
@@ -548,6 +557,11 @@ class ArgoLLMProvider(LLMProvider):
         self._stop_queue_processor = True
         if self._queue_processor_task:
             await self._queue_processor_task
+        
+        # Stop health monitor
+        self._stop_health_monitor = True
+        if self._health_monitor_task:
+            await self._health_monitor_task
         
         await self._client.aclose()
     
@@ -794,3 +808,125 @@ class ArgoLLMProvider(LLMProvider):
                     circuit_breaker.record_failure()
         
         return processed
+    
+    async def start_health_monitoring(
+        self,
+        interval: float = 30.0,
+        on_status_change: Optional[Any] = None
+    ):
+        """Start periodic health monitoring.
+        
+        Args:
+            interval: Time in seconds between health checks
+            on_status_change: Callback function(old_status, new_status) on status change
+        """
+        self._stop_health_monitor = False
+        self._on_status_change_callback = on_status_change
+        
+        # Create health monitor task
+        self._health_monitor_task = asyncio.create_task(
+            self._health_monitor_loop(interval)
+        )
+    
+    async def stop_health_monitoring(self):
+        """Stop health monitoring."""
+        self._stop_health_monitor = True
+        if self._health_monitor_task:
+            await self._health_monitor_task
+            self._health_monitor_task = None
+    
+    async def _health_monitor_loop(self, interval: float):
+        """Health monitoring loop.
+        
+        Args:
+            interval: Time between checks in seconds
+        """
+        while not self._stop_health_monitor:
+            try:
+                # Perform health check
+                health_status = await self.get_health_status()
+                self._health_check_count += 1
+                
+                # Process health status
+                await self._process_health_status(health_status)
+                
+                # Add to history
+                health_status["timestamp"] = datetime.now()
+                self._health_history.append(health_status)
+                
+                # Keep only last 100 entries
+                if len(self._health_history) > 100:
+                    self._health_history = self._health_history[-100:]
+                
+            except Exception as e:
+                self._health_error_count += 1
+                # Log error but continue monitoring
+                print(f"Health check error: {e}")
+            
+            # Wait for next check
+            await asyncio.sleep(interval)
+    
+    async def _process_health_status(self, health_status: Dict[str, Any]):
+        """Process health status and update system state.
+        
+        Args:
+            health_status: Health status response
+        """
+        old_status = self._last_health_status.get("status") if self._last_health_status else None
+        new_status = health_status.get("status")
+        
+        # Check for status change
+        if old_status != new_status and self._on_status_change_callback:
+            self._on_status_change_callback(old_status, new_status)
+        
+        # Update model availability based on health
+        if "models" in health_status:
+            for model_name, model_info in health_status["models"].items():
+                if model_info.get("status") == "available":
+                    self.model_selector.mark_model_available(model_name)
+                    # Reset circuit breaker if health is good
+                    if model_name in self._circuit_breakers:
+                        self._circuit_breakers[model_name].reset()
+                else:
+                    # Mark model unavailable
+                    self.model_selector.mark_model_unavailable(model_name)
+        
+        # If overall health is good, reset all circuit breakers
+        if new_status == "healthy":
+            for breaker in self._circuit_breakers.values():
+                if breaker.is_open():
+                    breaker.reset()
+        
+        self._last_health_status = health_status
+    
+    def get_health_summary(self) -> Dict[str, Any]:
+        """Get summary of health monitoring data.
+        
+        Returns:
+            Health summary statistics
+        """
+        current_status = self._last_health_status.get("status") if self._last_health_status else "unknown"
+        
+        # Calculate uptime percentage
+        healthy_count = sum(1 for h in self._health_history if h.get("status") == "healthy")
+        total_count = len(self._health_history)
+        uptime_percentage = (healthy_count / total_count * 100) if total_count > 0 else 0
+        
+        # Find last status change
+        last_status_change = None
+        if self._health_history:
+            for i in range(len(self._health_history) - 1, 0, -1):
+                if self._health_history[i].get("status") != self._health_history[i-1].get("status"):
+                    last_status_change = self._health_history[i].get("timestamp")
+                    break
+        
+        return {
+            "current_status": current_status,
+            "total_checks": self._health_check_count,
+            "error_count": self._health_error_count,
+            "error_rate": self._health_error_count / self._health_check_count if self._health_check_count > 0 else 0,
+            "uptime_percentage": uptime_percentage,
+            "last_status_change": last_status_change.isoformat() if last_status_change else None,
+            "monitoring_active": self._health_monitor_task is not None and not self._health_monitor_task.done(),
+            "circuit_breaker_status": self.get_circuit_breaker_status()
+        }

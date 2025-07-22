@@ -155,3 +155,57 @@ class TestArgoGatewayIntegration:
         """Test rate limiting enforcement."""
         # This will be implemented in later phases
         pass
+    
+    @pytest.mark.asyncio
+    async def test_health_monitoring(self):
+        """Test health check monitoring functionality."""
+        provider = ArgoLLMProvider()
+        
+        # Mock health responses
+        health_responses = [
+            {"status": "healthy", "models_available": 5},
+            {"status": "degraded", "models_available": 3},
+            {"status": "healthy", "models_available": 5}
+        ]
+        response_index = 0
+        
+        async def mock_get_health_status():
+            nonlocal response_index
+            response = health_responses[response_index % len(health_responses)]
+            response_index += 1
+            return response
+        
+        # Mock the health status method
+        provider.get_health_status = mock_get_health_status
+        
+        # Track status changes
+        status_changes = []
+        
+        def on_status_change(old_status, new_status):
+            status_changes.append((old_status, new_status))
+        
+        # Start health monitoring
+        await provider.start_health_monitoring(
+            interval=0.1,
+            on_status_change=on_status_change
+        )
+        
+        # Wait for status changes
+        await asyncio.sleep(0.35)
+        
+        # Stop monitoring
+        await provider.stop_health_monitoring()
+        
+        # Verify health checks occurred
+        assert response_index >= 3
+        
+        # Verify status changes were detected
+        assert len(status_changes) >= 2
+        assert ("healthy", "degraded") in status_changes
+        assert ("degraded", "healthy") in status_changes
+        
+        # Verify health summary
+        summary = provider.get_health_summary()
+        assert "current_status" in summary
+        assert "total_checks" in summary
+        assert summary["total_checks"] >= 3

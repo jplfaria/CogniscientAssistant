@@ -257,7 +257,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Add failover to alternate models
 - [x] Create request queuing during outages
 - [x] Write tests for reliability features
-- [ ] Add health check monitoring
+- [x] Add health check monitoring
 - [x] Write tests for failover scenarios
 
 ### Integration with Abstraction Layer
