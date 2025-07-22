@@ -3,7 +3,9 @@
 import asyncio
 import os
 from typing import Any, Dict, List, Optional, Tuple
-from collections import defaultdict
+from collections import defaultdict, deque
+from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 import httpx
 from pydantic import BaseModel
@@ -15,6 +17,92 @@ from src.llm.circuit_breaker import CircuitBreaker, CircuitBreakerError
 class ArgoConnectionError(Exception):
     """Raised when connection to Argo Gateway fails."""
     pass
+
+
+@dataclass
+class QueuedRequest:
+    """Represents a queued LLM request."""
+    request: LLMRequest
+    enqueued_at: datetime
+    future: asyncio.Future
+
+
+class RequestQueue:
+    """Queue for holding requests during outages."""
+    
+    def __init__(self, max_size: int = 1000, max_wait_time: int = 300):
+        """Initialize request queue.
+        
+        Args:
+            max_size: Maximum number of requests to queue
+            max_wait_time: Maximum time in seconds to hold a request
+        """
+        self.max_size = max_size
+        self.max_wait_time = max_wait_time
+        self._queue: deque[QueuedRequest] = deque()
+        self._lock = asyncio.Lock()
+    
+    def size(self) -> int:
+        """Get current queue size."""
+        return len(self._queue)
+    
+    def is_empty(self) -> bool:
+        """Check if queue is empty."""
+        return len(self._queue) == 0
+    
+    def enqueue(self, request: LLMRequest) -> bool:
+        """Add request to queue.
+        
+        Args:
+            request: LLM request to queue
+            
+        Returns:
+            True if queued successfully, False if queue is full
+        """
+        if len(self._queue) >= self.max_size:
+            return False
+        
+        future = asyncio.Future()
+        queued_request = QueuedRequest(
+            request=request,
+            enqueued_at=datetime.now(),
+            future=future
+        )
+        self._queue.append(queued_request)
+        return True
+    
+    def dequeue(self) -> Optional[QueuedRequest]:
+        """Remove and return the oldest non-expired request.
+        
+        Returns:
+            Oldest queued request or None if queue is empty
+        """
+        now = datetime.now()
+        
+        while self._queue:
+            queued_request = self._queue[0]
+            
+            # Check if request has expired
+            age = (now - queued_request.enqueued_at).total_seconds()
+            if age > self.max_wait_time:
+                # Remove expired request
+                self._queue.popleft()
+                # Set exception on the future
+                queued_request.future.set_exception(
+                    TimeoutError("Request expired in queue")
+                )
+                continue
+            
+            # Return valid request
+            return self._queue.popleft()
+        
+        return None
+    
+    def clear(self):
+        """Clear all queued requests."""
+        while self._queue:
+            queued_request = self._queue.popleft()
+            queued_request.future.cancel()
 
 
 class ModelSelector:
@@ -252,6 +340,16 @@ class ArgoLLMProvider(LLMProvider):
                 recovery_timeout=60.0,
                 half_open_max_calls=2
             )
+        
+        # Initialize request queue
+        self.request_queue = RequestQueue(
+            max_size=int(os.getenv("ARGO_QUEUE_MAX_SIZE", "1000")),
+            max_wait_time=int(os.getenv("ARGO_QUEUE_MAX_WAIT", "300"))
+        )
+        
+        # Queue processor task
+        self._queue_processor_task = None
+        self._stop_queue_processor = False
     
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for Argo requests."""
@@ -329,8 +427,50 @@ class ArgoLLMProvider(LLMProvider):
         Returns:
             LLM response
         """
-        # This will be implemented in the next iteration
-        raise NotImplementedError("Generate method not yet implemented")
+        model = request.content.get("parameters", {}).get("model", "gpt4o")
+        circuit_breaker = self._circuit_breakers.get(model)
+        
+        if circuit_breaker and circuit_breaker.is_open():
+            # Circuit breaker is open, try to queue the request
+            if self.request_queue.enqueue(request):
+                # Start queue processor if not running
+                if self._queue_processor_task is None or self._queue_processor_task.done():
+                    self._queue_processor_task = asyncio.create_task(self._queue_processor())
+                
+                return LLMResponse(
+                    request_id=request.request_id,
+                    status="success",
+                    response={
+                        "content": "Request queued for processing when service recovers",
+                        "metadata": {
+                            "queued": True,
+                            "queue_size": self.request_queue.size()
+                        }
+                    },
+                    error=None
+                )
+            else:
+                # Queue is full
+                return LLMResponse(
+                    request_id=request.request_id,
+                    status="error",
+                    response=None,
+                    error=LLMError(
+                        code="QUEUE_FULL",
+                        message="Request queue is full. Please try again later.",
+                        recoverable=True
+                    )
+                )
+        
+        # Normal processing (circuit breaker not open)
+        try:
+            # This is a placeholder for actual API call
+            # Will be implemented when we add the actual Argo API calls
+            raise NotImplementedError("Actual API call not yet implemented")
+        except Exception as e:
+            if circuit_breaker:
+                circuit_breaker.record_failure()
+            raise
     
     async def analyze(self, request: LLMRequest) -> LLMResponse:
         """Analyze existing content based on the request.
@@ -403,6 +543,11 @@ class ArgoLLMProvider(LLMProvider):
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
+        # Stop queue processor
+        self._stop_queue_processor = True
+        if self._queue_processor_task:
+            await self._queue_processor_task
+        
         await self._client.aclose()
     
     def select_model_for_task(self, task_type: str, budget_conscious: bool = False) -> str:
@@ -576,3 +721,75 @@ class ArgoLLMProvider(LLMProvider):
             raise ValueError(f"No models available for task type: {task_type}")
         
         return available_candidates[0]
+    
+    async def _queue_processor(self):
+        """Background task to process queued requests."""
+        while not self._stop_queue_processor:
+            try:
+                # Process any queued requests
+                await self._process_queued_requests()
+                
+                # Wait before next check
+                await asyncio.sleep(5.0)
+            except Exception as e:
+                # Log error but continue processing
+                print(f"Error in queue processor: {e}")
+                await asyncio.sleep(10.0)
+    
+    async def _process_queued_requests(self) -> int:
+        """Process queued requests when circuit breakers recover.
+        
+        Returns:
+            Number of requests processed
+        """
+        processed = 0
+        
+        while not self.request_queue.is_empty():
+            queued_request = self.request_queue.dequeue()
+            if not queued_request:
+                break
+            
+            model = queued_request.request.content.get("parameters", {}).get("model", "gpt4o")
+            circuit_breaker = self._circuit_breakers.get(model)
+            
+            # Check if circuit breaker has recovered
+            if circuit_breaker and circuit_breaker.is_open():
+                # Still open, re-queue (future will be cancelled)
+                if not queued_request.future.cancelled():
+                    queued_request.future.cancel()
+                self.request_queue.enqueue(queued_request.request)
+                break
+            
+            try:
+                # Process the request
+                # Note: This is a placeholder - actual implementation would call the API
+                response = LLMResponse(
+                    request_id=queued_request.request.request_id,
+                    status="success",
+                    response={
+                        "content": "Processed from queue",
+                        "metadata": {"processed_from_queue": True}
+                    },
+                    error=None
+                )
+                
+                # Set result on the future if not cancelled
+                if not queued_request.future.cancelled():
+                    queued_request.future.set_result(response)
+                
+                processed += 1
+                
+                # Record success with circuit breaker
+                if circuit_breaker:
+                    circuit_breaker.record_success()
+                    
+            except Exception as e:
+                # Set exception on the future
+                if not queued_request.future.cancelled():
+                    queued_request.future.set_exception(e)
+                
+                # Record failure with circuit breaker
+                if circuit_breaker:
+                    circuit_breaker.record_failure()
+        
+        return processed

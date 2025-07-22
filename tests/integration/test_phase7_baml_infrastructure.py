@@ -34,7 +34,7 @@ class TestPhase7BAMLInfrastructure:
         Must Pass: Critical for BAML functionality
         """
         # Import generated types to verify they exist
-        from baml_client.types import (
+        from baml_client.baml_client.types import (
             Hypothesis,
             Review,
             SafetyCheck,
@@ -54,7 +54,7 @@ class TestPhase7BAMLInfrastructure:
         assert HypothesisCategory.Therapeutic.value == "Therapeutic"
         
         # Test that we can instantiate the types
-        from baml_client.types import ExperimentalProtocol
+        from baml_client.baml_client.types import ExperimentalProtocol
         
         protocol = ExperimentalProtocol(
             objective="Test objective",
@@ -213,7 +213,7 @@ class TestPhase7BAMLInfrastructure:
         
         Must Pass: Critical for full functionality
         """
-        from baml_client.types import (
+        from baml_client.baml_client.types import (
             ExperimentalProtocol,
             Citation,
             ReviewScores,

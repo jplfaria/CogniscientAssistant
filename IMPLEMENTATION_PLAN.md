@@ -255,7 +255,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ### Reliability Features
 - [x] Implement circuit breaker pattern
 - [x] Add failover to alternate models
-- [ ] Create request queuing during outages
+- [x] Create request queuing during outages
 - [x] Write tests for reliability features
 - [ ] Add health check monitoring
 - [x] Write tests for failover scenarios

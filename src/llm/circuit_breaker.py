@@ -164,3 +164,31 @@ class CircuitBreaker:
             "recovery_timeout": self.recovery_timeout,
             "half_open_calls": self._half_open_calls if self._state == CircuitState.HALF_OPEN else 0
         }
+    
+    def is_open(self) -> bool:
+        """Check if circuit breaker is open."""
+        return self.state == CircuitState.OPEN
+    
+    def is_half_open(self) -> bool:
+        """Check if circuit breaker is half open."""
+        return self.state == CircuitState.HALF_OPEN
+    
+    def record_success(self):
+        """Record a successful call."""
+        self._failure_count = 0
+        if self._state == CircuitState.HALF_OPEN:
+            self._state = CircuitState.CLOSED
+            self._half_open_calls = 0
+    
+    def record_failure(self):
+        """Record a failed call."""
+        self._failure_count += 1
+        self._last_failure_time = datetime.now()
+        
+        if self._state == CircuitState.HALF_OPEN:
+            # Failure in half-open immediately opens circuit
+            self._state = CircuitState.OPEN
+        elif self._state == CircuitState.CLOSED:
+            # Check if we've exceeded threshold
+            if self._failure_count >= self.failure_threshold:
+                self._state = CircuitState.OPEN

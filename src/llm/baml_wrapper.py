@@ -328,7 +328,7 @@ class BAMLWrapper:
         Returns:
             Formatted AgentRequest
         """
-        from baml_client.types import AgentRequest, RequestContent
+        from baml_client.baml_client.types import AgentRequest, RequestContent
         
         return AgentRequest(
             request_id=f"{agent_type}_{datetime.now().timestamp()}",
