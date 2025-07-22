@@ -49,9 +49,9 @@ class TestArgoGatewayIntegration:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "models": [
-                {"id": "argo:gpt-4o", "status": "available"},
-                {"id": "argo:claude-opus-4", "status": "available"},
-                {"id": "argo:gemini-2.5-pro", "status": "available"}
+                {"id": "argo:gpt4o", "status": "available"},
+                {"id": "argo:claudeopus4", "status": "available"},
+                {"id": "argo:gemini25pro", "status": "available"}
             ]
         }
         mock_response.raise_for_status = Mock()
@@ -59,16 +59,15 @@ class TestArgoGatewayIntegration:
         
         with patch.object(provider, '_client', mock_client):
             # Test model access verification
-            models_to_check = ["gpt-4o", "claude-opus-4", "gemini-2.5-pro", "gpt-3.5-turbo"]
+            models_to_check = ["gpt4o", "claudeopus4", "gemini25pro", "gpt35"]
             access_results = await provider.verify_model_access(models_to_check)
             
             # Verify results
-            # Note: Current implementation has a bug - it compares models without prefix
-            # against a set that contains models with "argo:" prefix, so all return False
-            assert access_results["gpt-4o"] is False
-            assert access_results["claude-opus-4"] is False
-            assert access_results["gemini-2.5-pro"] is False
-            assert access_results["gpt-3.5-turbo"] is False
+            # After fixing the implementation, models with "argo:" prefix are properly matched
+            assert access_results["gpt4o"] is True
+            assert access_results["claudeopus4"] is True
+            assert access_results["gemini25pro"] is True
+            assert access_results["gpt35"] is False  # Not in the mocked response
     
     @pytest.mark.asyncio
     async def test_failover_behavior(self):

@@ -308,7 +308,7 @@ class ArgoLLMProvider(LLMProvider):
             timeout: Request timeout in seconds (default from ARGO_REQUEST_TIMEOUT or 30)
             max_retries: Maximum retry attempts (default from ARGO_MAX_RETRIES or 3)
         """
-        self.proxy_url = proxy_url or os.getenv("ARGO_PROXY_URL", "http://localhost:8050/v1")
+        self.proxy_url = proxy_url or os.getenv("ARGO_PROXY_URL", "http://localhost:8000/v1")
         self.auth_user = auth_user or os.getenv("ARGO_AUTH_USER", "")
         self.timeout = timeout or int(os.getenv("ARGO_REQUEST_TIMEOUT", "30"))
         self.max_retries = max_retries or int(os.getenv("ARGO_MAX_RETRIES", "3"))
@@ -392,7 +392,8 @@ class ArgoLLMProvider(LLMProvider):
             for model in available_models.get("models", []):
                 model_id = model.get("id", "")
                 if model_id.startswith("argo:"):
-                    argo_models.add(model_id)
+                    # Remove the "argo:" prefix for comparison
+                    argo_models.add(model_id[5:])
             
             # Check each requested model
             result = {}

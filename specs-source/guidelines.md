@@ -54,7 +54,7 @@ For AI Co-Scientist:
 - BAML for ALL AI interactions
 - Multiple LLM support via Argo Gateway:
   - o3, Gemini 2.5, Claude 4 Opus, and others
-  - Access via argo-openai-proxy on localhost:8050
+  - Access via argo-openai-proxy on localhost:8000
   - Use BAML openai-generic provider
 - Simple file-based storage
 - Event-driven architecture
@@ -105,7 +105,7 @@ Reference: specs-source/references/Argo Gateway API Documentation.md
 - Configure BAML clients with:
   ```
   provider: "openai-generic"
-  base_url: "http://localhost:8050/v1"
+  base_url: "http://localhost:8000/v1"
   ```
 - Model names (e.g., "gpt4o", "claudeopus4", "gemini25pro")
 - See references/README_argo-openai-proxy.md for setup

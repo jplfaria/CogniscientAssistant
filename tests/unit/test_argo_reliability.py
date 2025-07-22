@@ -19,9 +19,9 @@ class TestArgoReliability:
         # Check circuit breakers exist for each model
         status = provider.get_circuit_breaker_status()
         
-        assert "gpt-4o" in status
-        assert "gpt-3.5-turbo" in status
-        assert "claude-opus-4" in status
+        assert "gpt4o" in status
+        assert "gpt35" in status
+        assert "claudeopus4" in status
         
         # All should be closed initially
         for model, info in status.items():
@@ -38,7 +38,7 @@ class TestArgoReliability:
             raise Exception("Connection failed")
         
         # Simulate failures for a specific model
-        model = "gpt-4o"
+        model = "gpt4o"
         
         # First two failures (threshold is 3)
         for _ in range(2):
@@ -78,14 +78,14 @@ class TestArgoReliability:
         provider = ArgoLLMProvider()
         
         # Open circuit for primary model
-        provider._circuit_breakers["claude-opus-4"]._state = CircuitState.OPEN
-        provider.model_selector.mark_model_unavailable("claude-opus-4")
+        provider._circuit_breakers["claudeopus4"]._state = CircuitState.OPEN
+        provider.model_selector.mark_model_unavailable("claudeopus4")
         
         # Request generation task (prefers claude-opus-4)
         selected = await provider.select_model_with_failover("generation")
         
-        # Should failover to gpt-4o
-        assert selected == "gpt-4o"
+        # Should failover to gpt4o
+        assert selected == "gpt4o"
     
     @pytest.mark.asyncio
     async def test_no_models_available_error(self):
@@ -93,7 +93,9 @@ class TestArgoReliability:
         provider = ArgoLLMProvider()
         
         # Mark all models as unavailable
-        for model in provider.model_mapping:
+        # Create a copy to avoid RuntimeError during iteration
+        models_to_disable = list(provider.model_selector.available_models)
+        for model in models_to_disable:
             provider._circuit_breakers[model]._state = CircuitState.OPEN
             provider.model_selector.mark_model_unavailable(model)
         
@@ -109,7 +111,7 @@ class TestArgoReliability:
         provider = ArgoLLMProvider()
         
         # Open a circuit
-        model = "gpt-4o"
+        model = "gpt4o"
         provider._circuit_breakers[model]._state = CircuitState.OPEN
         provider._circuit_breakers[model]._failure_count = 3
         
@@ -130,7 +132,7 @@ class TestArgoReliability:
         async def success_call(*args, **kwargs):
             return {"result": "success"}
         
-        model = "gpt-4o"
+        model = "gpt4o"
         
         # Multiple successful calls
         for _ in range(5):
@@ -150,19 +152,19 @@ class TestArgoReliability:
         # Prefer a specific model
         selected = await provider.select_model_with_failover(
             "generation",
-            preferred_model="gpt-4o"
+            preferred_model="gpt4o"
         )
         
-        assert selected == "gpt-4o"
+        assert selected == "gpt4o"
         
         # Open circuit for preferred model
-        provider._circuit_breakers["gpt-4o"]._state = CircuitState.OPEN
+        provider._circuit_breakers["gpt4o"]._state = CircuitState.OPEN
         
         # Should select alternate
         selected = await provider.select_model_with_failover(
             "generation",
-            preferred_model="gpt-4o"
+            preferred_model="gpt4o"
         )
         
-        assert selected != "gpt-4o"
-        assert selected == "claude-opus-4"  # Next preference for generation
+        assert selected != "gpt4o"
+        assert selected == "claudeopus4"  # Next preference for generation

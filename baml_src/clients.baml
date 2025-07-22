@@ -1,5 +1,13 @@
 // BAML Client Configuration for AI Co-Scientist
 // This file defines the LLM clients and their configurations
+//
+// IMPORTANT BAML LIMITATIONS:
+// 1. The 'provider' field MUST be a literal string (e.g., "openai", "anthropic")
+//    It does NOT support environment variables like env.PROVIDER
+//    To switch providers dynamically, use different client definitions
+// 2. BAML test blocks exist but we don't use them - we use pytest for all testing
+// 3. Retry policies are available but not implemented - we use circuit breakers in Python
+// 4. environment.baml is documentation only - BAML doesn't support config blocks
 
 // Mock client for testing purposes
 client<llm> MockClient {

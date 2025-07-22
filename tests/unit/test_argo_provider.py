@@ -78,7 +78,7 @@ class TestArgoConnectivity:
         # Mock successful response
         mock_response = Mock(spec=Response)
         mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "healthy", "models": ["gpt-4o", "claude-opus-4"]}
+        mock_response.json.return_value = {"status": "healthy", "models": ["gpt4o", "claudeopus4"]}
         mock_httpx_client.get.return_value = mock_response
         
         with patch.object(argo_provider, '_client', mock_httpx_client):
@@ -86,7 +86,7 @@ class TestArgoConnectivity:
             
         assert result is True
         mock_httpx_client.get.assert_called_once_with(
-            "/health",
+            "/models",
             timeout=5.0
         )
     
@@ -123,23 +123,23 @@ class TestArgoConnectivity:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "models": [
-                {"id": "argo:gpt-4o", "status": "available"},
-                {"id": "argo:claude-opus-4", "status": "available"},
-                {"id": "argo:gemini-2.5-pro", "status": "available"},
-                {"id": "argo:gpt-3.5-turbo", "status": "available"}
+                {"id": "argo:gpt4o", "status": "available"},
+                {"id": "argo:claudeopus4", "status": "available"},
+                {"id": "argo:gemini25pro", "status": "available"},
+                {"id": "argo:gpt35", "status": "available"}
             ]
         }
         mock_response.raise_for_status = Mock()
         mock_httpx_client.get.return_value = mock_response
         
         with patch.object(argo_provider, '_client', mock_httpx_client):
-            models = ["gpt-4o", "claude-opus-4", "gemini-2.5-pro"]
+            models = ["gpt4o", "claudeopus4", "gemini25pro"]
             result = await argo_provider.verify_model_access(models)
             
         assert result == {
-            "gpt-4o": True,
-            "claude-opus-4": True,
-            "gemini-2.5-pro": True
+            "gpt4o": True,
+            "claudeopus4": True,
+            "gemini25pro": True
         }
         mock_httpx_client.get.assert_called_once_with("/models")
     
@@ -151,21 +151,21 @@ class TestArgoConnectivity:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "models": [
-                {"id": "argo:gpt-4o", "status": "available"},
-                {"id": "argo:gpt-3.5-turbo", "status": "available"}
+                {"id": "argo:gpt4o", "status": "available"},
+                {"id": "argo:gpt35", "status": "available"}
             ]
         }
         mock_response.raise_for_status = Mock()
         mock_httpx_client.get.return_value = mock_response
         
         with patch.object(argo_provider, '_client', mock_httpx_client):
-            models = ["gpt-4o", "claude-opus-4", "gemini-2.5-pro"]
+            models = ["gpt4o", "claudeopus4", "gemini25pro"]
             result = await argo_provider.verify_model_access(models)
             
         assert result == {
-            "gpt-4o": True,
-            "claude-opus-4": False,
-            "gemini-2.5-pro": False
+            "gpt4o": True,
+            "claudeopus4": False,
+            "gemini25pro": False
         }
     
     @pytest.mark.asyncio
@@ -175,7 +175,7 @@ class TestArgoConnectivity:
         mock_httpx_client.get.side_effect = Exception("API Error")
         
         with patch.object(argo_provider, '_client', mock_httpx_client):
-            models = ["gpt-4o"]
+            models = ["gpt4o"]
             with pytest.raises(ArgoConnectionError):
                 await argo_provider.verify_model_access(models)
 
