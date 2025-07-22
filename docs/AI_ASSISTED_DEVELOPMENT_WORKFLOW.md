@@ -225,11 +225,68 @@ We refined our approach to test coverage:
 7. Integration tests run at phase boundaries
 8. Regression detection flags issues
 
-## Phase 7: Real LLM Testing Integration
+## Phase 7: BAML and Model Integration Learnings
+
+### Critical Discovery: Model-Specific Requirements
+
+During Phase 7-8, we discovered that different LLM models have incompatible parameter and message format requirements that weren't initially documented:
+
+1. **Claude/Gemini Message Requirements**:
+   - These models REQUIRE at least one user message
+   - System-only prompts fail with "messages: at least one message is required"
+   - Initially thought it was a content format issue (array vs string)
+   - Real issue: Missing user messages in BAML prompts
+
+2. **O-Series Parameter Quirks**:
+   - O-series models (gpto3) SILENTLY IGNORE max_tokens parameter
+   - Must use max_completion_tokens instead
+   - No error thrown, making this hard to discover
+   - Discovered through communication with Argo team
+
+3. **BAML Prompt Structure**:
+   - All BAML prompts were using system-only messages
+   - Had to update all 8 BAML functions to include both system and user roles
+   - Created TEMPLATE.baml to ensure future functions follow correct pattern
+
+### The Debugging Journey
+
+The path to discovering the real issue was complex:
+
+1. **Initial Error**: Claude returning dict instead of string for system content
+2. **First Theory**: Content format issue (array vs string)
+3. **Attempted Fix**: Local patches to normalize content
+4. **Real Discovery**: Argo API error revealed user message requirement
+5. **Collaboration**: Worked with Argo team (Matt Dearing, Peng Ding) to understand
+6. **Final Solution**: Update all BAML prompts to use system + user pattern
+
+### Key Lessons for BAML Integration
+
+1. **Always Use Both Roles**:
+   ```baml
+   prompt #"
+     {{ _.role("system") }}
+     General instructions here
+     
+     {{ _.role("user") }}
+     Specific request with parameters here
+   "#
+   ```
+
+2. **Test with Multiple Models Early**:
+   - Don't assume all models have same requirements
+   - Test Claude, Gemini, and OpenAI models from the start
+   - Document model-specific quirks immediately
+
+3. **Create Templates and Validation**:
+   - TEMPLATE.baml for future functions
+   - Unit tests to validate prompt structure
+   - Update specs with requirements
+
+## Phase 8: Real LLM Testing Integration
 
 ### The Need for Behavioral Testing
 
-During Phase 8 (Argo Gateway), we realized that while mocked tests verify functionality, they don't verify AI behavior quality. This led to implementing a parallel real LLM testing strategy.
+After resolving model compatibility issues, we realized that while mocked tests verify functionality, they don't verify AI behavior quality. This led to implementing a parallel real LLM testing strategy.
 
 ### Implementation Approach
 
@@ -491,6 +548,65 @@ This workflow demonstrates that AI-assisted development can be highly effective 
 - Continuous validation
 
 The complete journey from research papers → specs → implementation shows that AI can handle complex software development tasks when given proper structure and verification. The key is treating AI as a powerful but fallible tool that requires clear guidance, quality gates, and continuous improvement to achieve reliable results.
+
+## Phase 9: Model-Specific Configuration Management
+
+### Late Discovery of Model Incompatibilities
+
+One of our biggest challenges came from discovering model-specific requirements late in the development cycle. Here's what we learned:
+
+1. **Different Models, Different Rules**:
+   - OpenAI models: Standard parameters work
+   - O-series (o3): Only max_completion_tokens, ignores max_tokens
+   - Claude/Gemini: Require user messages, normalize array content
+   - Each model family has unique quirks
+
+2. **BAML's Role in Abstraction**:
+   - BAML generates OpenAI-compatible format
+   - But models interpret this format differently
+   - Need model-specific handling at multiple layers
+
+3. **Testing Strategy Evolution**:
+   - Started with single model (mock) testing
+   - Discovered issues only when testing real models
+   - Should have tested multiple models from Phase 7
+
+### How the Implementation Loop Should Handle This
+
+If we knew about model requirements from the beginning:
+
+1. **Phase 7 BAML Setup Would Include**:
+   ```markdown
+   ## Phase 7: BAML Infrastructure
+   - [ ] Create TEMPLATE.baml with system+user pattern
+   - [ ] Write model compatibility tests
+   - [ ] Test with at least 3 different model families
+   - [ ] Document model-specific parameters
+   - [ ] Create validation for BAML prompt structure
+   ```
+
+2. **Specs Would Define Model Requirements**:
+   ```markdown
+   # Spec 023: LLM Abstraction
+   
+   ## Model-Specific Requirements
+   - O-series: Use max_completion_tokens, not max_tokens
+   - Claude/Gemini: Require user messages
+   - All models: Support both system and user roles
+   ```
+
+3. **Test Expectations Would Include Model Tests**:
+   ```json
+   {
+     "phase_7": {
+       "must_pass": [
+         "test_baml_prompt_structure",
+         "test_claude_compatibility",
+         "test_o_series_parameters"
+       ]
+     }
+   }
+   ```
 
 ## Implementing This Workflow From Scratch: Lessons Learned
 
@@ -819,12 +935,86 @@ project/
 7. ✓ Review plan for integration test tasks
 8. ✓ Start implementation loop
 
-### 10. The Complete Workflow Command Sequence
+### 10. BAML-Specific Project Setup
+
+If using BAML for LLM interactions (highly recommended), set up from day one:
+
+#### BAML Directory Structure
+```
+baml_src/
+├── TEMPLATE.baml          # Prompt structure template
+├── models.baml            # Data models with aliases
+├── clients.baml           # Model configurations
+├── environment.baml       # Environment variables
+├── functions.baml         # LLM function definitions
+└── test_scenarios.baml    # Test configurations
+```
+
+#### Critical BAML Template (TEMPLATE.baml)
+```baml
+// CRITICAL: All functions MUST follow this pattern
+// for Claude/Gemini compatibility
+
+function ExampleFunction(param: string) -> ReturnType {
+  client ProductionClient
+  
+  prompt #"
+    {{ _.role("system") }}
+    You are an expert at [task].
+    [General capabilities]
+    
+    {{ _.role("user") }}
+    [Specific request]
+    
+    Input: {{ param }}
+    
+    [Task instructions]
+  "#
+}
+
+// Model-Specific Notes:
+// - o3: Use max_completion_tokens (NOT max_tokens)
+// - Claude/Gemini: REQUIRE user message
+// - All models: Support system+user pattern
+```
+
+#### Model Configuration (clients.baml)
+```baml
+client ProductionClient {
+  provider argo
+  options {
+    model_map {
+      "default": "gpt4o",
+      "reasoning": "gpto3",
+      "creative": "claudeopus4",
+      "fast": "gpt35"
+    }
+  }
+}
+```
+
+#### BAML Validation Tests
+Create `tests/unit/test_baml_prompt_structure.py`:
+```python
+def test_all_functions_have_system_and_user_roles():
+    """Ensure BAML functions work with all models."""
+    # Validates all prompts have both roles
+    # Prevents Claude/Gemini failures
+```
+
+### 11. The Complete Workflow Command Sequence
 
 ```bash
 # Day 1: Setup and Specs
 git init
 cp -r workflow-template/* .  # All files from section 7
+
+# Set up BAML structure
+mkdir -p baml_src
+cp templates/TEMPLATE.baml baml_src/
+cp templates/test_baml_prompt_structure.py tests/unit/
+
+# Run spec development
 ./run-spec-loop-improved.sh --letitrip
 git tag -a "specs-complete" -m "All specifications complete"
 
@@ -854,3 +1044,65 @@ This approach would have avoided the Phase 3 unit test issues entirely because:
 4. The implementation would follow integration tests, not unit tests
 
 The workflow remains simple (just run the loop), but the structure ensures it handles edge cases correctly from day one.
+
+## Key Takeaways: Model Integration and BAML
+
+### The Hidden Complexity of "Model-Agnostic" Systems
+
+Our journey revealed that true model agnosticism requires understanding model-specific requirements:
+
+1. **Message Format Requirements**:
+   - What works: System + User messages (all models)
+   - What doesn't: System-only messages (fails on Claude/Gemini)
+   - Discovery method: Error messages from actual API calls
+
+2. **Parameter Handling**:
+   - Standard models: Use max_tokens
+   - O-series: Use max_completion_tokens (max_tokens silently ignored)
+   - Discovery method: Observing unexpected behavior + vendor documentation
+
+3. **Content Format Normalization**:
+   - BAML sends OpenAI format: `[{"type": "text", "text": "..."}]`
+   - Some models expect strings for system role
+   - Solution: Proxy layer normalization
+
+### What We'd Do Differently
+
+1. **Multi-Model Testing from Day One**:
+   - Don't wait until Phase 8 to test real models
+   - Test at least one model from each family in Phase 7
+   - Include model compatibility in test_expectations.json
+
+2. **Explicit BAML Requirements in Specs**:
+   - Document prompt structure requirements
+   - Specify model parameter mappings
+   - Include validation tests in implementation plan
+
+3. **Vendor Communication Earlier**:
+   - Engage with API providers during design phase
+   - Document all model quirks in central location
+   - Share findings with community
+
+### The Value of Debugging Scripts
+
+Our exploratory scripts proved invaluable:
+- `claude-system-only-test.py`: Isolated the user message requirement
+- `test-claude-peng-fix.py`: Validated proxy fixes
+- Keep these as regression tests
+
+### Final Workflow Enhancement
+
+Add to initial project setup:
+```bash
+# Create model testing structure
+mkdir -p tests/model_compatibility
+cp templates/test_all_models.py tests/model_compatibility/
+
+# Add to IMPLEMENTATION_PLAN.md template:
+# Phase 7: BAML Infrastructure
+# - [ ] Test prompts with OpenAI, Claude, and Gemini
+# - [ ] Document model-specific parameters
+# - [ ] Create model compatibility matrix
+```
+
+This ensures future projects avoid the 2-day debugging journey we experienced!
