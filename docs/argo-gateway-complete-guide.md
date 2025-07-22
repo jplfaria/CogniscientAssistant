@@ -300,10 +300,36 @@ The argo-proxy has a bug where it doesn't handle missing configuration files gra
 
 Based on extensive testing:
 
-- **GPT-o3** (gpto3): Best for complex reasoning, hypothesis generation
-- **Claude Opus 4** (claudeopus4): Best for nuanced analysis, reviews
-- **GPT-4o** (gpt4o): Best for fast, general-purpose tasks
+- **GPT-4o** (gpt4o): **RECOMMENDED DEFAULT** - Fast (7s), reliable, handles all BAML formats
+- **GPT-o3** (gpto3): Best for complex reasoning but very slow (60s+), use selectively
+- **Claude Opus 4** (claudeopus4): Excellent quality but incompatible with BAML's content format
 - **GPT-3.5** (gpt35): Reliable fallback, fastest responses
+
+### Model Compatibility Issues
+
+**Important**: BAML sends message content in OpenAI's structured format:
+```json
+"content": [{"type": "text", "text": "actual content"}]
+```
+
+This format works with all OpenAI models but causes errors with Claude models through argo-proxy:
+- Error: "expected string or bytes-like object, got 'dict'"
+- Claude models only work with simple string content through argo-proxy
+
+### Performance Comparison
+
+| Model | Response Time | BAML Compatible | Notes |
+|-------|--------------|-----------------|-------|
+| gpt4o | ~7 seconds | ✅ Yes | Best overall choice |
+| gpto3 | ~60+ seconds | ✅ Yes | Too slow for regular use |
+| claudeopus4 | ~3 seconds | ❌ No | Content format issue |
+| gpt35 | ~2 seconds | ✅ Yes | Good for simple tasks |
+
+### Edge Cases and Known Issues
+
+1. **O-series models with certain prompts**: As discovered in conversation with Argo developers, some specific prompts may fail with o-series models when using `max_completion_tokens`. The issue is intermittent and prompt-dependent.
+
+2. **BAML content format**: BAML uses OpenAI's structured content format which is not compatible with Claude models through argo-proxy. This is a limitation of the current argo-proxy implementation.
 
 ## Quick Reference
 

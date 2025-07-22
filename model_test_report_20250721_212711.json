@@ -1,0 +1,526 @@
+{
+  "timestamp": "20250721_212711",
+  "results": [
+    {
+      "model": "gpto3",
+      "test_type": "compatibility",
+      "test_name": "o3_with_max_completion_tokens",
+      "success": true,
+      "response_time": 1.272752046585083,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 14,
+          "total_tokens": 14
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "compatibility",
+      "test_name": "o3_with_max_tokens_ignored",
+      "success": true,
+      "response_time": 4.681558132171631,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 199,
+          "prompt_tokens": 14,
+          "total_tokens": 213
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "compatibility",
+      "test_name": "o3_with_both_parameters",
+      "success": true,
+      "response_time": 1.3572101593017578,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 14,
+          "total_tokens": 14
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "compatibility",
+      "test_name": "claude_with_system_and_user",
+      "success": true,
+      "response_time": 2.3589909076690674,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 31,
+          "prompt_tokens": 10,
+          "total_tokens": 41
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "compatibility",
+      "test_name": "claude_system_only_should_work_with_proxy",
+      "success": false,
+      "response_time": 0.2819070816040039,
+      "error": "'str' object has no attribute 'get'",
+      "metadata": {}
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "compatibility",
+      "test_name": "gpt4o_standard_params",
+      "success": true,
+      "response_time": 0.4686551094055176,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 9,
+          "prompt_tokens": 9,
+          "total_tokens": 18
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "compatibility",
+      "test_name": "gpt35_baseline",
+      "success": true,
+      "response_time": 0.5599138736724854,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 9,
+          "prompt_tokens": 9,
+          "total_tokens": 18
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "performance",
+      "test_name": "gpto3_performance_run_1",
+      "success": true,
+      "response_time": 4.435292959213257,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 55,
+          "total_tokens": 55
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "performance",
+      "test_name": "gpto3_performance_run_2",
+      "success": true,
+      "response_time": 4.384882926940918,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 55,
+          "total_tokens": 55
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "performance",
+      "test_name": "gpto3_performance_run_3",
+      "success": true,
+      "response_time": 4.355687856674194,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 55,
+          "total_tokens": 55
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "performance",
+      "test_name": "gpto3_performance_run_4",
+      "success": true,
+      "response_time": 4.255702972412109,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 0,
+          "prompt_tokens": 55,
+          "total_tokens": 55
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "performance",
+      "test_name": "gpto3_performance_run_5",
+      "success": true,
+      "response_time": 3.885369300842285,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 329,
+          "prompt_tokens": 55,
+          "total_tokens": 384
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "performance",
+      "test_name": "gpt4o_performance_run_1",
+      "success": true,
+      "response_time": 2.1458241939544678,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 240,
+          "prompt_tokens": 55,
+          "total_tokens": 295
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "performance",
+      "test_name": "gpt4o_performance_run_2",
+      "success": true,
+      "response_time": 2.221642017364502,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 268,
+          "prompt_tokens": 55,
+          "total_tokens": 323
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "performance",
+      "test_name": "gpt4o_performance_run_3",
+      "success": true,
+      "response_time": 6.078995227813721,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 243,
+          "prompt_tokens": 55,
+          "total_tokens": 298
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "performance",
+      "test_name": "gpt4o_performance_run_4",
+      "success": true,
+      "response_time": 3.2943639755249023,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 237,
+          "prompt_tokens": 55,
+          "total_tokens": 292
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "performance",
+      "test_name": "gpt4o_performance_run_5",
+      "success": true,
+      "response_time": 2.155332088470459,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 236,
+          "prompt_tokens": 55,
+          "total_tokens": 291
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "performance",
+      "test_name": "claudeopus4_performance_run_1",
+      "success": true,
+      "response_time": 13.846894025802612,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 334,
+          "prompt_tokens": 55,
+          "total_tokens": 389
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "performance",
+      "test_name": "claudeopus4_performance_run_2",
+      "success": true,
+      "response_time": 14.807254076004028,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 360,
+          "prompt_tokens": 55,
+          "total_tokens": 415
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "performance",
+      "test_name": "claudeopus4_performance_run_3",
+      "success": true,
+      "response_time": 13.054841995239258,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 335,
+          "prompt_tokens": 55,
+          "total_tokens": 390
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "performance",
+      "test_name": "claudeopus4_performance_run_4",
+      "success": true,
+      "response_time": 27.514322996139526,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 441,
+          "prompt_tokens": 55,
+          "total_tokens": 496
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "performance",
+      "test_name": "claudeopus4_performance_run_5",
+      "success": true,
+      "response_time": 13.901180982589722,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 348,
+          "prompt_tokens": 55,
+          "total_tokens": 403
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "performance",
+      "test_name": "gpt35turbo_performance_run_1",
+      "success": true,
+      "response_time": 19.645848274230957,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 237,
+          "prompt_tokens": 55,
+          "total_tokens": 292
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "performance",
+      "test_name": "gpt35turbo_performance_run_2",
+      "success": true,
+      "response_time": 2.577256917953491,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 257,
+          "prompt_tokens": 55,
+          "total_tokens": 312
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "performance",
+      "test_name": "gpt35turbo_performance_run_3",
+      "success": true,
+      "response_time": 2.07608699798584,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 216,
+          "prompt_tokens": 55,
+          "total_tokens": 271
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "performance",
+      "test_name": "gpt35turbo_performance_run_4",
+      "success": true,
+      "response_time": 2.0565998554229736,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 190,
+          "prompt_tokens": 55,
+          "total_tokens": 245
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpt35turbo",
+      "test_type": "performance",
+      "test_name": "gpt35turbo_performance_run_5",
+      "success": true,
+      "response_time": 1.7836699485778809,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 214,
+          "prompt_tokens": 55,
+          "total_tokens": 269
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "quality",
+      "test_name": "gpto3_hypothesis_generation",
+      "success": true,
+      "response_time": 3.870697021484375,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 289,
+          "prompt_tokens": 53,
+          "total_tokens": 342
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "quality",
+      "test_name": "gpt4o_hypothesis_generation",
+      "success": true,
+      "response_time": 2.908829927444458,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 293,
+          "prompt_tokens": 53,
+          "total_tokens": 346
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "quality",
+      "test_name": "claudeopus4_hypothesis_generation",
+      "success": true,
+      "response_time": 13.637509822845459,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 387,
+          "prompt_tokens": 52,
+          "total_tokens": 439
+        },
+        "model_used": "claudeopus4"
+      }
+    },
+    {
+      "model": "gpto3",
+      "test_type": "quality",
+      "test_name": "gpto3_review_analysis",
+      "success": true,
+      "response_time": 5.213740110397339,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 309,
+          "prompt_tokens": 64,
+          "total_tokens": 373
+        },
+        "model_used": "gpto3"
+      }
+    },
+    {
+      "model": "gpt4o",
+      "test_type": "quality",
+      "test_name": "gpt4o_review_analysis",
+      "success": true,
+      "response_time": 1.376720905303955,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 149,
+          "prompt_tokens": 64,
+          "total_tokens": 213
+        },
+        "model_used": "gpt4o"
+      }
+    },
+    {
+      "model": "claudeopus4",
+      "test_type": "quality",
+      "test_name": "claudeopus4_review_analysis",
+      "success": true,
+      "response_time": 9.60080599784851,
+      "error": null,
+      "metadata": {
+        "tokens_used": {
+          "completion_tokens": 257,
+          "prompt_tokens": 65,
+          "total_tokens": 322
+        },
+        "model_used": "claudeopus4"
+      }
+    }
+  ]
+}

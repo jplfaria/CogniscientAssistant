@@ -12,6 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="argo-config.yaml"
 PID_FILE="/tmp/argo-proxy.pid"
 LOG_FILE="/tmp/argo-proxy.log"
@@ -86,7 +87,7 @@ start_proxy() {
     
     echo -e "${GREEN}Starting Argo proxy...${NC}"
     
-    # Start in background
+    # Start in background (using Peng's fix from dev branch)
     nohup argo-proxy "$CONFIG_FILE" > "$LOG_FILE" 2>&1 &
     PID=$!
     echo $PID > "$PID_FILE"
@@ -99,6 +100,7 @@ start_proxy() {
         echo -e "${GREEN}Argo proxy started successfully (PID: $PID)${NC}"
         echo "Access at: http://$DEFAULT_HOST:$DEFAULT_PORT/v1"
         echo "Logs at: $LOG_FILE"
+        echo -e "${BLUE}Note: Using argo-proxy with Peng's Claude fix (dev branch)${NC}"
     else
         echo -e "${RED}Failed to start Argo proxy${NC}"
         echo "Check logs at: $LOG_FILE"

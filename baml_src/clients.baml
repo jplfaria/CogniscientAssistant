@@ -45,13 +45,18 @@ client<llm> DynamicClient {
 }
 
 // Argo Gateway Clients for each available model
+// IMPORTANT: gpto3 (o3) IGNORES max_tokens parameter
+// O3 requires max_completion_tokens but BAML doesn't support it yet
+// This is a known limitation - o3 responses may be longer than expected
 client<llm> ArgoGPTo3 {
   provider openai
   options {
     model "gpto3"
     base_url "http://localhost:8000/v1"  // Argo proxy
-    temperature 0.7
-    max_tokens 4000
+    // WARNING: max_tokens is IGNORED by o3 models
+    // O3 needs max_completion_tokens which BAML doesn't support
+    // Consider using shorter prompts or post-processing responses
+    max_tokens 4000  // This has NO EFFECT on o3 but required by BAML
     timeout_seconds 60
   }
 }
