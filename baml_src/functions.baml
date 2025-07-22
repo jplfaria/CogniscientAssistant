@@ -66,6 +66,9 @@ function GenerateHypothesis(
         "timeline": "estimated timeline"
       },
       "supporting_evidence": ["evidence", "points"],
+      "confidence_score": 0.8,
+      "generation_method": "{{ generation_method }}",
+      "created_at": "2024-06-11T10:30:00Z",
       "version": 1
     }
   "#

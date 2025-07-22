@@ -73,6 +73,7 @@ class TestPhase7BAMLInfrastructure:
             full_description="Full description",
             novelty_claim="Novel claim",
             assumptions=["Assumption 1"],
+            reasoning="Test reasoning for hypothesis",
             experimental_protocol=protocol,
             supporting_evidence=[],
             confidence_score=0.8,

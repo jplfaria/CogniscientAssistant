@@ -86,6 +86,7 @@ class Hypothesis(BaseModel):
     full_description: typing.Optional[str] = None
     novelty_claim: typing.Optional[str] = None
     assumptions: typing.List[str]
+    reasoning: typing.Optional[str] = None
     experimental_protocol: typing.Optional["ExperimentalProtocol"] = None
     supporting_evidence: typing.List["Citation"]
     confidence_score: typing.Optional[float] = None

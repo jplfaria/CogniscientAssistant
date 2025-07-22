@@ -133,6 +133,7 @@ class Hypothesis {
     full_description string @description("Detailed description of the hypothesis")
     novelty_claim string @description("What makes this hypothesis novel")
     assumptions string[] @description("Key assumptions made")
+    reasoning string @description("Reasoning process behind the hypothesis")
     experimental_protocol ExperimentalProtocol @description("Protocol for testing the hypothesis")
     supporting_evidence Citation[] @description("Supporting literature and evidence")
     confidence_score float @description("0-1 confidence score")

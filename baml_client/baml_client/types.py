@@ -185,6 +185,7 @@ class Hypothesis(BaseModel):
     full_description: str
     novelty_claim: str
     assumptions: typing.List[str]
+    reasoning: str
     experimental_protocol: "ExperimentalProtocol"
     supporting_evidence: typing.List["Citation"]
     confidence_score: float
