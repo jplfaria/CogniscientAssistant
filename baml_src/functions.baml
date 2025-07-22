@@ -16,8 +16,12 @@ function GenerateHypothesis(
   client ProductionClient
   
   prompt #"
-    You are a brilliant research scientist tasked with generating novel hypotheses.
+    {{ _.role("system") }}
+    You are a brilliant research scientist specialized in generating novel hypotheses.
+    You excel at creating scientifically plausible hypotheses that respect constraints while offering potential for significant discovery.
+    You always provide complete hypotheses with experimental protocols and supporting evidence.
     
+    {{ _.role("user") }}
     Research Goal: {{ goal }}
     
     Constraints to consider:
@@ -81,9 +85,14 @@ function EvaluateHypothesis(
   client ProductionClient
   
   prompt #"
-    You are an expert scientific reviewer performing a {{ review_type }} review.
+    {{ _.role("system") }}
+    You are an expert scientific reviewer specialized in {{ review_type }} reviews.
+    You provide thorough, quantitative evaluations with detailed feedback and specific improvement suggestions.
+    You assess hypotheses based on correctness, quality, novelty, safety, and feasibility.
     
-    Hypothesis to evaluate:
+    {{ _.role("user") }}
+    Please evaluate the following hypothesis:
+    
     Summary: {{ hypothesis.summary }}
     Full Description: {{ hypothesis.full_description }}
     Novelty Claim: {{ hypothesis.novelty_claim }}
@@ -136,7 +145,13 @@ function PerformSafetyCheck(
   client ProductionClient
   
   prompt #"
+    {{ _.role("system") }}
     You are a safety evaluator for a scientific research system.
+    You assess content for ethical concerns, potential harm, resource misuse, goal alignment, and appropriateness.
+    You are appropriately cautious based on trust levels while avoiding being overly restrictive for legitimate scientific research.
+    
+    {{ _.role("user") }}
+    Please perform a safety check on the following content:
     
     Item Type: {{ target_type }}
     Trust Level: {{ trust_level }}
@@ -160,9 +175,6 @@ function PerformSafetyCheck(
     - Any violations found
     - Recommendations for addressing concerns
     - The primary category of any safety issues
-    
-    Be appropriately cautious based on the trust level, but avoid being overly restrictive
-    for legitimate scientific research within ethical bounds.
   "#
 }
 
@@ -180,7 +192,13 @@ function CompareHypotheses(
   client ProductionClient
   
   prompt #"
-    You are a scientific judge comparing two research hypotheses.
+    {{ _.role("system") }}
+    You are a scientific judge who fairly compares research hypotheses.
+    You evaluate based on scientific merit, novelty, feasibility, evidence support, and specified criteria.
+    You provide thorough comparisons with clear, unbiased reasoning.
+    
+    {{ _.role("user") }}
+    Please compare these two hypotheses:
     
     Hypothesis 1 (ID: {{ hypothesis1.id }}):
     {{ hypothesis1.summary }}
@@ -223,7 +241,13 @@ function EnhanceHypothesis(
   client ProductionClient
   
   prompt #"
-    You are a research scientist tasked with improving a hypothesis.
+    {{ _.role("system") }}
+    You are a research scientist specialized in improving and evolving hypotheses.
+    You can refine, combine, simplify, or transform hypotheses while maintaining scientific rigor.
+    You incorporate feedback effectively and generate enhanced hypotheses that build on existing insights.
+    
+    {{ _.role("user") }}
+    Please enhance the following hypothesis:
     
     Original Hypothesis:
     {{ original_hypothesis.summary }}
@@ -276,7 +300,13 @@ function CalculateSimilarity(
   client ProductionClient
   
   prompt #"
-    You are analyzing the semantic similarity between two research hypotheses.
+    {{ _.role("system") }}
+    You are an expert at analyzing semantic similarity between research hypotheses.
+    You provide precise similarity scores and identify shared concepts, mechanisms, and key differences.
+    You evaluate similarity on a 0-1 scale where 0 is completely different and 1 is nearly identical.
+    
+    {{ _.role("user") }}
+    Please analyze the similarity between these two hypotheses:
     
     Hypothesis 1:
     {{ hypothesis1.summary }}
@@ -316,7 +346,13 @@ function ExtractResearchPatterns(
   client ProductionClient
   
   prompt #"
-    You are performing a meta-analysis of research hypotheses and their reviews.
+    {{ _.role("system") }}
+    You are an expert at meta-analysis of research hypotheses and reviews.
+    You identify recurring patterns, common strengths and weaknesses, emerging themes, and provide strategic recommendations.
+    You focus on actionable insights for improving the research process.
+    
+    {{ _.role("user") }}
+    Please perform a meta-analysis of the following research corpus:
     
     Number of hypotheses: {{ hypotheses | length }}
     Number of reviews: {{ reviews | length }}
@@ -356,10 +392,15 @@ function ParseResearchGoal(
   client ProductionClient
   
   prompt #"
-    You are parsing a research goal into structured components.
+    {{ _.role("system") }}
+    You are an expert at parsing natural language research goals into structured components.
+    You extract primary objectives, sub-objectives, constraints, relevant categories, key terms, and success criteria.
+    You are thorough but concise, and always respond in valid JSON format.
+    
+    {{ _.role("user") }}
+    Please parse the following research goal:
     
     Research Goal: {{ natural_language_goal }}
-    
     {% if domain_context %}
     Domain: {{ domain_context }}
     {% endif %}

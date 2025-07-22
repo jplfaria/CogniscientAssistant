@@ -139,6 +139,47 @@ async def test_supervisor_real_orchestration():
 - **pytest**: Comprehensive testing with ≥80% coverage
 - **File-based storage**: .aicoscientist/ directory
 
+## 🎯 BAML Prompt Requirements
+
+### Critical: All BAML Functions MUST Use System + User Roles
+**Why**: Claude and Gemini models require at least one user message. Using only system messages causes API errors.
+
+### Correct BAML Prompt Structure
+```baml
+function FunctionName(param: string) -> ReturnType {
+  client ProductionClient
+  
+  prompt #"
+    {{ _.role("system") }}
+    You are an expert at [specific task].
+    [General instructions and capabilities]
+    
+    {{ _.role("user") }}
+    [Specific request that needs the LLM's help]
+    
+    Input: {{ param }}
+    
+    [Detailed task-specific instructions]
+  "#
+}
+```
+
+### NEVER Do This (Will Fail with Claude/Gemini)
+```baml
+// ❌ WRONG - System message only
+prompt #"
+  You are an expert...
+  Input: {{ param }}
+"#
+```
+
+### Implementation Checklist
+- [ ] Every BAML function has `{{ _.role("system") }}` AND `{{ _.role("user") }}`
+- [ ] System role contains general instructions
+- [ ] User role contains the specific request
+- [ ] Parameters are referenced in the user section
+- [ ] Test with multiple models (o3, Claude, Gemini)
+
 ### Implementation Phases (1-17)
 1. **Project Setup**: Structure and dependencies
 2. **Core Models**: Task, Hypothesis, Review

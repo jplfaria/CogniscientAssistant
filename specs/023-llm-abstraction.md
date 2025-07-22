@@ -258,3 +258,38 @@ The abstraction layer interfaces are defined using BAML to ensure:
 - Easy addition of new providers
 
 The BAML definitions specify the interface contracts while allowing flexible implementation choices for model integration.
+
+### BAML Prompt Structure Requirements
+
+All BAML functions MUST follow a specific prompt structure to ensure compatibility with all supported models:
+
+1. **System + User Roles Required**: Every BAML prompt MUST include both `{{ _.role("system") }}` and `{{ _.role("user") }}` sections
+2. **Claude/Gemini Compatibility**: These models require at least one user message; system-only prompts will fail
+3. **Prompt Template**:
+   ```baml
+   prompt #"
+     {{ _.role("system") }}
+     [General instructions and capabilities]
+     
+     {{ _.role("user") }}
+     [Specific request with parameters]
+   "#
+   ```
+
+### Model-Specific Parameter Requirements
+
+Different models have specific parameter requirements that the abstraction layer MUST handle:
+
+1. **O-series models (o3, o1)**: 
+   - Use `max_completion_tokens` instead of `max_tokens`
+   - Silently ignore `max_tokens` parameter
+   
+2. **Claude models**:
+   - Require at least one user message
+   - System content must be string type (not array)
+   
+3. **Gemini models**:
+   - Also require at least one user message
+   - Support standard OpenAI-compatible parameters
+
+The abstraction layer MUST automatically handle these model-specific requirements transparently.

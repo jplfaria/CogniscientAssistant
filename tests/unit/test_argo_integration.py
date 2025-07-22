@@ -82,9 +82,9 @@ class TestArgoIntegration:
             
             # Verify models are listed
             models = capabilities["models"]
-            assert "gpt-4o" in models
-            assert "claude-opus-4" in models
-            assert "gemini-2.5-pro" in models
+            assert "gpt4o" in models
+            assert "claudeopus4" in models
+            assert "gemini25pro" in models
     
     @pytest.mark.asyncio
     async def test_rate_limiting_with_argo(self):
@@ -93,12 +93,12 @@ class TestArgoIntegration:
         
         # Create rate limit config for Argo models
         configs = {
-            "gpt-4o": RateLimitConfig(
+            "gpt4o": RateLimitConfig(
                 requests_per_minute=60,
                 tokens_per_minute=100000,
                 concurrent_requests=10
             ),
-            "claude-opus-4": RateLimitConfig(
+            "claudeopus4": RateLimitConfig(
                 requests_per_minute=30,
                 tokens_per_minute=50000,
                 concurrent_requests=5
@@ -106,8 +106,8 @@ class TestArgoIntegration:
         }
         
         # Verify configurations
-        assert configs["gpt-4o"].requests_per_minute == 60
-        assert configs["claude-opus-4"].tokens_per_minute == 50000
+        assert configs["gpt4o"].requests_per_minute == 60
+        assert configs["claudeopus4"].tokens_per_minute == 50000
     
     def test_model_routing_configuration(self):
         """Test model routing configuration for Argo."""
@@ -116,17 +116,17 @@ class TestArgoIntegration:
             
             # Configure routing rules
             routing_rules = {
-                "supervisor": "gpt-4o",
-                "generation": "claude-opus-4",
-                "reflection": "gpt-4o",
-                "ranking": "gpt-3.5-turbo"
+                "supervisor": "gpt4o",
+                "generation": "claudeopus4",
+                "reflection": "gpt4o",
+                "ranking": "gpt35turbo"
             }
             
             provider.set_routing_rules(routing_rules)
             
             # Test agent-specific selection
-            assert provider.select_model_for_agent("supervisor") == "gpt-4o"
-            assert provider.select_model_for_agent("generation") == "claude-opus-4"
+            assert provider.select_model_for_agent("supervisor") == "gpt4o"
+            assert provider.select_model_for_agent("generation") == "claudeopus4"
     
     def test_cost_tracking_integration(self):
         """Test cost tracking across multiple requests."""
@@ -134,21 +134,21 @@ class TestArgoIntegration:
             provider = ArgoLLMProvider()
             
             # Track multiple requests
-            provider.track_request("gpt-4o", 1000, 500)
-            provider.track_request("gpt-4o", 2000, 1000)
-            provider.track_request("claude-opus-4", 500, 250)
+            provider.track_request("gpt4o", 1000, 500)
+            provider.track_request("gpt4o", 2000, 1000)
+            provider.track_request("claudeopus4", 500, 250)
             
             # Get usage report
             report = provider.get_usage_report()
             
             # Check GPT-4o usage
-            gpt4_usage = report["gpt-4o"]
+            gpt4_usage = report["gpt4o"]
             assert gpt4_usage["request_count"] == 2
             assert gpt4_usage["total_input_tokens"] == 3000
             assert gpt4_usage["total_output_tokens"] == 1500
             assert gpt4_usage["total_cost"] > 0
             
             # Check Claude usage
-            claude_usage = report["claude-opus-4"]
+            claude_usage = report["claudeopus4"]
             assert claude_usage["request_count"] == 1
             assert claude_usage["total_cost"] > 0

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 import os
 
 from src.llm.baml_wrapper import BAMLWrapper
-from baml_client.types import (
+from baml_client.baml_client.types import (
     AgentType,
     Hypothesis,
     ReviewType,

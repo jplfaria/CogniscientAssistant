@@ -5,7 +5,8 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.llm.baml_wrapper import BAMLWrapper
-from baml_client.types import (
+from baml_client.baml_client import types
+from baml_client.baml_client.types import (
     AgentType,
     ComparisonResult,
     Hypothesis,
