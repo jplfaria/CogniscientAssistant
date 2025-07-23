@@ -317,9 +317,9 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ## Phase 10: Generation Agent
 
 ### Agent Structure
-- [ ] Create GenerationAgent class
-- [ ] Implement agent initialization
-- [ ] Write tests for initialization
+- [x] Create GenerationAgent class
+- [x] Implement agent initialization
+- [x] Write tests for initialization
 
 ### Generation Strategies
 - [ ] Implement literature-based generation
@@ -348,6 +348,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_web_search_integration
 - [ ] Implement test_hypothesis_diversity (may_fail)
 - [ ] Implement test_generation_creativity_metrics (may_fail)
+
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase10_generation_real.py
+- [ ] Implement test_hypothesis_creativity with @pytest.mark.real_llm
+- [ ] Implement test_hypothesis_scientific_validity with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
 
 ## Phase 11: Reflection Agent
 
@@ -382,6 +389,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_review_consistency (may_fail)
 - [ ] Implement test_review_quality_metrics (may_fail)
 
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase11_reflection_real.py
+- [ ] Implement test_critique_quality with @pytest.mark.real_llm
+- [ ] Implement test_review_thoroughness with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
+
 ## Phase 12: Ranking Agent
 
 ### Agent Structure
@@ -408,6 +422,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_ranking_stability
 - [ ] Implement test_large_scale_tournament (may_fail)
 - [ ] Implement test_ranking_performance (may_fail)
+
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase12_ranking_real.py
+- [ ] Implement test_comparison_reasoning with @pytest.mark.real_llm
+- [ ] Implement test_ranking_consistency with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
 
 ## Phase 13: Evolution Agent
 
@@ -437,6 +458,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_evolution_diversity (may_fail)
 - [ ] Implement test_evolution_quality_metrics (may_fail)
 
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase13_evolution_real.py
+- [ ] Implement test_enhancement_creativity with @pytest.mark.real_llm
+- [ ] Implement test_evolution_coherence with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
+
 ## Phase 14: Proximity Agent
 
 ### Agent Structure
@@ -458,6 +486,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_similarity_threshold_tuning
 - [ ] Implement test_large_scale_clustering (may_fail)
 - [ ] Implement test_clustering_performance (may_fail)
+
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase14_proximity_real.py
+- [ ] Implement test_similarity_understanding with @pytest.mark.real_llm
+- [ ] Implement test_cluster_coherence with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
 
 ## Phase 15: Meta-Review Agent
 
@@ -483,6 +518,13 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_cross_agent_pattern_detection
 - [ ] Implement test_meta_review_quality (may_fail)
 - [ ] Implement test_synthesis_performance (may_fail)
+
+### Real LLM Tests
+- [ ] Create tests/integration/test_phase15_meta_review_real.py
+- [ ] Implement test_synthesis_quality with @pytest.mark.real_llm
+- [ ] Implement test_pattern_identification with @pytest.mark.real_llm
+- [ ] Verify behavioral expectations with actual models
+- [ ] Keep token usage minimal (<100 per test)
 
 ## Phase 16: Natural Language Interface
 
