@@ -1,0 +1,17 @@
+{
+  "id": "33eef081-a672-4f4b-bd96-29819b21b191",
+  "timestamp": "2025-07-23T18:16:19.642685+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "8bc15901ce32be2be895597aaf843da67c0bb511e92292fd2abc82ccbe4466dc",
+  "metadata": {
+    "hypothesis_id": "a3afcf14-056d-457a-bb48-a1dd1fe19649",
+    "summary": "Expanded hypothesis with systems perspective",
+    "category": "mechanistic",
+    "generation_method": "expansion",
+    "confidence_score": 0.85,
+    "num_assumptions": 2,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

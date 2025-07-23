@@ -398,6 +398,136 @@ class TestCreativityMetrics:
         assert 0 <= metrics['paradigm_shift_potential'] <= 1
 
 
+class TestWebSearchIntegration:
+    """Test web search integration."""
+    
+    async def test_web_search_injection(self, generation_agent):
+        """Test that web search can be injected into the agent."""
+        mock_web_search = AsyncMock()
+        generation_agent.web_search = mock_web_search
+        
+        assert generation_agent.web_search is mock_web_search
+    
+    async def test_search_literature_with_web_search(self, generation_agent):
+        """Test that _search_literature uses injected web search."""
+        # Create mock web search
+        mock_web_search = AsyncMock()
+        mock_web_search.search.return_value = {
+            'articles': [
+                {
+                    'title': 'Web Search Result',
+                    'abstract': 'Found via web search',
+                    'doi': '10.1234/websearch.2024.001',
+                    'relevance': 0.95
+                }
+            ]
+        }
+        
+        # Inject web search
+        generation_agent.web_search = mock_web_search
+        
+        # Call search literature
+        research_goal = ResearchGoal(description="Test research goal for web search")
+        results = await generation_agent._search_literature(research_goal)
+        
+        # Verify web search was called
+        mock_web_search.search.assert_called_once()
+        assert len(results) == 1
+        assert results[0]['title'] == 'Web Search Result'
+    
+    async def test_generate_from_literature_with_real_search(self, generation_agent, mock_dependencies):
+        """Test hypothesis generation with real web search results."""
+        _, _, llm_provider = mock_dependencies
+        
+        # Set up mock web search
+        mock_web_search = AsyncMock()
+        mock_web_search.search.return_value = {
+            'articles': [
+                {
+                    'title': 'CRISPR advances in cancer therapy',
+                    'abstract': 'Novel CRISPR applications for targeted cancer treatment...',
+                    'doi': '10.1038/nature.2024.001',
+                    'journal': 'Nature',
+                    'relevance': 0.98
+                }
+            ]
+        }
+        generation_agent.web_search = mock_web_search
+        
+        # Set up BAML wrapper mock
+        mock_baml_hypothesis = Mock()
+        mock_baml_hypothesis.summary = "CRISPR-based cancer therapy hypothesis"
+        mock_baml_hypothesis.category = "therapeutic"
+        mock_baml_hypothesis.full_description = "Detailed hypothesis about CRISPR"
+        mock_baml_hypothesis.novelty_claim = "Novel CRISPR approach"
+        mock_baml_hypothesis.assumptions = ["Assumption 1"]
+        mock_baml_hypothesis.confidence_score = 0.85
+        mock_baml_hypothesis.generation_method = "literature_based"
+        mock_baml_hypothesis.experimental_protocol = None
+        
+        generation_agent.baml_wrapper.generate_hypothesis = AsyncMock(
+            return_value=mock_baml_hypothesis
+        )
+        
+        # Generate hypothesis
+        research_goal = ResearchGoal(description="Develop CRISPR cancer therapies")
+        hypothesis = await generation_agent.generate_hypothesis(
+            research_goal=research_goal,
+            generation_method='literature_based'
+        )
+        
+        # Verify web search was used
+        mock_web_search.search.assert_called_once()
+        
+        # Verify hypothesis has citations from web search
+        assert len(hypothesis.supporting_evidence) == 1
+        assert hypothesis.supporting_evidence[0].doi == '10.1038/nature.2024.001'
+
+
+class TestSafetyIntegration:
+    """Test safety integration in generation."""
+    
+    async def test_safety_logging_enabled(self, generation_agent, mock_dependencies):
+        """Test that safety logging is enabled by default."""
+        assert hasattr(generation_agent, 'safety_logger')
+        assert generation_agent.safety_logger is not None
+    
+    async def test_hypothesis_safety_logging(self, generation_agent, mock_dependencies):
+        """Test that hypotheses are logged for safety monitoring."""
+        task_queue, context_memory, llm_provider = mock_dependencies
+        
+        # Mock safety logger
+        mock_safety_logger = AsyncMock()
+        generation_agent.safety_logger = mock_safety_logger
+        
+        # Generate a hypothesis
+        research_goal = ResearchGoal(
+            description="Research goal for safety testing"
+        )
+        
+        await generation_agent.generate_hypothesis(
+            research_goal=research_goal,
+            generation_method='assumptions'
+        )
+        
+        # Verify safety logger was called
+        mock_safety_logger.log_hypothesis.assert_called_once()
+    
+    async def test_safety_logger_can_be_disabled(self, mock_dependencies):
+        """Test that safety logger can be disabled via config."""
+        task_queue, context_memory, llm_provider = mock_dependencies
+        
+        config = {'enable_safety_logging': False}
+        agent = GenerationAgent(
+            task_queue=task_queue,
+            context_memory=context_memory,
+            llm_provider=llm_provider,
+            config=config
+        )
+        
+        assert agent.safety_logger is None
+
+
 class TestHelperMethods:
     """Test helper methods."""
     
@@ -449,5 +579,5 @@ class TestHelperMethods:
         assert isinstance(protocol, ExperimentalProtocol)
         assert protocol.objective == "Test the hypothesis"
         assert len(protocol.required_resources) == 2
-        assert len(protocol.success_metrics) == 2
+        assert len(protocol.success_metrics) == 3
         assert len(protocol.safety_considerations) == 2

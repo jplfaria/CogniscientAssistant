@@ -324,37 +324,37 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 ### Generation Strategies
 - [x] Implement literature-based generation
 - [x] Write tests for literature generation
-- [ ] Add simulated debate generation
-- [ ] Write tests for debate generation
-- [ ] Implement assumption-based generation
-- [ ] Write tests for assumption generation
-- [ ] Add feedback-based generation
-- [ ] Write tests for feedback generation
+- [x] Add simulated debate generation
+- [x] Write tests for debate generation
+- [x] Implement assumption-based generation
+- [x] Write tests for assumption generation
+- [x] Add feedback-based generation
+- [x] Write tests for feedback generation
 
 ### Integration
-- [ ] Connect to web search interface
-- [ ] Write integration tests
-- [ ] Add safety checks to generation
-- [ ] Write tests for safety integration
+- [x] Connect to web search interface
+- [x] Write integration tests
+- [x] Add safety checks to generation
+- [x] Write tests for safety integration
 
 ### Phase 10 Integration Tests
-- [ ] Create tests/integration/test_phase10_generation_agent.py
-- [ ] Implement test_generation_agent_initialization
-- [ ] Implement test_literature_based_generation
-- [ ] Implement test_simulated_debate_generation
-- [ ] Implement test_assumption_based_generation
-- [ ] Implement test_feedback_based_generation
-- [ ] Implement test_generation_safety_checks
-- [ ] Implement test_web_search_integration
-- [ ] Implement test_hypothesis_diversity (may_fail)
-- [ ] Implement test_generation_creativity_metrics (may_fail)
+- [x] Create tests/integration/test_phase10_generation_agent.py
+- [x] Implement test_generation_agent_initialization
+- [x] Implement test_literature_based_generation
+- [x] Implement test_simulated_debate_generation
+- [x] Implement test_assumption_based_generation
+- [x] Implement test_feedback_based_generation
+- [x] Implement test_generation_safety_checks
+- [x] Implement test_web_search_integration
+- [x] Implement test_hypothesis_diversity (may_fail)
+- [x] Implement test_generation_creativity_metrics (may_fail)
 
 ### Real LLM Tests
-- [ ] Create tests/integration/test_phase10_generation_real.py
-- [ ] Implement test_hypothesis_creativity with @pytest.mark.real_llm
-- [ ] Implement test_hypothesis_scientific_validity with @pytest.mark.real_llm
-- [ ] Verify behavioral expectations with actual models
-- [ ] Keep token usage minimal (<100 per test)
+- [x] Create tests/integration/test_phase10_generation_real.py
+- [x] Implement test_hypothesis_creativity with @pytest.mark.real_llm
+- [x] Implement test_hypothesis_scientific_validity with @pytest.mark.real_llm
+- [x] Verify behavioral expectations with actual models
+- [x] Keep token usage minimal (<100 per test)
 
 ## Phase 11: Reflection Agent
 

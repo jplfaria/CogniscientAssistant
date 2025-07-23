@@ -79,6 +79,14 @@ The file `tests/integration/test_expectations.json` defines:
 - `may_fail`: Tests allowed to fail (waiting for future components)
 - `real_llm_tests`: Optional tests that verify actual AI behavior
 
+### BAML Mocking Requirements
+When adding new BAML functions or types:
+1. **Update `/tests/conftest.py`** with new function mocks
+2. **Add new BAML types** to mock_types as MockBAMLType
+3. **Create enum mocks** with MockEnumValue for enum types
+4. **Use side_effects** for complex mock behaviors
+5. See `docs/BAML_TESTING_STRATEGY.md` for detailed patterns
+
 ## 🤖 Real LLM Testing
 
 ### Purpose

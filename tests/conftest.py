@@ -39,8 +39,68 @@ def pytest_configure(config):
     mock_hypothesis.experimental_protocol = mock_protocol
     mock_hypothesis.supporting_evidence = []
     
-    # Set up the mock to return this hypothesis
-    mock_b.GenerateHypothesis = AsyncMock(return_value=mock_hypothesis)
+    # Set up the mock to return different hypotheses based on input
+    def generate_hypothesis_side_effect(*args, **kwargs):
+        # Check generation method in kwargs
+        generation_method = kwargs.get('generation_method', '')
+        goal = kwargs.get('goal', '')
+        constraints = kwargs.get('constraints', [])
+        
+        # Check if this is for debate generation
+        if generation_method == 'debate' or 'debate' in str(kwargs):
+            debate_hypothesis = MagicMock()
+            debate_hypothesis.id = "debate-hypothesis-123"
+            debate_hypothesis.summary = "Hypothesis about whale communication synthesized from 3 debate perspectives"
+            debate_hypothesis.category = "theoretical"
+            debate_hypothesis.full_description = "Novel theory on whale communication patterns"
+            debate_hypothesis.novelty_claim = "Whales use communication for complex social structures"
+            debate_hypothesis.assumptions = ["Whales have complex social needs", "Communication patterns are learnable"]
+            debate_hypothesis.reasoning = "Synthesized from debate perspectives"
+            debate_hypothesis.confidence_score = 0.75
+            debate_hypothesis.generation_method = "simulated_debate"
+            debate_hypothesis.created_at = "2024-01-01T00:00:00Z"
+            debate_hypothesis.experimental_protocol = mock_protocol
+            debate_hypothesis.supporting_evidence = []
+            return debate_hypothesis
+        
+        # Check if this is for natural/plant constraints
+        elif any('natural' in str(c).lower() or 'plant' in str(c).lower() for c in constraints):
+            natural_hypothesis = MagicMock()
+            natural_hypothesis.id = "natural-hypothesis-123"
+            natural_hypothesis.summary = "Hypothesis addressing: Find treatments using only natural compounds"
+            natural_hypothesis.category = "therapeutic"
+            natural_hypothesis.full_description = "Using natural plant compounds to treat disease"
+            natural_hypothesis.novelty_claim = "Novel use of natural compounds"
+            natural_hypothesis.assumptions = ["Natural compounds are safer", "Plant-based treatments are effective"]
+            natural_hypothesis.reasoning = "Based on traditional medicine"
+            natural_hypothesis.confidence_score = 0.80
+            natural_hypothesis.generation_method = "assumption_based"
+            natural_hypothesis.created_at = "2024-01-01T00:00:00Z"
+            natural_hypothesis.experimental_protocol = mock_protocol
+            natural_hypothesis.supporting_evidence = []
+            return natural_hypothesis
+        
+        # Check if this is for literature-based with citations
+        elif generation_method == 'literature_based':
+            lit_hypothesis = MagicMock()
+            lit_hypothesis.id = "lit-hypothesis-123"
+            lit_hypothesis.summary = "Test hypothesis for KIRA6 inhibition of IRE1α in AML treatment"
+            lit_hypothesis.category = "therapeutic"
+            lit_hypothesis.full_description = "KIRA6 selectively inhibits IRE1α kinase activity"
+            lit_hypothesis.novelty_claim = "Novel use of KIRA6 for AML"
+            lit_hypothesis.assumptions = ["IRE1α is overactive in AML"]
+            lit_hypothesis.reasoning = "Based on literature"
+            lit_hypothesis.confidence_score = 0.85
+            lit_hypothesis.generation_method = "literature_based"
+            lit_hypothesis.created_at = "2024-01-01T00:00:00Z"
+            lit_hypothesis.experimental_protocol = mock_protocol
+            lit_hypothesis.supporting_evidence = [{"doi": "10.1234/test", "citation": "Test et al., 2024"}]
+            return lit_hypothesis
+        
+        # Default hypothesis
+        return mock_hypothesis
+    
+    mock_b.GenerateHypothesis = AsyncMock(side_effect=generate_hypothesis_side_effect)
     mock_b.EvaluateHypothesis = AsyncMock()
     mock_b.PerformSafetyCheck = AsyncMock()
     mock_b.CompareHypotheses = AsyncMock()
@@ -75,31 +135,86 @@ def pytest_configure(config):
     # Mock type definitions with proper class structure
     mock_types = MagicMock()
     
-    # Create mock classes for BAML types
-    mock_types.Hypothesis = type('Hypothesis', (), {})
-    mock_types.SafetyCheck = type('SafetyCheck', (), {})
-    mock_types.ParsedResearchGoal = type('ParsedResearchGoal', (), {})
-    mock_types.AgentRequest = type('AgentRequest', (), {})
-    mock_types.AgentResponse = type('AgentResponse', (), {})
+    # Create mock classes for BAML types that accept arguments
+    class MockBAMLType:
+        def __init__(self, **kwargs):
+            # Store all kwargs as attributes
+            self._data = kwargs
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+        
+        def __getattr__(self, name):
+            # If attribute exists in _data, return it
+            if hasattr(self, '_data') and name in self._data:
+                return self._data[name]
+            # Otherwise return a mock
+            mock = MagicMock()
+            # Store it so subsequent accesses return the same mock
+            setattr(self, name, mock)
+            return mock
+    
+    mock_types.Hypothesis = MockBAMLType
+    mock_types.SafetyCheck = MockBAMLType
+    mock_types.ParsedResearchGoal = MockBAMLType
+    mock_types.AgentRequest = MockBAMLType
+    mock_types.AgentResponse = MockBAMLType
+    
+    # Create enum-like objects for AgentType
+    class MockEnumValue:
+        def __init__(self, value):
+            self.value = value
+    
     mock_types.AgentType = MagicMock()
-    mock_types.AgentType.Generation = "Generation"
-    mock_types.AgentType.Reflection = "Reflection"
-    mock_types.AgentType.Ranking = "Ranking"
-    mock_types.AgentType.Evolution = "Evolution"
-    mock_types.AgentType.Proximity = "Proximity"
-    mock_types.AgentType.MetaReview = "MetaReview"
-    mock_types.ComparisonResult = type('ComparisonResult', (), {})
-    mock_types.Pattern = type('Pattern', (), {})
-    mock_types.ResearchTopic = type('ResearchTopic', (), {})
-    mock_types.SimilarityResult = type('SimilarityResult', (), {})
-    mock_types.Review = type('Review', (), {})
+    mock_types.AgentType.Generation = MockEnumValue("Generation")
+    mock_types.AgentType.Reflection = MockEnumValue("Reflection")
+    mock_types.AgentType.Ranking = MockEnumValue("Ranking")
+    mock_types.AgentType.Evolution = MockEnumValue("Evolution")
+    mock_types.AgentType.Proximity = MockEnumValue("Proximity")
+    mock_types.AgentType.MetaReview = MockEnumValue("MetaReview")
+    mock_types.ComparisonResult = MockBAMLType
+    mock_types.Pattern = MockBAMLType
+    mock_types.ResearchTopic = MockBAMLType
+    mock_types.SimilarityResult = MockBAMLType
+    mock_types.Review = MockBAMLType
+    
+    # Create enum-like objects for ReviewType
     mock_types.ReviewType = MagicMock()
-    mock_types.ReviewType.Initial = "Initial"
-    mock_types.ReviewType.Deep = "Deep"
-    mock_types.ReviewType.Observation = "Observation"
-    mock_types.ReviewType.Simulation = "Simulation"
-    mock_types.ReviewType.Tournament = "Tournament"
-    mock_types.ExperimentalProtocol = type('ExperimentalProtocol', (), {})
+    mock_types.ReviewType.Initial = MockEnumValue("Initial")
+    mock_types.ReviewType.Deep = MockEnumValue("Deep")
+    mock_types.ReviewType.Observation = MockEnumValue("Observation")
+    mock_types.ReviewType.Simulation = MockEnumValue("Simulation")
+    mock_types.ReviewType.Tournament = MockEnumValue("Tournament")
+    
+    mock_types.ExperimentalProtocol = MockBAMLType
+    
+    # Add missing types that tests are trying to use with spec
+    mock_types.SimilarityScore = MockBAMLType
+    mock_types.ResearchPatterns = MockBAMLType
+    mock_types.Task = MockBAMLType
+    mock_types.Citation = MockBAMLType
+    mock_types.ReviewScores = MockBAMLType
+    mock_types.AssumptionDecomposition = MockBAMLType
+    mock_types.FailurePoint = MockBAMLType
+    mock_types.SimulationResults = MockBAMLType
+    mock_types.RequestContent = MockBAMLType
+    mock_types.RequestType = MagicMock()
+    mock_types.RequestType.Generate = MockEnumValue("Generate")
+    
+    # Add missing enums
+    mock_types.SafetyLevel = MagicMock()
+    mock_types.SafetyLevel.Safe = MockEnumValue("Safe")
+    mock_types.SafetyLevel.Concerning = MockEnumValue("Concerning")
+    mock_types.SafetyLevel.Dangerous = MockEnumValue("Dangerous")
+    
+    mock_types.HypothesisCategory = MagicMock()
+    mock_types.HypothesisCategory.Therapeutic = MockEnumValue("Therapeutic")
+    mock_types.HypothesisCategory.Observational = MockEnumValue("Observational")
+    mock_types.HypothesisCategory.Theoretical = MockEnumValue("Theoretical")
+    
+    mock_types.ReviewDecision = MagicMock()
+    mock_types.ReviewDecision.Accept = MockEnumValue("Accept")
+    mock_types.ReviewDecision.Reject = MockEnumValue("Reject")
+    mock_types.ReviewDecision.Revise = MockEnumValue("Revise")
     
     mock_baml_client.baml_client.types = mock_types
     

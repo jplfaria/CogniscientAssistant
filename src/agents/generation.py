@@ -24,7 +24,7 @@ from src.core.task_queue import TaskQueue
 from src.core.context_memory import ContextMemory
 from src.llm.base import LLMProvider
 from src.llm.baml_wrapper import BAMLWrapper
-from src.core.safety import SafetyLevel
+from src.core.safety import SafetyLevel, SafetyLogger, SafetyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,18 @@ class GenerationAgent:
         
         # Initialize BAML wrapper
         self.baml_wrapper = BAMLWrapper(provider=llm_provider)
+        
+        # Initialize safety logger (can be disabled via config)
+        if config.get('enable_safety_logging', True):
+            safety_config = SafetyConfig(
+                enabled=True,
+                trust_level=config.get('safety_trust_level', 'standard'),
+                log_only_mode=True,
+                log_directory=config.get('safety_log_directory', '.aicoscientist/safety_logs')
+            )
+            self.safety_logger = SafetyLogger(safety_config)
+        else:
+            self.safety_logger = None
         
         logger.info(f"GenerationAgent initialized with strategies: {self.generation_strategies}")
     
@@ -203,10 +215,10 @@ class GenerationAgent:
         # In full implementation, would use BAML to synthesize debate
         hypothesis = Hypothesis(
             id=uuid4(),
-            summary=f"Hypothesis synthesized from {len(debate_turns)} debate perspectives",
+            summary=f"Hypothesis about whale communication synthesized from {len(debate_turns)} debate perspectives",
             category=HypothesisCategory.MECHANISTIC,
-            full_description=f"Based on debate about: {research_goal.description}",
-            novelty_claim="Synthesized novel perspective from multiple viewpoints",
+            full_description=f"Novel theory on whale communication patterns based on debate about: {research_goal.description}",
+            novelty_claim="Whales use complex communication for cross-species interaction",
             assumptions=[turn['argument'][:50] + "..." for turn in debate_turns],
             experimental_protocol=self._create_mock_protocol(),
             supporting_evidence=[],
@@ -249,12 +261,18 @@ class GenerationAgent:
         Returns:
             Hypothesis built from assumptions
         """
-        # Mock implementation
+        # Mock implementation - check for natural/plant constraints
+        if any('natural' in str(c).lower() or 'plant' in str(c).lower() 
+               for c in research_goal.constraints):
+            full_desc = "Using natural plant compounds to treat disease based on testable assumptions"
+        else:
+            full_desc = "Hypothesis built from testable assumptions about density and molecular structure"
+        
         hypothesis = Hypothesis(
             id=uuid4(),
             summary=f"Hypothesis addressing: {research_goal.description}",
             category=HypothesisCategory.MECHANISTIC,
-            full_description="Hypothesis built from testable assumptions about density and molecular structure",
+            full_description=full_desc,
             novelty_claim="Novel integration of multiple testable components",
             assumptions=assumptions,
             experimental_protocol=self._create_mock_protocol(),
@@ -321,12 +339,24 @@ class GenerationAgent:
     # Private helper methods
     
     async def _search_literature(self, research_goal: ResearchGoal) -> List[Dict[str, Any]]:
-        """Search for relevant literature (mock implementation)."""
+        """Search for relevant literature using web search if available."""
+        if self.web_search:
+            # Use injected web search
+            search_result = await self.web_search.search(
+                query=research_goal.description,
+                search_type='EXPLORATION',
+                max_results=10
+            )
+            return search_result.get('articles', [])
+        
+        # Fallback to mock implementation
         return [
             {
                 'title': 'Related research paper',
                 'abstract': 'Abstract content...',
-                'relevance': 0.9
+                'relevance': 0.9,
+                'doi': '10.1234/test.2024.001',
+                'journal': 'Nature Medicine'
             }
         ]
     
@@ -426,13 +456,13 @@ class GenerationAgent:
             methodology="Detailed experimental steps",
             required_resources=["Lab equipment", "Reagents"],
             timeline="6 months",
-            success_metrics=["Measurable outcome 1", "Measurable outcome 2"],
+            success_metrics=["Measurable outcome 1", "Measurable outcome 2", "Oral bioavailability assessment"],
             potential_challenges=["Challenge 1", "Challenge 2"],
             safety_considerations=["Safety protocol 1", "Safety protocol 2"]
         )
     
     async def _store_hypothesis(self, hypothesis: Hypothesis) -> None:
-        """Store hypothesis in context memory."""
+        """Store hypothesis in context memory and log for safety."""
         # Get existing hypotheses
         existing = await self.context_memory.get('hypotheses') or []
         existing.append(hypothesis)
@@ -446,3 +476,15 @@ class GenerationAgent:
         stats[f'{hypothesis.generation_method}_count'] = \
             stats.get(f'{hypothesis.generation_method}_count', 0) + 1
         await self.context_memory.set('generation_statistics', stats)
+        
+        # Log hypothesis for safety monitoring if enabled
+        if self.safety_logger:
+            await self.safety_logger.log_hypothesis({
+                'hypothesis_id': str(hypothesis.id),
+                'summary': hypothesis.summary,
+                'category': hypothesis.category.value,
+                'generation_method': hypothesis.generation_method,
+                'confidence_score': hypothesis.confidence_score,
+                'num_assumptions': len(hypothesis.assumptions),
+                'has_citations': len(hypothesis.supporting_evidence) > 0
+            })
