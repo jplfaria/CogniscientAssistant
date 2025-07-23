@@ -12,9 +12,6 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from uuid import uuid4
 
-from baml_client import b
-from baml_client.types import Hypothesis as BamlHypothesis
-
 from src.core.models import (
     Hypothesis,
     HypothesisCategory,
@@ -26,6 +23,7 @@ from src.core.models import (
 from src.core.task_queue import TaskQueue
 from src.core.context_memory import ContextMemory
 from src.llm.base import LLMProvider
+from src.llm.baml_wrapper import BAMLWrapper
 from src.core.safety import SafetyLevel
 
 logger = logging.getLogger(__name__)
@@ -86,6 +84,9 @@ class GenerationAgent:
         
         # Web search integration (to be injected or configured)
         self.web_search = None
+        
+        # Initialize BAML wrapper
+        self.baml_wrapper = BAMLWrapper(provider=llm_provider)
         
         logger.info(f"GenerationAgent initialized with strategies: {self.generation_strategies}")
     
@@ -156,7 +157,7 @@ class GenerationAgent:
         
         # Call BAML function to generate hypothesis
         try:
-            baml_hypothesis = await b.GenerateHypothesis(
+            baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
                 goal=research_goal.description,
                 constraints=research_goal.constraints,
                 existing_hypotheses=[],  # Convert existing if needed
@@ -361,18 +362,43 @@ class GenerationAgent:
             'key_findings': ' '.join(abstracts[:2])
         }
     
-    def _convert_baml_hypothesis(self, baml_hyp: BamlHypothesis) -> Hypothesis:
+    def _convert_baml_hypothesis(self, baml_hyp) -> Hypothesis:
         """Convert BAML hypothesis to our model."""
-        # This would do proper conversion - simplified for now
+        # Map category string to enum
+        category_map = {
+            'mechanistic': HypothesisCategory.MECHANISTIC,
+            'therapeutic': HypothesisCategory.THERAPEUTIC,
+            'diagnostic': HypothesisCategory.DIAGNOSTIC,
+            'biomarker': HypothesisCategory.BIOMARKER,
+            'methodology': HypothesisCategory.METHODOLOGY,
+            'other': HypothesisCategory.OTHER
+        }
+        category = category_map.get(baml_hyp.category.lower(), HypothesisCategory.MECHANISTIC)
+        
+        # Convert experimental protocol if present
+        protocol = None
+        if hasattr(baml_hyp, 'experimental_protocol') and baml_hyp.experimental_protocol:
+            protocol = ExperimentalProtocol(
+                objective=baml_hyp.experimental_protocol.objective,
+                methodology=baml_hyp.experimental_protocol.methodology,
+                required_resources=baml_hyp.experimental_protocol.required_resources,
+                timeline=baml_hyp.experimental_protocol.timeline,
+                success_metrics=baml_hyp.experimental_protocol.success_metrics,
+                potential_challenges=baml_hyp.experimental_protocol.potential_challenges,
+                safety_considerations=baml_hyp.experimental_protocol.safety_considerations
+            )
+        else:
+            protocol = self._create_mock_protocol()
+        
         return Hypothesis(
-            id=uuid4(),
+            id=uuid4(),  # Generate our own ID
             summary=baml_hyp.summary,
-            category=HypothesisCategory.MECHANISTIC,  # Would map properly
+            category=category,
             full_description=baml_hyp.full_description,
             novelty_claim=baml_hyp.novelty_claim,
             assumptions=baml_hyp.assumptions,
-            experimental_protocol=self._create_mock_protocol(),  # Would convert properly
-            supporting_evidence=[],
+            experimental_protocol=protocol,
+            supporting_evidence=[],  # Will be added separately
             confidence_score=baml_hyp.confidence_score,
             generation_method=baml_hyp.generation_method,
             created_at=utcnow()

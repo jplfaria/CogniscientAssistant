@@ -114,12 +114,16 @@ class TestLiteratureBasedGeneration:
             {
                 'title': 'ER stress in AML cells',
                 'abstract': 'Study showing increased endoplasmic reticulum stress...',
-                'relevance': 0.9
+                'relevance': 0.9,
+                'doi': '10.1234/aml.2024.001',
+                'journal': 'Blood'
             },
             {
                 'title': 'KIRA6 as an IRE1α inhibitor',
                 'abstract': 'KIRA6 selectively inhibits IRE1α kinase activity...',
-                'relevance': 0.85
+                'relevance': 0.85,
+                'doi': '10.1234/kira6.2024.002',
+                'journal': 'Cell Chemical Biology'
             }
         ]
         

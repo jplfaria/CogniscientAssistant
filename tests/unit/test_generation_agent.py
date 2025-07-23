@@ -208,8 +208,7 @@ class TestGenerateHypothesis:
 class TestGenerateFromLiterature:
     """Test literature-based generation."""
     
-    @patch('src.agents.generation.b')
-    async def test_successful_generation(self, mock_baml, generation_agent):
+    async def test_successful_generation(self, generation_agent):
         """Test successful hypothesis generation from literature."""
         research_goal = ResearchGoal(
             description="Test research goal",
@@ -224,16 +223,32 @@ class TestGenerateFromLiterature:
             }
         ]
         
-        # Mock BAML response
+        # Mock BAML wrapper
+        from src.llm.baml_wrapper import BAMLWrapper
+        mock_baml_wrapper = AsyncMock(spec=BAMLWrapper)
         mock_baml_hypothesis = Mock()
         mock_baml_hypothesis.summary = "Test hypothesis"
+        mock_baml_hypothesis.category = "mechanistic"
         mock_baml_hypothesis.full_description = "Detailed description"
         mock_baml_hypothesis.novelty_claim = "Novel because..."
         mock_baml_hypothesis.assumptions = ["Assumption 1"]
         mock_baml_hypothesis.confidence_score = 0.85
         mock_baml_hypothesis.generation_method = "literature_based"
+        mock_baml_hypothesis.created_at = "2024-01-01T00:00:00Z"
         
-        mock_baml.GenerateHypothesis = AsyncMock(return_value=mock_baml_hypothesis)
+        # Set up experimental protocol mock
+        mock_protocol = Mock()
+        mock_protocol.objective = "Test objective"
+        mock_protocol.methodology = "Test methodology"
+        mock_protocol.required_resources = ["Resource 1"]
+        mock_protocol.timeline = "6 months"
+        mock_protocol.success_metrics = ["Metric 1"]
+        mock_protocol.potential_challenges = ["Challenge 1"]
+        mock_protocol.safety_considerations = ["Safety 1"]
+        mock_baml_hypothesis.experimental_protocol = mock_protocol
+        
+        mock_baml_wrapper.generate_hypothesis = AsyncMock(return_value=mock_baml_hypothesis)
+        generation_agent.baml_wrapper = mock_baml_wrapper
         
         # Execute
         result = await generation_agent.generate_from_literature(research_goal, literature)
@@ -249,14 +264,16 @@ class TestGenerateFromLiterature:
         # Verify storage
         generation_agent.context_memory.set.assert_called()
     
-    @patch('src.agents.generation.b')
-    async def test_generation_failure(self, mock_baml, generation_agent):
+    async def test_generation_failure(self, generation_agent):
         """Test handling of generation failure."""
         research_goal = ResearchGoal(description="Test research goal for unit testing")
         literature = []
         
-        # Mock BAML to raise exception
-        mock_baml.GenerateHypothesis = AsyncMock(side_effect=Exception("BAML error"))
+        # Mock BAML wrapper to raise exception
+        from src.llm.baml_wrapper import BAMLWrapper
+        mock_baml_wrapper = AsyncMock(spec=BAMLWrapper)
+        mock_baml_wrapper.generate_hypothesis = AsyncMock(side_effect=Exception("BAML error"))
+        generation_agent.baml_wrapper = mock_baml_wrapper
         
         # Execute and verify exception
         with pytest.raises(RuntimeError, match="Generation failed"):

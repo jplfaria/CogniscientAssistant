@@ -322,8 +322,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for initialization
 
 ### Generation Strategies
-- [ ] Implement literature-based generation
-- [ ] Write tests for literature generation
+- [x] Implement literature-based generation
+- [x] Write tests for literature generation
 - [ ] Add simulated debate generation
 - [ ] Write tests for debate generation
 - [ ] Implement assumption-based generation
