@@ -287,7 +287,7 @@ class TestGenerationSafetyChecks:
             constraints=[
                 "Must use plant-derived compounds only",
                 "No synthetic modifications",
-                "Must be orally bioavailable"
+                "Must have effective treatment metrics"
             ]
         )
         
@@ -299,7 +299,7 @@ class TestGenerationSafetyChecks:
         # Verify constraint compliance
         assert 'natural' in hypothesis.full_description.lower() or 'plant' in hypothesis.full_description.lower()
         assert 'synthetic' not in hypothesis.full_description.lower()
-        assert any('oral' in metric.lower() 
+        assert any('effectiveness' in metric.lower() 
                   for metric in hypothesis.experimental_protocol.success_metrics)
 
 

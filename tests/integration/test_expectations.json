@@ -162,6 +162,12 @@
       "test_hypothesis_creativity",
       "test_hypothesis_scientific_validity"
     ],
+    "must_use_baml": [
+      "generate_from_literature",
+      "generate_from_debate",
+      "generate_from_assumptions",
+      "generate_from_feedback"
+    ],
     "description": "Hypothesis generation must function"
   },
   "phase_11": {
@@ -177,6 +183,10 @@
     "real_llm_tests": [
       "test_critique_quality",
       "test_review_thoroughness"
+    ],
+    "must_use_baml": [
+      "generate_review",
+      "generate_critique"
     ],
     "description": "Review system must work correctly"
   },
@@ -195,6 +205,10 @@
       "test_comparison_reasoning",
       "test_ranking_consistency"
     ],
+    "must_use_baml": [
+      "compare_hypotheses",
+      "generate_comparison_reasoning"
+    ],
     "description": "Tournament ranking system must work"
   },
   "phase_13": {
@@ -212,6 +226,11 @@
       "test_enhancement_creativity",
       "test_evolution_coherence"
     ],
+    "must_use_baml": [
+      "evolve_hypothesis",
+      "crossover_hypotheses",
+      "mutate_hypothesis"
+    ],
     "description": "Hypothesis evolution must function"
   },
   "phase_14": {
@@ -228,6 +247,10 @@
       "test_similarity_understanding",
       "test_cluster_coherence"
     ],
+    "must_use_baml": [
+      "calculate_semantic_similarity",
+      "generate_cluster_summary"
+    ],
     "description": "Similarity and clustering must work"
   },
   "phase_15": {
@@ -243,6 +266,11 @@
     "real_llm_tests": [
       "test_synthesis_quality",
       "test_pattern_identification"
+    ],
+    "must_use_baml": [
+      "synthesize_findings",
+      "extract_patterns",
+      "generate_insights"
     ],
     "description": "Meta-review synthesis must function"
   },

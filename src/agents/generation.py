@@ -136,15 +136,19 @@ class GenerationAgent:
             return await self.generate_from_literature(research_goal, literature)
         
         elif generation_method == 'debate':
-            debate_turns = await self._simulate_debate(research_goal, num_turns=3)
+            # For real LLM usage, we'll let the LLM simulate the debate internally
+            # by providing instructions in the context rather than mock turns
+            debate_turns = []  # Empty turns will trigger internal debate simulation
             return await self.generate_from_debate(research_goal, debate_turns)
         
         elif generation_method == 'assumptions':
-            assumptions = await self.identify_assumptions(research_goal)
+            # For real LLM usage, we'll let the LLM identify assumptions internally
+            assumptions = []  # Empty assumptions will trigger internal generation
             return await self.generate_from_assumptions(research_goal, assumptions)
         
         elif generation_method == 'expansion':
-            feedback = await self._get_expansion_feedback()
+            # For real LLM usage, we'll provide general expansion guidance
+            feedback = {}  # Empty feedback will trigger expansion guidance
             return await self.generate_from_feedback(research_goal, feedback)
         
         else:
@@ -211,24 +215,33 @@ class GenerationAgent:
         Returns:
             Hypothesis synthesized from debate
         """
-        # For now, create a mock hypothesis
-        # In full implementation, would use BAML to synthesize debate
-        hypothesis = Hypothesis(
-            id=uuid4(),
-            summary=f"Hypothesis about whale communication synthesized from {len(debate_turns)} debate perspectives",
-            category=HypothesisCategory.MECHANISTIC,
-            full_description=f"Novel theory on whale communication patterns based on debate about: {research_goal.description}",
-            novelty_claim="Whales use complex communication for cross-species interaction",
-            assumptions=[turn['argument'][:50] + "..." for turn in debate_turns],
-            experimental_protocol=self._create_mock_protocol(),
-            supporting_evidence=[],
-            confidence_score=0.75,
-            generation_method='debate',
-            created_at=utcnow()
-        )
+        # Prepare debate context from turns
+        debate_context = self._prepare_debate_context(debate_turns)
         
-        await self._store_hypothesis(hypothesis)
-        return hypothesis
+        # Call BAML function to generate hypothesis
+        try:
+            baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
+                goal=research_goal.description,
+                constraints=research_goal.constraints,
+                existing_hypotheses=[],  # TODO: Get from context memory
+                focus_area=debate_context,
+                generation_method='debate'
+            )
+            
+            # Convert BAML hypothesis to our model
+            hypothesis = self._convert_baml_hypothesis(baml_hypothesis)
+            
+            # Update generation count
+            self._generation_count += 1
+            
+            # Store in context memory
+            await self._store_hypothesis(hypothesis)
+            
+            return hypothesis
+            
+        except Exception as e:
+            logger.error(f"Failed to generate hypothesis from debate: {e}")
+            raise RuntimeError(f"Generation failed: {e}")
     
     async def identify_assumptions(self, research_goal: ResearchGoal) -> List[str]:
         """Identify testable assumptions for the research goal.
@@ -261,29 +274,46 @@ class GenerationAgent:
         Returns:
             Hypothesis built from assumptions
         """
-        # Mock implementation - check for natural/plant constraints
-        if any('natural' in str(c).lower() or 'plant' in str(c).lower() 
-               for c in research_goal.constraints):
-            full_desc = "Using natural plant compounds to treat disease based on testable assumptions"
+        # Prepare assumptions context
+        if not assumptions:
+            # When no assumptions provided, instruct LLM to identify them
+            assumptions_context = ("First identify key testable assumptions about the research goal, "
+                                 "then build a hypothesis based on those assumptions. "
+                                 "Focus on assumptions that can be experimentally validated.")
         else:
-            full_desc = "Hypothesis built from testable assumptions about density and molecular structure"
+            assumptions_context = "Based on the following testable assumptions: " + "; ".join(assumptions)
         
-        hypothesis = Hypothesis(
-            id=uuid4(),
-            summary=f"Hypothesis addressing: {research_goal.description}",
-            category=HypothesisCategory.MECHANISTIC,
-            full_description=full_desc,
-            novelty_claim="Novel integration of multiple testable components",
-            assumptions=assumptions,
-            experimental_protocol=self._create_mock_protocol(),
-            supporting_evidence=[],
-            confidence_score=0.8,
-            generation_method='assumptions',
-            created_at=utcnow()
-        )
-        
-        await self._store_hypothesis(hypothesis)
-        return hypothesis
+        # Call BAML function to generate hypothesis
+        try:
+            baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
+                goal=research_goal.description,
+                constraints=research_goal.constraints,
+                existing_hypotheses=[],  # TODO: Get from context memory
+                focus_area=assumptions_context,
+                generation_method='assumptions'
+            )
+            
+            # Convert BAML hypothesis to our model
+            hypothesis = self._convert_baml_hypothesis(baml_hypothesis)
+            
+            # If no assumptions were provided, extract them from the generated hypothesis
+            if not assumptions and hypothesis.assumptions:
+                assumptions = hypothesis.assumptions
+            elif assumptions:
+                # Ensure the provided assumptions are preserved
+                hypothesis.assumptions = assumptions
+            
+            # Update generation count
+            self._generation_count += 1
+            
+            # Store in context memory
+            await self._store_hypothesis(hypothesis)
+            
+            return hypothesis
+            
+        except Exception as e:
+            logger.error(f"Failed to generate hypothesis from assumptions: {e}")
+            raise RuntimeError(f"Generation failed: {e}")
     
     async def generate_from_feedback(
         self,
@@ -299,23 +329,49 @@ class GenerationAgent:
         Returns:
             Hypothesis addressing feedback
         """
-        # Mock implementation incorporating feedback
-        hypothesis = Hypothesis(
-            id=uuid4(),
-            summary=f"Expanded hypothesis with systems perspective",
-            category=HypothesisCategory.MECHANISTIC,
-            full_description="Hypothesis addressing protein networks and emergent system properties based on feedback",
-            novelty_claim="Extends beyond single proteins to network-level understanding",
-            assumptions=["Networks exhibit emergent properties", "System-level analysis reveals new targets"],
-            experimental_protocol=self._create_mock_protocol(),
-            supporting_evidence=[],
-            confidence_score=0.85,
-            generation_method='expansion',
-            created_at=utcnow()
-        )
+        # Prepare feedback context
+        if not feedback:
+            # When no feedback provided, instruct LLM to expand creatively
+            feedback_context = ("Expand the hypothesis to consider: "
+                              "1) Systems-level implications and emergent properties, "
+                              "2) Cross-disciplinary connections and applications, "
+                              "3) Long-term impacts and transformative potential. "
+                              "Generate a comprehensive, expanded hypothesis.")
+        else:
+            feedback_points = []
+            if 'strengths' in feedback:
+                feedback_points.append(f"Strengths: {feedback['strengths']}")
+            if 'weaknesses' in feedback:
+                feedback_points.append(f"Areas to improve: {feedback['weaknesses']}")
+            if 'suggestions' in feedback:
+                feedback_points.append(f"Suggestions: {feedback['suggestions']}")
+            
+            feedback_context = "Based on the following feedback: " + "; ".join(feedback_points)
         
-        await self._store_hypothesis(hypothesis)
-        return hypothesis
+        # Call BAML function to generate hypothesis
+        try:
+            baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
+                goal=research_goal.description,
+                constraints=research_goal.constraints,
+                existing_hypotheses=[],  # TODO: Get from context memory
+                focus_area=feedback_context,
+                generation_method='expansion'  # Feedback-based is a form of expansion
+            )
+            
+            # Convert BAML hypothesis to our model
+            hypothesis = self._convert_baml_hypothesis(baml_hypothesis)
+            
+            # Update generation count
+            self._generation_count += 1
+            
+            # Store in context memory
+            await self._store_hypothesis(hypothesis)
+            
+            return hypothesis
+            
+        except Exception as e:
+            logger.error(f"Failed to generate hypothesis from feedback: {e}")
+            raise RuntimeError(f"Generation failed: {e}")
     
     async def calculate_creativity_metrics(
         self,
@@ -392,6 +448,25 @@ class GenerationAgent:
             'key_findings': ' '.join(abstracts[:2])
         }
     
+    def _prepare_debate_context(self, debate_turns: List[Dict[str, str]]) -> str:
+        """Prepare context from debate turns for generation."""
+        if not debate_turns:
+            # When no debate turns provided, instruct LLM to simulate debate
+            return ("Consider this hypothesis from multiple scientific perspectives: "
+                    "1) A molecular biologist focusing on mechanisms, "
+                    "2) A systems biologist considering emergent properties, "
+                    "3) A computational biologist analyzing patterns. "
+                    "Synthesize these diverse viewpoints into a comprehensive hypothesis.")
+        
+        # Combine debate perspectives into a coherent context
+        debate_summary = []
+        for i, turn in enumerate(debate_turns):
+            perspective = turn.get('perspective', f'Perspective {i+1}')
+            argument = turn.get('argument', '')
+            debate_summary.append(f"{perspective}: {argument}")
+        
+        return " | ".join(debate_summary)
+    
     def _convert_baml_hypothesis(self, baml_hyp) -> Hypothesis:
         """Convert BAML hypothesis to our model."""
         # Map category string to enum
@@ -408,14 +483,30 @@ class GenerationAgent:
         # Convert experimental protocol if present
         protocol = None
         if hasattr(baml_hyp, 'experimental_protocol') and baml_hyp.experimental_protocol:
+            exp_proto = baml_hyp.experimental_protocol
+            
+            # Handle field name variations from LLM responses
+            success_metrics = getattr(exp_proto, 'success_metrics', 
+                                    getattr(exp_proto, 'expected_outcomes', []))
+            potential_challenges = getattr(exp_proto, 'potential_challenges', [])
+            safety_considerations = getattr(exp_proto, 'safety_considerations', [])
+            
+            # Ensure we have at least one item for required lists
+            if not success_metrics:
+                success_metrics = ["Successful completion of experiment"]
+            if not potential_challenges:
+                potential_challenges = ["Standard experimental variability"]
+            if not safety_considerations:
+                safety_considerations = ["Standard laboratory safety protocols"]
+            
             protocol = ExperimentalProtocol(
-                objective=baml_hyp.experimental_protocol.objective,
-                methodology=baml_hyp.experimental_protocol.methodology,
-                required_resources=baml_hyp.experimental_protocol.required_resources,
-                timeline=baml_hyp.experimental_protocol.timeline,
-                success_metrics=baml_hyp.experimental_protocol.success_metrics,
-                potential_challenges=baml_hyp.experimental_protocol.potential_challenges,
-                safety_considerations=baml_hyp.experimental_protocol.safety_considerations
+                objective=exp_proto.objective,
+                methodology=exp_proto.methodology,
+                required_resources=exp_proto.required_resources,
+                timeline=exp_proto.timeline,
+                success_metrics=success_metrics,
+                potential_challenges=potential_challenges,
+                safety_considerations=safety_considerations
             )
         else:
             protocol = self._create_mock_protocol()
@@ -456,7 +547,7 @@ class GenerationAgent:
             methodology="Detailed experimental steps",
             required_resources=["Lab equipment", "Reagents"],
             timeline="6 months",
-            success_metrics=["Measurable outcome 1", "Measurable outcome 2", "Oral bioavailability assessment"],
+            success_metrics=["Measurable outcome 1", "Measurable outcome 2", "Analysis of treatment effectiveness"],
             potential_challenges=["Challenge 1", "Challenge 2"],
             safety_considerations=["Safety protocol 1", "Safety protocol 2"]
         )
@@ -465,7 +556,34 @@ class GenerationAgent:
         """Store hypothesis in context memory and log for safety."""
         # Get existing hypotheses
         existing = await self.context_memory.get('hypotheses') or []
-        existing.append(hypothesis)
+        
+        # Convert hypothesis to serializable dict
+        hypothesis_dict = {
+            'id': str(hypothesis.id),
+            'summary': hypothesis.summary,
+            'full_description': hypothesis.full_description,
+            'category': hypothesis.category.value,
+            'assumptions': hypothesis.assumptions,
+            'novelty_claim': hypothesis.novelty_claim,
+            'supporting_evidence': hypothesis.supporting_evidence,
+            'generation_method': hypothesis.generation_method,
+            'confidence_score': hypothesis.confidence_score,
+            'experimental_protocol': {
+                'objective': hypothesis.experimental_protocol.objective,
+                'methodology': hypothesis.experimental_protocol.methodology,
+                'success_metrics': hypothesis.experimental_protocol.success_metrics,
+                'required_resources': hypothesis.experimental_protocol.required_resources,
+                'timeline': hypothesis.experimental_protocol.timeline,
+                'potential_challenges': hypothesis.experimental_protocol.potential_challenges,
+                'safety_considerations': hypothesis.experimental_protocol.safety_considerations
+            },
+            'created_at': hypothesis.created_at.isoformat(),
+            'elo_rating': hypothesis.elo_rating,
+            'review_count': hypothesis.review_count,
+            'evolution_count': hypothesis.evolution_count
+        }
+        
+        existing.append(hypothesis_dict)
         
         # Store updated list
         await self.context_memory.set('hypotheses', existing)

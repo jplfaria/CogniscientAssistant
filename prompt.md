@@ -57,6 +57,9 @@ fi
    - For setup tasks: Create directories, install dependencies, configure tools
    - For components: Follow exact behavioral specifications from specs/
    - For agents: Use BAML for all LLM interactions
+     - Content-generating methods MUST call BAML functions
+     - Mock implementations are only acceptable for data transformation
+     - Verify BAML integration before marking tasks complete
    - Always include safety checks and error handling
    - Break large tasks into atomic features (one testable unit per iteration)
 

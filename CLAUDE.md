@@ -78,6 +78,7 @@ The file `tests/integration/test_expectations.json` defines:
 - `must_pass`: Critical tests that block progress
 - `may_fail`: Tests allowed to fail (waiting for future components)
 - `real_llm_tests`: Optional tests that verify actual AI behavior
+- `must_use_baml`: Methods that MUST call BAML functions (Phase 1 improvement)
 
 ### BAML Mocking Requirements
 When adding new BAML functions or types:
@@ -86,6 +87,14 @@ When adding new BAML functions or types:
 3. **Create enum mocks** with MockEnumValue for enum types
 4. **Use side_effects** for complex mock behaviors
 5. See `docs/BAML_TESTING_STRATEGY.md` for detailed patterns
+
+### BAML Integration Requirements (Phase 1 Improvements)
+For agent implementations:
+1. **Content-generating methods MUST use BAML** - no hardcoded mock data
+2. **Check `must_use_baml` in test_expectations.json** - lists required BAML methods
+3. **Verify BAML integration before marking complete** - test with real calls
+4. **Mock implementations only for data transformation** - not content generation
+5. See `docs/IMPLEMENTATION_LOOP_IMPROVEMENTS.md` for rationale
 
 ## 🤖 Real LLM Testing
 

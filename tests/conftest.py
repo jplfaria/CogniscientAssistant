@@ -1,11 +1,17 @@
 """Shared test configuration and fixtures."""
 
 import sys
+import pytest
 from unittest.mock import MagicMock, AsyncMock
 
 # Mock BAML client to avoid import errors during testing
 def pytest_configure(config):
     """Configure pytest - runs before tests."""
+    # Check if we're running real LLM tests
+    if config.getoption("--real-llm"):
+        # Skip BAML mocking for real LLM tests
+        return
+    
     # Create mock for baml_client
     mock_baml_client = MagicMock()
     
