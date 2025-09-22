@@ -1,0 +1,17 @@
+{
+  "id": "b731ac5a-8a9e-4b0b-8a2d-219e0aeedafd",
+  "timestamp": "2025-07-23T18:17:25.982557+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "33e8e1f365727cc7822fc257dac7809d9591cbc0e0ff0bb504a0cdecca3b4e5c",
+  "metadata": {
+    "hypothesis_id": "d34ddc3f-5637-4b86-95b2-8b715480617d",
+    "summary": "Hypothesis addressing: Understand why ice floats on water",
+    "category": "mechanistic",
+    "generation_method": "assumptions",
+    "confidence_score": 0.8,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}
