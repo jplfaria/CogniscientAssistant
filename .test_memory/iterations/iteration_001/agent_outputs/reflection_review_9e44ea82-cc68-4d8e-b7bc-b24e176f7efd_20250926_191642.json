@@ -1,0 +1,49 @@
+{
+  "agent_type": "reflection",
+  "task_id": "review_9e44ea82-cc68-4d8e-b7bc-b24e176f7efd",
+  "timestamp": "2025-09-26T19:16:42.653527+00:00",
+  "results": {
+    "review": {
+      "id": "9e44ea82-cc68-4d8e-b7bc-b24e176f7efd",
+      "hypothesis_id": "ae785513-aea8-41a4-9f8d-03feaca5f14e",
+      "reviewer_agent_id": "reflection_agent_23d65006",
+      "review_type": "full",
+      "decision": "accept",
+      "scores": {
+        "correctness": 0.8,
+        "quality": 0.75,
+        "novelty": 0.85,
+        "safety": 0.95,
+        "feasibility": 0.7
+      },
+      "narrative_feedback": "This is a well-constructed hypothesis with strong scientific grounding.",
+      "key_strengths": [
+        "Strong theoretical foundation",
+        "Clear experimental protocol",
+        "Novel approach"
+      ],
+      "key_weaknesses": [
+        "Limited preliminary data",
+        "Resource intensive"
+      ],
+      "improvement_suggestions": [
+        "Gather more supporting evidence",
+        "Consider phased approach"
+      ],
+      "confidence_level": "high",
+      "assumption_decomposition": null,
+      "simulation_results": null,
+      "literature_citations": null,
+      "created_at": "2025-09-26T19:16:42.653527+00:00",
+      "time_spent_seconds": 0.00013518333435058594
+    },
+    "hypothesis_id": "ae785513-aea8-41a4-9f8d-03feaca5f14e",
+    "review_type": "full",
+    "reviewer_agent_id": "reflection_agent_23d65006"
+  },
+  "state_data": {
+    "agent_id": "reflection_agent_23d65006"
+  },
+  "version": 1,
+  "writer_id": "reflection_review_9e44ea82-cc68-4d8e-b7bc-b24e176f7efd"
+}

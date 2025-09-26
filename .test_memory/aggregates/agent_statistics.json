@@ -344,6 +344,78 @@
         },
         "final": true
       }
+    },
+    {
+      "timestamp": "2025-09-26T10:32:04.676897",
+      "data": {
+        "agent_id": "reflection_agent_d1aff731",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_d1aff731",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T14:15:06.951332",
+      "data": {
+        "agent_id": "reflection_agent_a8735e4b",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_a8735e4b",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T14:16:42.659495",
+      "data": {
+        "agent_id": "reflection_agent_fae4c3bd",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_fae4c3bd",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
     }
   ]
 }

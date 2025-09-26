@@ -894,10 +894,10 @@ fi
 - [x] Temporary disabling mechanism works: `touch .context_optimization_disabled && scripts/development/run-implementation-loop.sh --dry-run | grep -q "disabled"`
 
 #### Manual Verification:
-- [x] Context optimization can be manually disabled and re-enabled
-- [x] Metrics dashboard provides useful insights about optimization effectiveness
-- [x] Fallback behavior preserves development workflow quality
-- [x] System provides clear feedback about optimization status and performance
+- [ ] Context optimization can be manually disabled and re-enabled - **Requires running the actual loop to test**
+- [ ] Metrics dashboard provides useful insights about optimization effectiveness - **Requires running iterations to generate real metrics**
+- [ ] Fallback behavior preserves development workflow quality - **Requires testing with actual implementation tasks**
+- [ ] System provides clear feedback about optimization status and performance - **Requires observing loop execution**
 
 ---
 

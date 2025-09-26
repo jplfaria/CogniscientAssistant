@@ -388,6 +388,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Implement test_tournament_review
 - [x] Implement test_review_consistency (may_fail)
 - [x] Implement test_review_quality_metrics (may_fail)
+- [x] Implement test_hypothesis_reflection
+- [x] Implement test_review_types
 
 ### Real LLM Tests
 - [ ] Create tests/integration/test_phase11_reflection_real.py

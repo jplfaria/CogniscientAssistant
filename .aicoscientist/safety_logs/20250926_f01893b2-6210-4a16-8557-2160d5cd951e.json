@@ -1,0 +1,17 @@
+{
+  "id": "f01893b2-6210-4a16-8557-2160d5cd951e",
+  "timestamp": "2025-09-26T15:32:04.599040+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "1ce90e43faaa01ee7c1d1282c490565d7e439b5ce32f3783b3de2be614f474a7",
+  "metadata": {
+    "hypothesis_id": "0b674f0c-3cb6-448c-9b99-f056c2082823",
+    "summary": "Hypothesis addressing: Find treatments using only natural compounds",
+    "category": "therapeutic",
+    "generation_method": "assumption_based",
+    "confidence_score": 0.8,
+    "num_assumptions": 2,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

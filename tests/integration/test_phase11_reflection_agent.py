@@ -339,6 +339,87 @@ class TestReviewProcesses:
         assert review.narrative_feedback is not None
         assert len(review.improvement_suggestions) > 0
 
+    @pytest.mark.asyncio
+    async def test_review_types(self, setup_agents, sample_hypothesis):
+        """Test all six review types comprehensively."""
+        agents = setup_agents
+        reflection = agents['reflection']
+
+        # Dictionary to store results from each review type
+        review_results = {}
+
+        # Test all review types
+        review_types_to_test = [
+            (ReviewType.INITIAL, {}),
+            (ReviewType.FULL, {'use_tools': True}),
+            (ReviewType.DEEP_VERIFICATION, {'focus_areas': ['assumptions']}),
+            (ReviewType.OBSERVATION, {'known_observations': ['Observation 1', 'Observation 2']}),
+            (ReviewType.SIMULATION, {'experimental_focus': True}),
+            (ReviewType.TOURNAMENT, {'tournament_history': [], 'elo_rating': 1200})
+        ]
+
+        for review_type, context in review_types_to_test:
+            review = await reflection.review_hypothesis(
+                hypothesis=sample_hypothesis,
+                review_type=review_type,
+                context=context
+            )
+
+            # Store result
+            review_results[review_type] = review
+
+            # Common assertions for all review types
+            assert review is not None
+            assert review.hypothesis_id == sample_hypothesis.id
+            assert review.review_type == review_type
+            assert review.decision in [ReviewDecision.ACCEPT, ReviewDecision.REJECT, ReviewDecision.REVISE]
+            assert review.scores is not None
+            assert 0 <= review.scores.correctness <= 1
+            assert 0 <= review.scores.quality <= 1
+            assert 0 <= review.scores.novelty <= 1
+            assert 0 <= review.scores.safety <= 1
+            assert 0 <= review.scores.feasibility <= 1
+            assert review.narrative_feedback is not None
+            assert len(review.key_strengths) > 0
+            assert len(review.key_weaknesses) > 0
+            assert review.confidence_level in ["high", "medium", "low"]
+
+        # Verify each review type has specific characteristics
+
+        # Initial review should be quick
+        initial_review = review_results[ReviewType.INITIAL]
+        assert initial_review.time_spent_seconds is not None
+        assert initial_review.time_spent_seconds < 60  # Should be under 60 seconds
+
+        # Full review should be comprehensive
+        full_review = review_results[ReviewType.FULL]
+        assert len(full_review.narrative_feedback) >= len(initial_review.narrative_feedback)
+
+        # Deep verification should analyze assumptions
+        deep_review = review_results[ReviewType.DEEP_VERIFICATION]
+        # Check for assumption-related feedback
+        assert any('assumption' in weakness.lower() for weakness in deep_review.key_weaknesses) or \
+               any('assumption' in strength.lower() for strength in deep_review.key_strengths) or \
+               deep_review.assumption_decomposition is not None
+
+        # Observation review should assess explanatory power
+        obs_review = review_results[ReviewType.OBSERVATION]
+        assert obs_review.scores.quality >= 0  # Should have quality score
+
+        # Simulation review should evaluate mechanism
+        sim_review = review_results[ReviewType.SIMULATION]
+        assert sim_review.scores.feasibility >= 0  # Should assess feasibility
+
+        # Tournament review should be adaptive
+        tourn_review = review_results[ReviewType.TOURNAMENT]
+        assert len(tourn_review.improvement_suggestions) > 0
+
+        # Verify all review types were counted
+        stats = reflection.get_statistics()
+        assert stats['total_reviews'] >= 6
+        for review_type in ReviewType:
+            assert stats['reviews_by_type'][review_type] >= 1
+
 
 class TestReviewQuality:
     """Test review quality and consistency."""
@@ -438,6 +519,58 @@ class TestIntegrationWithOtherAgents:
 
         assert review is not None
         assert review.hypothesis_id == hypothesis.id
+
+    @pytest.mark.asyncio
+    async def test_hypothesis_reflection(self, setup_agents, sample_hypothesis):
+        """Test comprehensive hypothesis reflection through multiple review types."""
+        agents = setup_agents
+        reflection = agents['reflection']
+        context_memory = agents['context_memory']
+
+        # Store hypothesis for reflection
+        await context_memory.set(
+            key=f"hypothesis_{sample_hypothesis.id}",
+            value=sample_hypothesis.model_dump()
+        )
+
+        # Perform multiple review types to reflect on the hypothesis
+        review_types_for_reflection = [
+            ReviewType.INITIAL,
+            ReviewType.FULL,
+            ReviewType.DEEP_VERIFICATION
+        ]
+
+        reviews = []
+        for review_type in review_types_for_reflection:
+            review = await reflection.review_hypothesis(
+                hypothesis=sample_hypothesis,
+                review_type=review_type
+            )
+            reviews.append(review)
+
+            # Each review should provide reflection
+            assert review is not None
+            assert review.hypothesis_id == sample_hypothesis.id
+            assert review.review_type == review_type
+            assert len(review.key_strengths) > 0
+            assert len(review.key_weaknesses) > 0
+            assert len(review.improvement_suggestions) > 0
+
+        # Check that reviews build on each other (deeper analysis)
+        initial_review = reviews[0]
+        full_review = reviews[1]
+        deep_review = reviews[2]
+
+        # Full review should have more comprehensive feedback
+        assert len(full_review.narrative_feedback) >= len(initial_review.narrative_feedback)
+
+        # Deep review should provide assumption analysis
+        assert any('assumption' in sugg.lower() for sugg in deep_review.improvement_suggestions) or \
+               deep_review.assumption_decomposition is not None
+
+        # Verify all reviews were stored
+        stats = reflection.get_statistics()
+        assert stats['total_reviews'] >= 3
 
     @pytest.mark.asyncio
     async def test_supervisor_coordinated_review(self, setup_agents):
