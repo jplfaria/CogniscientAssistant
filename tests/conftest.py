@@ -107,7 +107,59 @@ def pytest_configure(config):
         return mock_hypothesis
     
     mock_b.GenerateHypothesis = AsyncMock(side_effect=generate_hypothesis_side_effect)
-    mock_b.EvaluateHypothesis = AsyncMock()
+
+    # Create mock review for EvaluateHypothesis
+    def evaluate_hypothesis_side_effect(*args, **kwargs):
+        from src.core.models import ReviewDecision, ReviewScores, ReviewType
+
+        # Check review type from kwargs
+        review_type = kwargs.get('review_type', ReviewType.INITIAL)
+
+        mock_review = MagicMock()
+        mock_review.decision = ReviewDecision.ACCEPT
+        mock_review.scores = ReviewScores(
+            correctness=0.8,
+            quality=0.75,
+            novelty=0.85,
+            safety=0.95,
+            feasibility=0.7
+        )
+        mock_review.narrative_feedback = "This is a well-constructed hypothesis with strong scientific grounding."
+        mock_review.key_strengths = ["Strong theoretical foundation", "Clear experimental protocol", "Novel approach"]
+        mock_review.key_weaknesses = ["Limited preliminary data", "Resource intensive"]
+        mock_review.improvement_suggestions = ["Gather more supporting evidence", "Consider phased approach"]
+        mock_review.confidence_level = "high"
+
+        # Add specific attributes based on review type
+        if review_type == ReviewType.DEEP_VERIFICATION:
+            from src.core.models import AssumptionDecomposition
+            mock_review.assumption_decomposition = [
+                AssumptionDecomposition(
+                    assumption="Core assumption 1",
+                    validity="valid",
+                    evidence="Strong supporting evidence",
+                    criticality="fundamental"
+                )
+            ]
+        else:
+            mock_review.assumption_decomposition = None
+
+        if review_type == ReviewType.SIMULATION:
+            from src.core.models import SimulationResults, FailurePoint
+            mock_review.simulation_results = SimulationResults(
+                mechanism_steps=["Step 1: Initial state", "Step 2: Apply intervention", "Step 3: Observe outcome"],
+                failure_points=[
+                    FailurePoint(step="Step 2", probability=0.2, impact="Medium")
+                ],
+                predicted_outcomes=["Expected outcome 1", "Expected outcome 2"]
+            )
+        else:
+            mock_review.simulation_results = None
+
+        mock_review.literature_citations = None
+        return mock_review
+
+    mock_b.EvaluateHypothesis = AsyncMock(side_effect=evaluate_hypothesis_side_effect)
     mock_b.PerformSafetyCheck = AsyncMock()
     mock_b.CompareHypotheses = AsyncMock()
     mock_b.EnhanceHypothesis = AsyncMock()

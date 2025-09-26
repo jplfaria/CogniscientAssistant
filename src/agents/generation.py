@@ -565,7 +565,17 @@ class GenerationAgent:
             'category': hypothesis.category.value,
             'assumptions': hypothesis.assumptions,
             'novelty_claim': hypothesis.novelty_claim,
-            'supporting_evidence': hypothesis.supporting_evidence,
+            'supporting_evidence': [
+                {
+                    'authors': citation.authors,
+                    'title': citation.title,
+                    'journal': citation.journal,
+                    'year': citation.year,
+                    'doi': citation.doi,
+                    'url': citation.url
+                } if hasattr(citation, 'authors') else citation
+                for citation in hypothesis.supporting_evidence
+            ],
             'generation_method': hypothesis.generation_method,
             'confidence_score': hypothesis.confidence_score,
             'experimental_protocol': {

@@ -1,0 +1,17 @@
+{
+  "id": "75a82e1a-b300-44e4-b6a2-2bf85c4aa012",
+  "timestamp": "2025-09-26T03:26:49.978577+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "fc4f33a7c8f4ded7717571470e2ee4b5dc671a881b623b76f67d38a93bc012e4",
+  "metadata": {
+    "hypothesis_id": "6a292317-5435-4c3f-aed0-d88d3db47c13",
+    "summary": "Test hypothesis for KIRA6 inhibition of IRE1\u03b1 in AML treatment",
+    "category": "therapeutic",
+    "generation_method": "literature_based",
+    "confidence_score": 0.85,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

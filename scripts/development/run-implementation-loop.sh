@@ -58,6 +58,68 @@ NC='\033[0m' # No Color
 MAX_ITERATIONS=100
 COVERAGE_THRESHOLD=80
 
+# Function to show optimization help (defined early for help flag)
+show_optimization_help() {
+    echo "🔧 Context Optimization Features:"
+    echo "================================="
+    echo ""
+    echo "Status checks:"
+    echo "  check_optimization_status     - Check if optimization is enabled"
+    echo "  show_optimization_report      - Show effectiveness metrics"
+    echo ""
+    echo "Manual controls:"
+    echo "  touch .context_optimization_disabled    - Temporarily disable optimization"
+    echo "  rm .context_optimization_disabled       - Re-enable optimization"
+    echo ""
+    echo "Log files:"
+    echo "  .context_optimization_metrics.log       - Detailed usage metrics"
+    echo "  optimized_prompt.md                     - Latest optimized prompt"
+}
+
+# Function to show optimization report (defined early for report flag)
+show_optimization_report() {
+    echo "📊 Context Optimization Report:"
+    echo "=============================="
+
+    if [ -f ".context_optimization_metrics.log" ]; then
+        python3 -c "
+import sys
+sys.path.append('src')
+try:
+    from utils.optimization_analytics import ContextOptimizationAnalytics
+    analytics = ContextOptimizationAnalytics()
+    print(analytics.generate_report())
+except ImportError:
+    print('Analytics module not available - install pandas and matplotlib for detailed reports')
+    print()
+" 2>/dev/null || {
+    echo "Basic metrics from log file:"
+    tail -n 10 .context_optimization_metrics.log
+}
+    else
+        echo "No metrics available yet. Run some iterations first."
+    fi
+}
+
+# Handle command line flags
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo -e "${GREEN}=== AI Co-Scientist Implementation Loop ===${NC}"
+    echo -e "${YELLOW}Usage: $0 [options]${NC}"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help                 Show this help message"
+    echo "  --optimization-report      Show context optimization effectiveness report"
+    echo ""
+    show_optimization_help
+    exit 0
+fi
+
+# Handle optimization report flag
+if [ "$1" = "--optimization-report" ]; then
+    show_optimization_report
+    exit 0
+fi
+
 echo -e "${GREEN}=== AI Co-Scientist Implementation Loop (Validated) ===${NC}"
 echo -e "${YELLOW}This implementation loop includes quality gates and validation.${NC}"
 echo -e "${CYAN}Each iteration must pass tests and coverage checks before proceeding.${NC}"
@@ -455,6 +517,66 @@ run_phase_integration_tests() {
     fi
 }
 
+# Function to validate context optimization effectiveness
+validate_context_optimization() {
+    echo "🔍 Validating context optimization effectiveness..." >&2
+
+    if [ ! -f "optimized_prompt.md" ]; then
+        echo "✅ No context optimization used this iteration" >&2
+        return 0
+    fi
+
+    # Check if optimization maintained quality
+    CURRENT_PHASE=$(detect_implementation_phase)
+    CURRENT_TASK=$(extract_current_task)
+
+    python3 -c "
+import sys
+sys.path.append('src')
+from utils.context_relevance import SpecificationRelevanceScorer
+
+scorer = SpecificationRelevanceScorer()
+selected_specs = []
+
+# Extract selected specs from optimized prompt
+with open('optimized_prompt.md', 'r') as f:
+    content = f.read()
+
+# Simple extraction - find spec patterns
+import re
+spec_matches = re.findall(r'### ([0-9]+[^\\n]*)', content)
+selected_specs = [match.lower().replace(' ', '-') + '.md' for match in spec_matches]
+
+validation = scorer.validate_context_selection('$CURRENT_TASK', selected_specs, $CURRENT_PHASE)
+
+if not validation['is_valid']:
+    print('VALIDATION_FAILED')
+    for issue in validation['critical_issues']:
+        print('Critical:', issue)
+    sys.exit(1)
+elif validation['warnings']:
+    print('VALIDATION_WARNINGS')
+    for warning in validation['warnings']:
+        print('Warning:', warning)
+else:
+    print('VALIDATION_PASSED')
+"
+
+    VALIDATION_RESULT=$?
+
+    if [ $VALIDATION_RESULT -ne 0 ]; then
+        echo "❌ Context optimization validation failed" >&2
+        echo "📋 Recommendation: Use full context for next iteration" >&2
+
+        # Create flag to disable optimization temporarily
+        touch .context_optimization_disabled
+        return 1
+    fi
+
+    echo "✅ Context optimization validation passed" >&2
+    return 0
+}
+
 # Function to run quality gates
 run_quality_gates() {
     local iteration=$1
@@ -527,7 +649,7 @@ run_quality_gates() {
         # 5. Run phase-specific integration tests
         run_phase_integration_tests
         local integration_result=$?
-        
+
         # Check if integration tests found implementation errors
         if [ $integration_result -eq 2 ]; then
             echo -e "\n${RED}❌ Implementation error detected in integration tests!${NC}"
@@ -535,12 +657,77 @@ run_quality_gates() {
             echo -e "${CYAN}Fix the implementation to match the expected behavior before continuing.${NC}"
             return 1  # Fail quality gates to stop the loop
         fi
+
+        # 6. Validate context optimization if used
+        validate_context_optimization
+        if [ $? -ne 0 ]; then
+            echo -e "\n${RED}❌ Context optimization validation failed!${NC}"
+            echo -e "${YELLOW}Context selection doesn't meet quality requirements.${NC}"
+            return 1
+        fi
     else
         echo -e "${CYAN}No Python files to test yet - skipping quality gates${NC}"
     fi
-    
+
+    echo "✅ All quality gates passed"
     return 0
 }
+
+# Function to check optimization status
+check_optimization_status() {
+    # Check if context optimization is temporarily disabled
+    if [ -f ".context_optimization_disabled" ]; then
+        # Get file modification time based on OS
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS uses stat -f %m
+            local disable_time=$(stat -f %m .context_optimization_disabled 2>/dev/null || echo 0)
+        else
+            # Linux uses stat -c %Y
+            local disable_time=$(stat -c %Y .context_optimization_disabled 2>/dev/null || echo 0)
+        fi
+        local current_time=$(date +%s)
+        local time_diff=$((current_time - disable_time))
+
+        # Re-enable after 30 minutes
+        if [ $time_diff -gt 1800 ]; then  # 30 minutes
+            echo "⏰ Re-enabling context optimization after cool-down period" >&2
+            rm -f .context_optimization_disabled
+            return 0
+        else
+            echo "❄️  Context optimization disabled for $((1800 - time_diff)) more seconds" >&2
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Function to log context optimization metrics
+log_context_optimization_metrics() {
+    local prompt_file="$1"
+    local iteration="$2"
+
+    # Create metrics log if it doesn't exist
+    if [ ! -f ".context_optimization_metrics.log" ]; then
+        echo "timestamp,iteration,prompt_file,line_count,spec_count,task_phase,optimization_used" > .context_optimization_metrics.log
+    fi
+
+    local line_count=$(wc -l < "$prompt_file")
+    local spec_count=$(grep -c "^### " "$prompt_file" 2>/dev/null || echo 0)
+    local current_phase=$(detect_implementation_phase)
+    local optimization_used=$([[ "$prompt_file" == "optimized_prompt.md" ]] && echo "true" || echo "false")
+
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ),$iteration,$prompt_file,$line_count,$spec_count,$current_phase,$optimization_used" >> .context_optimization_metrics.log
+
+    # Show metrics summary every 5 iterations
+    if [ $((iteration % 5)) -eq 0 ]; then
+        echo "📊 Context Optimization Metrics (last 5 iterations):" >&2
+        tail -n 5 .context_optimization_metrics.log | while IFS=',' read -r timestamp iter_num file lines specs phase opt_used; do
+            echo "  Iteration $iter_num: $lines lines, $specs specs, optimization=$opt_used" >&2
+        done
+    fi
+}
+
 
 # Track iterations
 ITERATION=0
@@ -563,14 +750,28 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     
     echo "🚀 Starting iteration $ITERATION with context optimization..."
 
-    # Attempt context optimization
+    # Check optimization status
+    OPTIMIZATION_ENABLED=false
+    if check_optimization_status; then
+        OPTIMIZATION_ENABLED=true
+    fi
+
+    # Attempt context optimization if enabled
     PROMPT_FILE="prompt.md"
-    if optimize_context_selection; then
+    if [ "$OPTIMIZATION_ENABLED" = true ] && optimize_context_selection; then
         PROMPT_FILE="optimized_prompt.md"
-        echo "✅ Using optimized context ($(cat optimized_prompt.md | wc -l) lines vs $(cat prompt.md | wc -l) lines)"
+
+        original_lines=$(wc -l < prompt.md)
+        optimized_lines=$(wc -l < optimized_prompt.md)
+        reduction_percent=$(( (original_lines - optimized_lines) * 100 / original_lines ))
+
+        echo "✅ Using optimized context: $optimized_lines lines (${reduction_percent}% reduction)"
     else
         echo "⚠️  Using full context as fallback"
     fi
+
+    # Log metrics
+    log_context_optimization_metrics "$PROMPT_FILE" "$ITERATION"
 
     echo "🤖 Invoking Claude with implementation prompt..."
     claude -p --dangerously-skip-permissions "$(cat "$PROMPT_FILE")" 2>&1 | tee "$TEMP_OUTPUT"

@@ -356,3 +356,72 @@ class SpecificationRelevanceScorer:
             return 0.1 * len(included_phase_specs)
         else:
             return 0.0
+
+    def validate_context_selection(self, task: str, selected_specs: List[str],
+                                 current_phase: int) -> Dict[str, any]:
+        """Validate that context selection meets quality requirements."""
+
+        validation_result = {
+            'is_valid': True,
+            'warnings': [],
+            'critical_issues': [],
+            'confidence_adjustment': 0.0
+        }
+
+        # Check critical spec inclusion
+        missing_critical = set(self.critical_specs) - set(selected_specs)
+        if missing_critical:
+            validation_result['critical_issues'].append(
+                f"Missing critical specs: {missing_critical}"
+            )
+            validation_result['is_valid'] = False
+
+        # Check phase-appropriate specs
+        phase_requirements = self.get_phase_requirements(current_phase)
+        for requirement in phase_requirements:
+            if not any(req in spec for spec in selected_specs for req in requirement['keywords']):
+                validation_result['warnings'].append(
+                    f"Phase {current_phase} may need {requirement['spec_type']} specification"
+                )
+                validation_result['confidence_adjustment'] -= 0.1
+
+        # Check minimum specs threshold
+        if len(selected_specs) < 3:
+            validation_result['warnings'].append(
+                "Very few specifications selected - may lack context"
+            )
+            validation_result['confidence_adjustment'] -= 0.2
+
+        # Check maximum specs threshold
+        if len(selected_specs) > 10:
+            validation_result['warnings'].append(
+                f"Too many specifications selected ({len(selected_specs)}) - may reduce optimization benefit"
+            )
+            validation_result['confidence_adjustment'] -= 0.1
+
+        return validation_result
+
+    def get_phase_requirements(self, phase: int) -> List[Dict[str, any]]:
+        """Get specification requirements for specific phases."""
+
+        phase_map = {
+            1: [{'spec_type': 'system-setup', 'keywords': ['setup', 'structure', 'dependencies']}],
+            2: [{'spec_type': 'core-models', 'keywords': ['model', 'dataclass', 'structure']}],
+            3: [{'spec_type': 'task-queue', 'keywords': ['queue', 'task', 'worker']}],
+            4: [{'spec_type': 'context-memory', 'keywords': ['memory', 'context', 'storage']}],
+            5: [{'spec_type': 'safety-framework', 'keywords': ['safety', 'validation', 'check']}],
+            6: [{'spec_type': 'llm-abstraction', 'keywords': ['llm', 'provider', 'abstraction']}],
+            7: [{'spec_type': 'baml-infrastructure', 'keywords': ['baml', 'function', 'client']}],
+            8: [{'spec_type': 'supervisor-agent', 'keywords': ['supervisor', 'orchestration']}],
+            9: [{'spec_type': 'generation-agent', 'keywords': ['generation', 'hypothesis']}],
+            10: [{'spec_type': 'generation-agent', 'keywords': ['generation', 'hypothesis']}],
+            11: [{'spec_type': 'reflection-agent', 'keywords': ['reflection', 'review', 'critique']}],
+            12: [{'spec_type': 'ranking-agent', 'keywords': ['ranking', 'tournament']}],
+            13: [{'spec_type': 'evolution-agent', 'keywords': ['evolution', 'mutation']}],
+            14: [{'spec_type': 'proximity-agent', 'keywords': ['proximity', 'clustering']}],
+            15: [{'spec_type': 'meta-review-agent', 'keywords': ['meta-review', 'synthesis']}],
+            16: [{'spec_type': 'integration', 'keywords': ['integration', 'coordination']}],
+            17: [{'spec_type': 'validation', 'keywords': ['validation', 'testing', 'final']}]
+        }
+
+        return phase_map.get(phase, [])

@@ -41,6 +41,309 @@
         },
         "final": true
       }
+    },
+    {
+      "timestamp": "2025-09-25T22:26:50.040845",
+      "data": {
+        "agent_id": "reflection_agent_230dd748",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_230dd748",
+          "total_reviews": 0,
+          "reviews_by_type": {
+            "initial": 0,
+            "full": 0,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {}
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:37:00.810551",
+      "data": {
+        "agent_id": "reflection_agent_1f82c57d",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_1f82c57d",
+          "total_reviews": 0,
+          "reviews_by_type": {
+            "initial": 0,
+            "full": 0,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {}
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:38:32.696703",
+      "data": {
+        "agent_id": "reflection_agent_227cdceb",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_227cdceb",
+          "total_reviews": 0,
+          "reviews_by_type": {
+            "initial": 0,
+            "full": 0,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {}
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:39:32.898765",
+      "data": {
+        "agent_id": "reflection_agent_14a8d215",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_14a8d215",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:39:57.274871",
+      "data": {
+        "agent_id": "reflection_agent_08f8a7d0",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_08f8a7d0",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:40:11.449113",
+      "data": {
+        "agent_id": "reflection_agent_832b7d1b",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_832b7d1b",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:40:31.195330",
+      "data": {
+        "agent_id": "reflection_agent_f076c478",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_f076c478",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:40:45.517902",
+      "data": {
+        "agent_id": "reflection_agent_e9d4bbfe",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_e9d4bbfe",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-25T22:41:16.416211",
+      "data": {
+        "agent_id": "reflection_agent_adb45f47",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_adb45f47",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T10:09:28.938769",
+      "data": {
+        "agent_id": "reflection_agent_db988eb2",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_db988eb2",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T10:30:35.552988",
+      "data": {
+        "agent_id": "reflection_agent_ae7f4e23",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_ae7f4e23",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T10:31:25.935794",
+      "data": {
+        "agent_id": "reflection_agent_d2c54747",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_d2c54747",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
+    },
+    {
+      "timestamp": "2025-09-26T10:31:35.738179",
+      "data": {
+        "agent_id": "reflection_agent_cc7d8d65",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_cc7d8d65",
+          "total_reviews": 2,
+          "reviews_by_type": {
+            "initial": 1,
+            "full": 1,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {
+            "initial": 0.8099999999999999,
+            "full": 0.8099999999999999
+          }
+        },
+        "final": true
+      }
     }
   ]
 }
