@@ -377,6 +377,11 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Add tournament review
 - [x] Write tests for tournament review
 
+### BAML Integration
+- [x] Add generate_review method for BAML content generation
+- [x] Add generate_critique method for BAML content generation
+- [x] Write tests for BAML integration methods
+
 ### Phase 11 Integration Tests
 - [x] Create tests/integration/test_phase11_reflection_agent.py
 - [x] Implement test_reflection_agent_initialization
@@ -388,6 +393,12 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Implement test_tournament_review
 - [x] Implement test_review_consistency (may_fail)
 - [x] Implement test_review_quality_metrics (may_fail)
+
+### Cross-Component Tests
+- [x] Create tests/integration/test_cross_component_workflow.py
+- [x] Implement test_hypothesis_generation
+- [x] Implement test_hypothesis_reflection
+- [x] Implement test_review_types
 
 ### Real LLM Tests
 - [ ] Create tests/integration/test_phase11_reflection_real.py

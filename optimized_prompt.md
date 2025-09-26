@@ -1256,538 +1256,566 @@ Expected behavior under normal conditions:
 - Maintain >90% consistency in repeated evaluations
 ---
 
-### 005 supervisor agent
+### 010 evolution agent
 
-# Supervisor Agent Specification
+# Evolution Agent Specification
 
 **Type**: Agent  
-**Interactions**: All Specialized Agents, Context Memory, Task Queue, Natural Language Interface
+**Interactions**: Supervisor Agent, Ranking Agent, Meta-review Agent, Context Memory, Web Search Interface
 
 ## Prerequisites
-- Read: System Overview Specification
-- Read: Multi-Agent Architecture Specification
-- Understand: Task queue and asynchronous execution concepts
+- Read: 009-ranking-agent.md - Tournament system and Elo ratings
+- Read: 012-meta-review-agent.md - Feedback synthesis (when available)
+- Understand: Hypothesis structure and tournament dynamics
 
-## Purpose
+## Overview
 
-The Supervisor Agent serves as the central orchestrator of the AI Co-Scientist system, managing resource allocation, task distribution, and strategic coordination of all specialized agents to achieve research goals efficiently and reliably.
+The Evolution Agent continuously refines and improves top-ranked hypotheses through various evolutionary strategies. It creates new hypothesis variants that must compete in tournaments, enabling the system to iteratively improve research quality through natural selection of ideas.
 
 ## Core Behaviors
 
-### Task Queue Management
+### Evolution Strategies
 
-The Supervisor Agent manages all task execution through:
+The Evolution Agent MUST implement four primary evolution strategies:
 
-- **Task Creation**: Converts research plans into discrete, executable tasks
-- **Queue Prioritization**: Orders tasks based on urgency, dependencies, and strategic importance
-- **Worker Assignment**: Matches available workers with queued tasks
-- **Progress Tracking**: Monitors task completion and system throughput
-- **Queue Optimization**: Adjusts priorities based on system state
+1. **Enhancement**
+   - Identify weaknesses in existing hypotheses
+   - Search literature for supporting evidence
+   - Improve coherence, practicality, and feasibility
+   - Address invalid assumptions and reasoning gaps
 
-### Resource Allocation
+2. **Combination**
+   - Merge best aspects of multiple top-ranked hypotheses
+   - Create synthetic hypotheses that integrate complementary ideas
+   - Preserve strengths while mitigating weaknesses
 
-The Supervisor Agent distributes computational resources by:
+3. **Simplification**
+   - Reduce hypothesis complexity for easier testing
+   - Extract core insights from complex proposals
+   - Improve clarity without losing essential content
 
-- **Budget Assignment**: Allocates compute time to each task
-- **Worker Pool Management**: Maintains optimal number of active workers
-- **Dynamic Scaling**: Adjusts resources based on workload
-- **Fair Distribution**: Ensures all agents receive necessary resources
-- **Cost Monitoring**: Tracks resource consumption against limits
+4. **Out-of-Box Thinking**
+   - Generate divergent variations of existing hypotheses
+   - Apply analogical reasoning from other domains
+   - Explore unconventional approaches inspired by top performers
 
-### Strategic Orchestration
+### Hypothesis Protection
 
-The Supervisor Agent coordinates system operations through:
-
-- **Agent Weighting**: Assigns execution probabilities to agents based on effectiveness
-- **Statistical Analysis**: Calculates metrics to inform decisions
-- **Adaptive Strategy**: Modifies orchestration based on progress
-- **Termination Detection**: Recognizes when research goals are achieved
-- **Recovery Planning**: Handles failures and system restarts
+The Evolution Agent MUST:
+- Create NEW hypothesis instances rather than modifying existing ones
+- Preserve the integrity of tournament-validated hypotheses
+- Ensure all evolved hypotheses compete for ranking
 
 ## Inputs
 
-### Research Plan Configuration
-```
-ResearchPlan:
-  goal: string (natural language research objective)
-  constraints: 
-    max_hypotheses: integer
-    time_limit: duration
-    resource_budget: float
-  preferences:
-    focus_areas: list[string]
-    excluded_topics: list[string]
-```
-
-### System Feedback
-```
-SystemMetrics:
-  hypothesis_count: integer
-  pending_reviews: integer
-  tournament_progress: float (0.0-1.0)
-  agent_effectiveness: map[agent_name, float]
-  resource_utilization: float (0.0-1.0)
-```
-
-### Agent Results
-```
-TaskResult:
+```yaml
+evolution_task:
   task_id: string
-  agent_type: string
-  status: enum (completed, failed, timeout)
-  output: any (agent-specific)
-  resource_consumed: float
-  execution_time: duration
+  strategy: enum[enhancement, combination, simplification, out_of_box]
+  source_hypotheses:
+    - hypothesis_id: string
+      elo_rating: number
+      tournament_wins: number
+      tournament_losses: number
+      content:
+        summary: string
+        full_description: string
+        experimental_protocol: string
+        testability_score: number
+  meta_review_feedback: optional
+    synthesis: string
+    improvement_suggestions: list[string]
+  context:
+    research_goal: string
+    domain_constraints: list[string]
+    existing_hypothesis_count: number
 ```
 
 ## Outputs
 
-### Task Assignments
-```
-TaskAssignment:
+```yaml
+evolved_hypothesis:
   task_id: string
-  agent_type: string
-  priority: enum (critical, high, normal, low)
-  parameters: map[string, any]
-  resource_budget: float
-  timeout: duration
-```
-
-### System State Updates
-```
-OrchestrationState:
-  timestamp: datetime
-  active_tasks: list[task_id]
-  agent_weights: map[agent_name, float]
-  strategic_focus: string
-  termination_probability: float
-```
-
-### Resource Allocations
-```
-ResourceAllocation:
-  worker_count: integer
-  agent_budgets: map[agent_name, float]
-  queue_depth_limits: map[priority, integer]
-  scaling_directive: enum (scale_up, maintain, scale_down)
+  parent_hypotheses: list[string]  # IDs of source hypotheses
+  evolution_strategy: string
+  hypothesis:
+    summary: string
+    full_description: string
+    experimental_protocol: string
+    key_improvements: list[string]
+    evolution_rationale: string
+  metadata:
+    created_timestamp: datetime
+    evolution_path: string  # e.g., "enhancement->combination"
 ```
 
 ## Behavioral Contracts
 
-### Task Execution Guarantees
+### Enhancement Strategy
+The agent MUST:
+- Identify at least one specific weakness in the source hypothesis
+- Provide literature-backed improvements when using web search
+- Maintain the core research direction while addressing gaps
+- Document the enhancement rationale
 
-The Supervisor Agent MUST:
-- Ensure every created task is eventually assigned or explicitly cancelled
-- Prevent task starvation through fair queuing algorithms
-- Maintain task ordering constraints and dependencies
-- Handle task failures with configurable retry policies
-- Complete critical tasks before lower priority work
+### Combination Strategy
+The agent MUST:
+- Select 2-5 complementary hypotheses for combination
+- Identify non-conflicting elements from each source
+- Create a coherent merged hypothesis, not a simple concatenation
+- Explain how the combination improves upon individual components
 
-### Resource Management Rules
+### Simplification Strategy
+The agent MUST:
+- Reduce experimental complexity by at least 30%
+- Maintain the core scientific insight
+- Improve testability score
+- Document what was removed and why
 
-The Supervisor Agent MUST:
-- Never exceed total resource budget constraints
-- Allocate minimum viable resources to each active agent
-- Reclaim resources from failed or timed-out tasks
-- Balance resource allocation based on measured effectiveness
-- Maintain resource reserves for critical operations
-
-### State Persistence Requirements
-
-The Supervisor Agent MUST:
-- Write comprehensive state to Context Memory every N minutes
-- Include sufficient information for complete system recovery
-- Preserve in-flight task state across restarts
-- Maintain audit trail of all orchestration decisions
-- Enable rollback to previous stable states
+### Out-of-Box Strategy
+The agent MUST:
+- Generate variations that differ substantially from source
+- Apply cross-domain analogies when possible
+- Maintain scientific plausibility
+- Explain the divergent thinking approach used
 
 ## Interaction Protocols
 
-### With Specialized Agents
+### With Ranking Agent
+1. Receive top-ranked hypotheses (typically Elo rating > 1200)
+2. Access tournament performance data
+3. Submit evolved hypotheses for new tournament evaluation
 
-Communication follows this pattern:
+### With Meta-review Agent
+1. Receive synthesis of feedback patterns
+2. Incorporate improvement suggestions into evolution process
+3. Align evolution strategies with identified research gaps
 
-1. **Assignment Phase**
-   - Supervisor creates task with specific parameters
-   - Task placed in appropriate queue
-   - Worker process receives task from queue
-   - Agent instantiated with task context
-
-2. **Execution Phase**
-   - Agent operates autonomously within budget
-   - Progress updates written to Context Memory
-   - Resource consumption tracked continuously
-   - Timeout enforcement by Supervisor
-
-3. **Completion Phase**
-   - Agent returns results to Context Memory
-   - Supervisor notified of task completion
-   - Resources reclaimed and reallocated
-   - Follow-up tasks created if needed
+### With Web Search Interface
+1. Query literature for enhancement evidence
+2. Find analogies for out-of-box thinking
+3. Validate feasibility of evolved approaches
 
 ### With Context Memory
+1. Store evolution lineage for each hypothesis
+2. Track which strategies produce successful variants
+3. Access full tournament state and hypothesis repository
 
-The Supervisor Agent uses Context Memory for:
+## Examples
 
-- **Statistical Monitoring**: Regular calculation and storage of system metrics
-- **Decision History**: Recording rationale for orchestration choices
-- **Recovery State**: Snapshots enabling restart from any point
-- **Feedback Integration**: Accessing Meta-Review Agent insights
-
-### With Task Queue
-
-Queue operations include:
-
-- **Enqueue**: Adding tasks with priority and metadata
-- **Dequeue**: Retrieving highest priority available task
-- **Requeue**: Returning failed tasks with updated priority
-- **Query**: Examining queue state for planning
-- **Purge**: Removing obsolete or cancelled tasks
-
-## Decision-Making Behaviors
-
-### Agent Selection Strategy
-
-The Supervisor determines which agents to activate based on:
-
-1. **Current System State**
-   - Number of hypotheses at each stage
-   - Distribution of hypothesis quality scores
-   - Pending work in each category
-   - Recent agent performance metrics
-
-2. **Strategic Weights**
-   - Historical effectiveness of each agent type
-   - Meta-review feedback on agent contributions
-   - Research goal alignment scores
-   - Resource efficiency ratios
-
-3. **Sampling Algorithm**
-   - Weighted random selection from agent pool
-   - Minimum activation thresholds
-   - Burst prevention mechanisms
-   - Load balancing constraints
-
-### Termination Detection
-
-The Supervisor recognizes completion through:
-
-- **Goal Achievement**: Research objectives satisfied
-- **Convergence Detection**: No further improvements possible
-- **Resource Exhaustion**: Budget or time limits reached
-- **Quality Threshold**: Sufficient high-quality hypotheses generated
-- **User Intervention**: Explicit termination request
-
-### Failure Handling
-
-When failures occur, the Supervisor:
-
-1. **Isolates Impact**: Prevents cascade failures
-2. **Logs Context**: Records detailed failure information
-3. **Attempts Recovery**: Retries with adjusted parameters
-4. **Escalates Gracefully**: Notifies user of persistent issues
-5. **Maintains Progress**: Preserves all successful work
-
-## Performance Monitoring
-
-### System Metrics
-
-The Supervisor tracks:
-
-- **Throughput Metrics**
-  - Tasks completed per minute
-  - Average task execution time
-  - Queue depth over time
-  - Worker utilization rates
-
-- **Quality Metrics**
-  - Hypothesis improvement rates
-  - Review coverage percentages
-  - Tournament completion speed
-  - Meta-review satisfaction scores
-
-- **Efficiency Metrics**
-  - Resource consumption per hypothesis
-  - Agent effectiveness ratios
-  - Overhead percentage
-  - Scaling efficiency
-
-### Adaptive Behaviors
-
-Based on metrics, the Supervisor:
-
-- **Adjusts Priorities**: Reorders tasks for optimal flow
-- **Reallocates Resources**: Shifts budget to effective agents
-- **Modifies Strategy**: Changes agent weights dynamically
-- **Scales Operations**: Adds/removes workers as needed
-- **Optimizes Queues**: Adjusts depth limits and timeouts
-
-## Boundary Conditions
-
-### Operational Limits
-
-The Supervisor operates within:
-
-- **Worker Count**: Maximum concurrent processes (configurable)
-- **Memory Budget**: Total Context Memory allocation
-- **API Rate Limits**: External service constraints
-- **Compute Budget**: Total resource allocation
-- **Time Constraints**: Maximum operation duration
-
-### Error Boundaries
-
-The Supervisor handles:
-
-- **Agent Failures**: Individual agent crashes or timeouts
-- **Resource Exhaustion**: Out of memory or compute
-- **Queue Overflow**: Too many pending tasks
-- **External Failures**: Tool or service unavailability
-- **State Corruption**: Invalid Context Memory data
-
-## Example Scenarios
-
-### Scenario 1: Initial Research Phase
-
-```
-Input: Research goal "Find novel antimicrobial resistance mechanisms"
-Behavior:
-1. Parse goal into initial generation tasks
-2. Weight Generation Agent highly (0.7)
-3. Create 10 parallel generation tasks
-4. Monitor hypothesis quality distribution
-5. Transition to reflection phase when 50 hypotheses generated
-```
-
-### Scenario 2: Tournament Coordination
-
-```
-State: 100 hypotheses awaiting ranking
-Behavior:
-1. Activate Proximity Agent for clustering
-2. Create tournament brackets based on clusters
-3. Assign Ranking Agents to parallel matches
-4. Monitor Elo rating convergence
-5. Schedule detailed debates for top 20%
-```
-
-### Scenario 3: Resource Pressure
-
-```
-Condition: 80% resource utilization, growing queue
-Behavior:
-1. Analyze agent effectiveness metrics
-2. Reduce weight of least effective agents
-3. Increase priority of high-impact tasks
-4. Defer non-critical operations
-5. Request additional resources if available
-```
-
-## Error Recovery Behaviors
-
-### Agent Chain Failures
-
-When a sequence of agents fails (e.g., Generation → Reflection → Ranking):
-
+### Example 1: Enhancement Strategy
 ```yaml
-chain_failure_recovery:
-  detection:
-    - "Monitor task dependencies"
-    - "Track failure propagation"
-    - "Identify affected downstream tasks"
-    
-  immediate_actions:
-    - "Pause dependent task creation"
-    - "Mark in-flight dependent tasks as 'at-risk'"
-    - "Checkpoint current system state"
-    
-  recovery_strategy:
-    partial_results_available:
-      - "Process completed portions"
-      - "Skip failed agent in chain"
-      - "Route to alternative workflow"
-      
-    no_partial_results:
-      - "Rollback to last checkpoint"
-      - "Retry entire chain with reduced scope"
-      - "Escalate to user if critical"
+Input:
+  strategy: enhancement
+  source_hypothesis:
+    summary: "JAK inhibitors for AML treatment"
+    weakness: "Limited evidence for combination therapy"
+
+Output:
+  evolved_hypothesis:
+    summary: "JAK inhibitors combined with BCL-2 inhibitors for AML"
+    key_improvements:
+      - "Added synergistic BCL-2 targeting based on recent Nature paper"
+      - "Specified biomarker-driven patient selection criteria"
+    evolution_rationale: "Literature search revealed promising JAK/BCL-2 combination data in preclinical AML models"
 ```
 
-### Resource Exhaustion Recovery
-
+### Example 2: Combination Strategy
 ```yaml
-resource_exhaustion_handling:
-  memory_exhaustion:
-    - "Trigger emergency archival"
-    - "Pause non-critical agents"
-    - "Complete critical tasks only"
-    - "Notify user of degraded mode"
-    
-  compute_exhaustion:
-    - "Reduce parallelism to 1"
-    - "Increase all timeouts by 2x"
-    - "Skip optional processing steps"
-    - "Focus on result compilation"
-    
-  queue_overflow:
-    - "Reject new low-priority tasks"
-    - "Merge duplicate requests"
-    - "Increase worker pool if possible"
-    - "Apply backpressure to generators"
+Input:
+  strategy: combination
+  source_hypotheses:
+    - "STING pathway activation for liver fibrosis"
+    - "Macrophage reprogramming in fibrotic disease"
+
+Output:
+  evolved_hypothesis:
+    summary: "STING-mediated macrophage reprogramming for liver fibrosis reversal"
+    key_improvements:
+      - "Integrated STING activation with macrophage targeting"
+      - "Combined molecular mechanism with cellular approach"
+    evolution_rationale: "STING pathway can drive macrophage polarization, creating synergy"
 ```
 
-### Cascade Failure Prevention
-
+### Example 3: Simplification Strategy
 ```yaml
-cascade_prevention:
-  circuit_breaker:
-    failure_threshold: "3 failures in 5 minutes"
-    break_duration: "60 seconds"
-    half_open_test: "Single task probe"
-    
-  bulkhead_isolation:
-    - "Separate queues per agent type"
-    - "Independent resource pools"
-    - "Failure domain boundaries"
-    
-  timeout_escalation:
-    - "Increase timeouts on retries"
-    - "Skip timeout-prone operations"
-    - "Prefer partial over no results"
+Input:
+  strategy: simplification
+  source_hypothesis:
+    summary: "Multi-omics approach with proteomics, metabolomics, and transcriptomics for AMR detection"
+
+Output:
+  evolved_hypothesis:
+    summary: "Targeted metabolomics panel for rapid AMR detection"
+    key_improvements:
+      - "Focused on metabolomics alone for faster results"
+      - "Reduced from 3 platforms to 1"
+      - "Decreased time to result from 72h to 6h"
+    evolution_rationale: "Metabolomics showed strongest signal in preliminary data"
 ```
 
-## Conflict Resolution Protocols
-
-### Concurrent Task Conflicts
-
+### Example 4: Out-of-Box Strategy
 ```yaml
-task_conflict_resolution:
-  duplicate_task_detection:
-    - "Hash task parameters"
-    - "Check for in-flight duplicates"
-    - "Merge results if both complete"
-    - "Cancel redundant execution"
-    
-  resource_contention:
-    priority_rules:
-      1: "Safety-critical tasks"
-      2: "User-initiated tasks"
-      3: "High-Elo hypothesis tasks"
-      4: "Standard workflow tasks"
-      5: "Background optimization"
-      
-    starvation_prevention:
-      - "Age-based priority boost"
-      - "Guaranteed slots per priority"
-      - "Fairness queue rotation"
+Input:
+  strategy: out_of_box
+  source_hypothesis:
+    summary: "Small molecule inhibitors for antimicrobial resistance"
+
+Output:
+  evolved_hypothesis:
+    summary: "Engineered bacteriophage cocktails with CRISPR payloads for precision AMR treatment"
+    key_improvements:
+      - "Shifted from chemical to biological intervention"
+      - "Applied synthetic biology approach"
+      - "Enabled strain-specific targeting"
+    evolution_rationale: "Applied viral engineering concepts from cancer immunotherapy to infectious disease"
 ```
 
-### State Synchronization Conflicts
+## Performance Characteristics
 
-```yaml
-state_conflict_handling:
-  context_memory_conflicts:
-    - "Version number comparison"
-    - "Timestamp-based ordering"
-    - "Merge non-conflicting updates"
-    - "Queue conflicts for resolution"
-    
-  statistic_update_conflicts:
-    - "Aggregate concurrent updates"
-    - "Apply updates in timestamp order"
-    - "Recalculate derived metrics"
-    - "Log conflict occurrences"
-    
-  agent_weight_conflicts:
-    - "Lock during update"
-    - "Apply incremental changes"
-    - "Bounded adjustment per cycle"
-    - "Convergence damping factor"
+The Evolution Agent SHOULD:
+- Process evolution tasks within 60 seconds
+- Generate hypotheses that achieve >20% tournament win rate
+- Produce at least 1 successful variant per 5 attempts
+- Adapt strategy selection based on tournament feedback
+
+## Error Handling
+
+The agent MUST handle:
+- Insufficient source hypotheses for combination (fallback to enhancement)
+- Web search failures (proceed with cached knowledge)
+- Invalid evolution strategies (log error, skip task)
+- Hypothesis generation failures (report to Supervisor, retry with different strategy)
+---
+
+### 012 meta review agent
+
+# Meta-review Agent Specification
+
+**Type**: Agent  
+**Interactions**: Supervisor Agent, Context Memory, All Other Agents (via feedback)
+
+## Prerequisites
+- Read: Reflection Agent Specification (for understanding review types)
+- Read: Ranking Agent Specification (for tournament debate patterns)
+- Understand: Feedback propagation concepts from System Overview
+
+## Overview
+
+The Meta-review Agent synthesizes insights from all reviews and tournament debates, identifying recurring patterns and generating feedback to improve the system's performance in subsequent iterations. It also produces comprehensive research overviews and identifies potential research contacts. This agent enables the AI Co-Scientist's continuous self-improvement without requiring back-propagation or fine-tuning.
+
+## Core Behaviors
+
+### Pattern Synthesis
+- Analyzes all review outputs from Reflection Agent
+- Examines tournament debate transcripts from Ranking Agent
+- Identifies recurring themes, critiques, and recommendations
+- Detects systematic issues across multiple hypotheses
+- Recognizes successful patterns that lead to high-quality hypotheses
+
+### Feedback Generation
+- Creates actionable feedback for each agent type
+- Tailors feedback to agent-specific responsibilities
+- Prioritizes critical issues that affect hypothesis quality
+- Balances comprehensive coverage with concise recommendations
+- Ensures feedback improves future iterations without overfitting
+
+### Research Overview Generation
+- Synthesizes top-ranked hypotheses into coherent research directions
+- Organizes hypotheses by thematic areas
+- Justifies importance of each research direction
+- Suggests specific experiments within each area
+- Formats output according to specified templates (e.g., NIH Specific Aims)
+
+### Research Contact Identification
+- Analyzes literature references from hypothesis generation
+- Identifies domain experts relevant to research hypotheses
+- Provides reasoning for each suggested contact
+- Groups contacts by expertise area
+- Includes contact information when available in public sources
+
+## Inputs
+
+### From Supervisor Agent
+```
+Input Structure:
+  - task_type: "generate_meta_review" | "create_research_overview"
+  - iteration_number: integer
+  - research_goal: string
+  - target_format: string (optional, e.g., "NIH_specific_aims")
+  - feedback_config:
+    - include_all_agents: boolean
+    - priority_threshold: float
+    - synthesis_depth: "summary" | "detailed"
 ```
 
-### Worker Assignment Conflicts
-
-```yaml
-worker_conflict_resolution:
-  double_assignment_prevention:
-    - "Atomic worker claiming"
-    - "Lease-based assignment"
-    - "Heartbeat confirmation"
-    - "Automatic lease expiry"
-    
-  worker_failure_handling:
-    - "Detect missing heartbeats"
-    - "Reclaim abandoned tasks"
-    - "Reassign to healthy workers"
-    - "Update task history"
+### From Context Memory
+```
+Retrieved Data:
+  - reflection_reviews: List[
+      - hypothesis_id: string
+      - review_type: string
+      - review_content: string
+      - identified_issues: List[string]
+      - strengths: List[string]
+      - recommendations: List[string]
+    ]
+  - tournament_debates: List[
+      - match_id: string
+      - hypothesis_1_id: string
+      - hypothesis_2_id: string
+      - debate_transcript: string
+      - decision_rationale: string
+      - key_arguments: List[string]
+    ]
+  - hypothesis_rankings: List[
+      - hypothesis_id: string
+      - elo_rating: float
+      - rank_position: integer
+    ]
+  - previous_meta_reviews: List[meta_review] (if any)
 ```
 
-## Temporal Behavior Specifications
+## Outputs
 
-### Periodic Operations
-
-```yaml
-supervisor_timing:
-  statistics_calculation:
-    interval: "Every iteration completion"
-    timeout: "10 seconds"
-    includes:
-      - "Hypothesis count by state"
-      - "Agent effectiveness metrics"
-      - "Resource utilization"
-      - "Progress toward termination"
-      
-  checkpoint_creation:
-    interval: "Every 5 minutes OR 50 tasks"
-    timeout: "30 seconds"
-    includes:
-      - "Complete task queue state"
-      - "Agent weight history"
-      - "Resource allocations"
-      - "In-flight task status"
-      
-  health_monitoring:
-    interval: "Every 30 seconds"
-    timeout: "5 seconds"
-    checks:
-      - "Worker process health"
-      - "Queue depth trends"
-      - "Memory usage patterns"
-      - "Error rate thresholds"
+### Meta-review Critique
+```
+Critique Structure:
+  - synthesis_summary: string
+  - common_patterns: List[
+      - pattern_type: string
+      - frequency: integer
+      - description: string
+      - impact_on_quality: "high" | "medium" | "low"
+      - examples: List[hypothesis_id]
+    ]
+  - agent_specific_feedback:
+    - generation_agent:
+      - strengths: List[string]
+      - improvement_areas: List[string]
+      - specific_recommendations: List[string]
+    - reflection_agent:
+      - missed_issues: List[string]
+      - review_consistency: float
+      - suggested_focus_areas: List[string]
+    - ranking_agent:
+      - debate_quality: string
+      - ranking_consistency: float
+      - improvement_suggestions: List[string]
+    - evolution_agent:
+      - evolution_effectiveness: string
+      - diversity_assessment: string
+      - strategy_recommendations: List[string]
+  - iteration_improvements:
+    - metrics_comparison: object
+    - progress_indicators: List[string]
+    - next_iteration_priorities: List[string]
 ```
 
-### Timeout Behaviors
-
-```yaml
-timeout_handling:
-  task_assignment_timeout:
-    duration: "30 seconds"
-    action: "Requeue with higher priority"
-    
-  worker_response_timeout:
-    duration: "Agent-specific + 20%"
-    action: "Mark failed, trigger recovery"
-    
-  termination_detection_timeout:
-    duration: "5 minutes without progress"
-    action: "Evaluate force termination"
+### Research Overview
+```
+Overview Structure:
+  - executive_summary: string
+  - research_areas: List[
+      - area_title: string
+      - importance_justification: string
+      - key_hypotheses: List[
+          - hypothesis_id: string
+          - hypothesis_summary: string
+          - elo_rating: float
+        ]
+      - proposed_experiments: List[
+          - experiment_description: string
+          - expected_outcomes: string
+          - resource_requirements: string
+        ]
+      - related_literature: List[citation]
+    ]
+  - cross_cutting_themes: List[string]
+  - innovation_highlights: List[string]
+  - risk_assessment: string
+  - recommended_next_steps: List[string]
+  - potential_collaborators: List[research_contact]
 ```
 
-## Quality Requirements
+### Research Contacts
+```
+Contact Structure:
+  - contacts: List[
+      - name: string (redacted if needed)
+      - institution: string
+      - expertise_areas: List[string]
+      - relevance_reasoning: string
+      - relevant_publications: List[citation]
+      - contact_priority: "high" | "medium" | "low"
+    ]
+  - expertise_gaps: List[string]
+  - collaboration_opportunities: List[string]
+```
 
-### Enhanced Requirements
+## Behavioral Contracts
 
-The Supervisor Agent ensures:
+### Pattern Recognition
+- MUST analyze ALL available reviews and debates
+- MUST identify patterns that appear in >20% of reviews
+- MUST distinguish between systematic and isolated issues
+- MUST weight patterns by their impact on hypothesis quality
+- SHOULD recognize both positive and negative patterns
 
-- **Reliability**: 99.9% task completion rate
-- **Fairness**: No agent starved of resources
-- **Efficiency**: <5% overhead on task execution
-- **Responsiveness**: <1 second queue operations
-- **Recoverability**: Full restart in <30 seconds
-- **Conflict Resolution**: <100ms resolution time
-- **Error Recovery**: <60s to stable state after failure
-- **Cascade Prevention**: No failure affects >10% of tasks
+### Feedback Quality
+- MUST provide actionable, specific feedback
+- MUST avoid overly general recommendations
+- MUST tailor feedback to each agent's capabilities
+- MUST prioritize high-impact improvements
+- SHOULD balance criticism with recognition of strengths
 
-These requirements ensure the AI Co-Scientist system operates smoothly, scales effectively, and achieves research goals reliably through intelligent orchestration with robust error handling and conflict resolution.
+### Overview Coherence
+- MUST organize hypotheses into logical research areas
+- MUST provide clear justification for each area's importance
+- MUST ensure proposed experiments are feasible
+- MUST maintain consistency with research goal
+- SHOULD identify synergies between research areas
+
+### Contact Identification
+- MUST base suggestions on actual literature citations
+- MUST provide clear reasoning for each contact
+- MUST respect privacy (redact names when appropriate)
+- SHOULD identify diverse expertise areas
+- SHOULD prioritize based on relevance to hypotheses
+
+## Interaction Protocols
+
+### With Supervisor Agent
+```
+1. Receive meta-review generation task
+2. Request relevant data from Context Memory
+3. Process reviews and debates systematically
+4. Generate comprehensive feedback and/or overview
+5. Return results with confidence metrics
+6. Update task status to "completed"
+```
+
+### With Context Memory
+```
+1. Query all reviews for current iteration
+2. Retrieve tournament debates and results
+3. Access hypothesis rankings and details
+4. Fetch previous meta-reviews for comparison
+5. Store generated meta-review and overview
+6. Maintain version history
+```
+
+### Feedback Propagation
+```
+1. Feedback appended to agent prompts in next iteration
+2. No direct agent communication required
+3. Feedback persists across iterations
+4. Agents adapt behavior based on feedback
+5. System improves without fine-tuning
+```
+
+## Examples
+
+### Example 1: Common Pattern Identification
+```
+Scenario: ALS drug repurposing research
+
+Reviews analyzed: 45 hypothesis reviews, 120 tournament debates
+
+Identified patterns:
+1. Blood-brain barrier issue (38/45 reviews, 84%)
+   - Many proposed drugs cannot cross BBB
+   - Impact: High - renders hypothesis non-viable
+   - Recommendation: Check BBB permeability early
+
+2. Incomplete mechanism description (22/45 reviews, 49%)
+   - Hypotheses lack detailed pathway analysis
+   - Impact: Medium - affects experimental design
+   - Recommendation: Require pathway diagrams
+
+3. Missing dosage considerations (28/45 reviews, 62%)
+   - Clinical relevance unclear without dosing
+   - Impact: Medium - affects feasibility
+   - Recommendation: Include therapeutic window analysis
+```
+
+### Example 2: Agent-Specific Feedback
+```
+Generation Agent Feedback:
+- Strengths:
+  - Excellent literature grounding (95% with citations)
+  - Creative combination of existing drugs
+  - Good coverage of different mechanism classes
+  
+- Improvement Areas:
+  - Consider BBB permeability constraints upfront
+  - Include more specific molecular targets
+  - Address potential drug interactions
+  
+- Specific Recommendations:
+  1. Add BBB permeability check to hypothesis template
+  2. Require identification of specific protein targets
+  3. Include preliminary safety assessment
+
+Reflection Agent Feedback:
+- Missed Issues:
+  - Overlooked drug interaction risks in 30% of reviews
+  - Inconsistent evaluation of novelty claims
+  
+- Suggested Focus Areas:
+  1. Standardize novelty assessment criteria
+  2. Always check for drug-drug interactions
+  3. Verify experimental feasibility claims
+```
+
+### Example 3: Research Overview (NIH Format)
+```
+Research Goal: "Novel treatments for liver fibrosis"
+
+SPECIFIC AIMS
+
+The long-term goal is to develop effective therapies for liver fibrosis, 
+a major cause of morbidity affecting millions worldwide. Based on our 
+AI-assisted hypothesis generation, we propose three innovative approaches:
+
+Aim 1: Investigate epigenetic modulators for fibrosis reversal
+- Test BET inhibitors in hepatic stellate cells
+- Evaluate HDAC6-specific inhibitors
+- Assess combination epigenetic therapy
+
+Aim 2: Develop targeted anti-fibrotic cytokine delivery
+- Engineer IL-10 variants with enhanced stability
+- Create hepatocyte-specific delivery vectors
+- Test in humanized liver organoids
+
+Aim 3: Explore CRISPR-based stellate cell reprogramming
+- Design guide RNAs for key fibrotic genes
+- Develop AAV-based delivery system
+- Validate in patient-derived organoids
+
+Expected Outcomes: These studies will identify 2-3 lead candidates
+for preclinical development, potentially transforming fibrosis treatment.
+```
+
+## Performance Characteristics
+
+### Processing Requirements
+- Review analysis: O(n*m) where n=hypotheses, m=review types
+- Pattern detection: O(n²) for cross-hypothesis patterns
+- Feedback generation: O(a) where a=number of agents
+- Overview synthesis: O(n log n) for hypothesis ranking
+
+### Quality Metrics
+- Pattern detection accuracy: >85% agreement with expert analysis
+- Feedback actionability: >90% of recommendations implementable
+- Overview coherence: >4.0/5.0 expert rating
+- Contact relevance: >80% appropriate suggestions
+
+### Timing Constraints
+- Meta-review generation: Complete within 5 minutes
+- Research overview: Format within 10 minutes
+- Feedback propagation: Available for next iteration
+- Contact identification: Real-time during overview generation
 ---
 
 ## Implementation Guidelines
@@ -2045,6 +2073,6 @@ Remember: The specs are your truth. Implement exactly what's specified.
 This prompt has been optimized to include only specifications relevant to the current task.
 If additional context is needed, the system will automatically fall back to full specifications.
 
-Generated at: Thu Sep 25 21:45:53 CDT 2025
+Generated at: Thu Sep 25 22:14:24 CDT 2025
 Task: Phase 10: Create ReflectionAgent class
-Selected specifications:        5 of       28 total
+Selected specifications:        6 of       28 total

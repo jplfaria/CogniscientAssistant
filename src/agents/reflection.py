@@ -1,8 +1,9 @@
-"""Reflection Agent - Evaluates and reviews scientific hypotheses.
+"""Reflection Agent - Scientific peer review for hypotheses.
 
-The Reflection Agent is responsible for critically examining hypotheses for
-correctness, quality, novelty, safety, and feasibility through six distinct
-review types: initial, full, deep verification, observation, simulation, and tournament.
+The Reflection Agent simulates scientific peer review within the AI Co-Scientist system.
+It critically examines hypotheses for correctness, quality, novelty, and safety through
+six distinct review types. The agent evaluates whether hypotheses provide improved
+explanations for existing research observations and identifies potential failure scenarios.
 """
 
 import asyncio
@@ -628,15 +629,16 @@ class ReflectionAgent:
         from src.core.context_memory import AgentOutput
 
         agent_output = AgentOutput(
-            agent_id=self.agent_id,
             agent_type='reflection',
-            task_type='review',
-            output_data={
+            task_id=f"review_{review.id}",
+            timestamp=review.created_at,
+            results={
                 'review': review.model_dump(),
                 'hypothesis_id': str(review.hypothesis_id),
-                'review_type': review.review_type.value
+                'review_type': review.review_type.value,
+                'reviewer_agent_id': self.agent_id
             },
-            created_at=review.created_at
+            state_data={'agent_id': self.agent_id}
         )
 
         await self.context_memory.store_agent_output(agent_output)
@@ -698,6 +700,96 @@ class ReflectionAgent:
                 stats['average_scores'][review_type.value] = sum(scores) / len(scores)
 
         return stats
+
+    async def generate_review(
+        self,
+        hypothesis: Hypothesis,
+        review_type: ReviewType,
+        criteria: List[str],
+        context: Optional[Dict[str, Any]] = None
+    ) -> Review:
+        """Generate a review using BAML function.
+
+        This method is called by the review_hypothesis method and other agents
+        that need to generate reviews. It uses BAML for content generation.
+
+        Args:
+            hypothesis: The hypothesis to review
+            review_type: Type of review to perform
+            criteria: Evaluation criteria
+            context: Additional context for review
+
+        Returns:
+            Generated review
+        """
+        # Use BAML to generate the review
+        baml_review = await self.baml_wrapper.evaluate_hypothesis(
+            hypothesis=hypothesis,
+            review_type=review_type,
+            evaluation_criteria=criteria,
+            context=context or {}
+        )
+
+        # Create Review model with generated content
+        review = Review(
+            hypothesis_id=hypothesis.id,
+            reviewer_agent_id=self.agent_id,
+            review_type=review_type,
+            decision=baml_review.decision,
+            scores=baml_review.scores,
+            narrative_feedback=baml_review.narrative_feedback,
+            key_strengths=baml_review.key_strengths,
+            key_weaknesses=baml_review.key_weaknesses,
+            improvement_suggestions=baml_review.improvement_suggestions,
+            confidence_level=baml_review.confidence_level,
+            assumption_decomposition=getattr(baml_review, 'assumption_decomposition', None),
+            simulation_results=getattr(baml_review, 'simulation_results', None),
+            literature_citations=getattr(baml_review, 'literature_citations', None)
+        )
+
+        return review
+
+    async def generate_critique(
+        self,
+        hypothesis: Hypothesis,
+        focus_areas: List[str]
+    ) -> Dict[str, Any]:
+        """Generate a detailed critique of a hypothesis.
+
+        This method is used to generate focused critiques on specific aspects
+        of a hypothesis. It uses BAML for content generation.
+
+        Args:
+            hypothesis: The hypothesis to critique
+            focus_areas: Specific areas to focus the critique on
+
+        Returns:
+            Detailed critique with strengths, weaknesses, and suggestions
+        """
+        # Generate a focused review using BAML
+        review = await self.generate_review(
+            hypothesis=hypothesis,
+            review_type=ReviewType.FULL,
+            criteria=focus_areas,
+            context={'critique_mode': True, 'detailed_feedback': True}
+        )
+
+        # Extract and return critique components
+        return {
+            'strengths': review.key_strengths,
+            'weaknesses': review.key_weaknesses,
+            'suggestions': review.improvement_suggestions,
+            'overall_assessment': review.narrative_feedback,
+            'scores': {
+                'correctness': review.scores.correctness,
+                'quality': review.scores.quality,
+                'novelty': review.scores.novelty,
+                'safety': review.scores.safety,
+                'feasibility': review.scores.feasibility
+            },
+            'confidence': review.confidence_level,
+            'review_type': review.review_type.value
+        }
 
     async def shutdown(self) -> None:
         """Gracefully shutdown the agent."""

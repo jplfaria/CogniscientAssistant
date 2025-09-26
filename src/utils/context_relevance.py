@@ -151,3 +151,208 @@ class SpecificationRelevanceScorer:
             reasoning=reasoning,
             fallback_needed=confidence < 0.4  # Lowered from 0.6
         )
+
+    def analyze_task_context(self, task_description: str, current_phase: int) -> Dict[str, any]:
+        """Analyze task for enhanced context understanding."""
+
+        analysis = {
+            'phase': current_phase,
+            'task_type': self.detect_task_type(task_description),
+            'components': self.extract_components(task_description),
+            'domain': self.identify_domain(task_description),
+            'complexity': self.assess_complexity(task_description)
+        }
+
+        return analysis
+
+    def detect_task_type(self, task_description: str) -> str:
+        """Detect the type of implementation task."""
+        task_lower = task_description.lower()
+
+        if any(keyword in task_lower for keyword in ['test', 'testing', 'unit test', 'integration test']):
+            return 'testing'
+        elif any(keyword in task_lower for keyword in ['agent', 'supervisor', 'generation', 'reflection']):
+            return 'agent_implementation'
+        elif any(keyword in task_lower for keyword in ['baml', 'function', 'client']):
+            return 'baml_integration'
+        elif any(keyword in task_lower for keyword in ['queue', 'memory', 'context']):
+            return 'infrastructure'
+        else:
+            return 'general'
+
+    def extract_components(self, task_description: str) -> List[str]:
+        """Extract system components mentioned in task."""
+        components = []
+        component_patterns = {
+            'TaskQueue': ['queue', 'task queue', 'worker'],
+            'ContextMemory': ['memory', 'context memory', 'storage'],
+            'SupervisorAgent': ['supervisor', 'orchestration', 'coordination'],
+            'GenerationAgent': ['generation', 'hypothesis'],
+            'ReflectionAgent': ['reflection', 'review', 'critique'],
+            'RankingAgent': ['ranking', 'tournament'],
+            'EvolutionAgent': ['evolution', 'mutation'],
+            'ProximityAgent': ['proximity', 'clustering'],
+            'MetaReviewAgent': ['meta-review', 'meta review'],
+            'BAML': ['baml', 'llm', 'function'],
+            'Safety': ['safety', 'validation', 'check']
+        }
+
+        task_lower = task_description.lower()
+        for component, keywords in component_patterns.items():
+            if any(keyword in task_lower for keyword in keywords):
+                components.append(component)
+
+        return components
+
+    def identify_domain(self, task_description: str) -> str:
+        """Identify the primary domain of the task."""
+        task_lower = task_description.lower()
+
+        # Count matches for each domain
+        domain_scores = {}
+        for domain, keywords in self.domain_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in task_lower)
+            if score > 0:
+                domain_scores[domain] = score
+
+        if not domain_scores:
+            return 'general'
+
+        # Return domain with highest score
+        return max(domain_scores, key=domain_scores.get)
+
+    def assess_complexity(self, task_description: str) -> str:
+        """Assess the complexity level of the task."""
+        task_lower = task_description.lower()
+
+        # High complexity indicators
+        high_indicators = ['integration', 'coordination', 'multiple', 'complex', 'comprehensive']
+        # Medium complexity indicators
+        medium_indicators = ['implement', 'create', 'add', 'enhance', 'update']
+        # Low complexity indicators
+        low_indicators = ['test', 'fix', 'update', 'simple', 'basic']
+
+        high_count = sum(1 for indicator in high_indicators if indicator in task_lower)
+        medium_count = sum(1 for indicator in medium_indicators if indicator in task_lower)
+        low_count = sum(1 for indicator in low_indicators if indicator in task_lower)
+
+        if high_count >= 2 or 'integration' in task_lower:
+            return 'high'
+        elif medium_count > low_count:
+            return 'medium'
+        else:
+            return 'low'
+
+    def select_optimal_specs_with_analysis(self, task_description: str, task_analysis: Dict[str, any], max_specs: int = 6) -> ContextRecommendation:
+        """Select optimal specifications using enhanced task analysis."""
+        task_keywords = self.extract_task_keywords(task_description)
+
+        # Always include critical specs
+        selected_specs = list(self.critical_specs)
+
+        # Score all available specs with enhanced analysis
+        spec_scores = []
+        for spec_file in os.listdir(self.specs_dir):
+            if spec_file.endswith('.md') and spec_file not in self.critical_specs:
+                base_score = self.score_specification(task_keywords, spec_file)
+
+                # Apply enhanced scoring based on analysis
+                enhanced_score = self.enhance_score_with_analysis(base_score, spec_file, task_analysis)
+                spec_scores.append((spec_file, enhanced_score))
+
+        # Sort by relevance and select top specs
+        spec_scores.sort(key=lambda x: x[1], reverse=True)
+
+        remaining_slots = max_specs - len(selected_specs)
+        relevance_threshold = 0.15
+
+        for spec_file, score in spec_scores:
+            if remaining_slots <= 0:
+                break
+            if score >= relevance_threshold:
+                selected_specs.append(spec_file)
+                remaining_slots -= 1
+
+        # Calculate enhanced confidence
+        if len(spec_scores) > 0:
+            top_scores = [score for _, score in spec_scores[:3]]
+            avg_top_score = sum(top_scores) / len(top_scores) if top_scores else 0
+
+            # Boost confidence for phase-appropriate selections
+            phase_boost = self.get_phase_confidence_boost(task_analysis['phase'], selected_specs)
+            confidence = min(1.0, (avg_top_score * 2) + phase_boost)
+        else:
+            confidence = 0.0
+
+        # Generate enhanced reasoning
+        components_str = ', '.join(task_analysis['components'][:3]) if task_analysis['components'] else 'general'
+        reasoning = f"Selected {len(selected_specs)} specs for {task_analysis['task_type']} task (Phase {task_analysis['phase']}) involving {components_str}"
+
+        return ContextRecommendation(
+            specs=selected_specs,
+            confidence_score=confidence,
+            reasoning=reasoning,
+            fallback_needed=confidence < 0.4
+        )
+
+    def enhance_score_with_analysis(self, base_score: float, spec_file: str, task_analysis: Dict[str, any]) -> float:
+        """Enhance spec score based on task analysis."""
+        enhanced_score = base_score
+
+        # Component-based enhancement
+        for component in task_analysis['components']:
+            if component.lower() in spec_file.lower():
+                enhanced_score += 0.4
+
+        # Phase-specific enhancement
+        phase_specs = self.get_phase_specific_specs(task_analysis['phase'])
+        if spec_file in phase_specs:
+            enhanced_score += 0.3
+
+        # Domain-specific enhancement
+        domain = task_analysis['domain']
+        if domain == 'agent' and 'agent' in spec_file:
+            enhanced_score += 0.2
+        elif domain == 'baml' and ('baml' in spec_file or 'llm' in spec_file):
+            enhanced_score += 0.2
+        elif domain == 'infrastructure' and any(infra in spec_file for infra in ['queue', 'memory', 'context']):
+            enhanced_score += 0.2
+
+        return min(1.0, enhanced_score)
+
+    def get_phase_specific_specs(self, phase: int) -> List[str]:
+        """Get specifications most relevant to specific phases."""
+        phase_spec_map = {
+            1: ['001-system-overview.md'],
+            2: ['002-core-principles.md'],
+            3: ['006-task-queue-behavior.md'],
+            4: ['015-context-memory.md'],
+            5: ['020-safety-mechanisms.md'],
+            6: ['023-llm-abstraction.md'],
+            7: ['024-argo-gateway-integration.md'],
+            8: ['005-supervisor-agent.md'],
+            9: ['007-generation-agent.md'],
+            10: ['007-generation-agent.md'],
+            11: ['008-reflection-agent.md'],
+            12: ['009-ranking-agent.md'],
+            13: ['010-evolution-agent.md'],
+            14: ['011-proximity-agent.md'],
+            15: ['012-meta-review-agent.md'],
+            16: ['013-agent-interaction-protocols.md'],
+            17: ['021-validation-criteria.md']
+        }
+
+        return phase_spec_map.get(phase, [])
+
+    def get_phase_confidence_boost(self, phase: int, selected_specs: List[str]) -> float:
+        """Calculate confidence boost based on phase-appropriate spec inclusion."""
+        phase_specs = self.get_phase_specific_specs(phase)
+        if not phase_specs:
+            return 0.0
+
+        # Boost if we included phase-specific specs
+        included_phase_specs = [spec for spec in selected_specs if spec in phase_specs]
+        if included_phase_specs:
+            return 0.1 * len(included_phase_specs)
+        else:
+            return 0.0

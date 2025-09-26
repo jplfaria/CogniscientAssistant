@@ -137,14 +137,16 @@ extract_current_task() {
 optimize_context_selection() {
     echo "📖 Analyzing task context requirements..." >&2
 
-    # Extract current task
+    # Extract current task and phase
+    CURRENT_PHASE=$(detect_implementation_phase)
     CURRENT_TASK=$(extract_current_task)
-    if [ $? -ne 0 ]; then
+
+    if [ $? -ne 0 ] || [ -z "$CURRENT_TASK" ]; then
         echo "⚠️  Could not extract current task, falling back to full context" >&2
         return 1
     fi
 
-    echo "🎯 Current task: $CURRENT_TASK" >&2
+    echo "🎯 Phase $CURRENT_PHASE: $CURRENT_TASK" >&2
 
     # Save current directory and ensure we're in project root for Python imports
     ORIG_DIR=$(pwd)
@@ -164,6 +166,7 @@ optimize_context_selection() {
 
     cd "$PROJECT_ROOT"
 
+    # Enhanced context selection with phase awareness
     CONTEXT_RESULT=$(python3 -c "
 import sys
 sys.path.append('src')
@@ -171,14 +174,20 @@ from utils.context_relevance import SpecificationRelevanceScorer
 
 try:
     scorer = SpecificationRelevanceScorer()
-    recommendation = scorer.select_optimal_specs('$CURRENT_TASK', max_specs=5)
+
+    # Analyze task context with phase awareness
+    task_analysis = scorer.analyze_task_context('$CURRENT_TASK', $CURRENT_PHASE)
+    print('ANALYSIS:' + str(task_analysis), file=sys.stderr)
+
+    # Select specs with enhanced analysis
+    recommendation = scorer.select_optimal_specs_with_analysis('$CURRENT_TASK', task_analysis, max_specs=6)
 
     print('SPECS:' + ' '.join(recommendation.specs))
     print('CONFIDENCE:' + str(recommendation.confidence_score))
     print('REASONING:' + recommendation.reasoning)
     print('FALLBACK:' + str(recommendation.fallback_needed))
 except Exception as e:
-    print('ERROR:' + str(e))
+    print('ERROR:' + str(e), file=sys.stderr)
     sys.exit(1)
 ")
 

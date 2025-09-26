@@ -36,6 +36,8 @@ def mock_context_memory():
     memory = Mock(spec=ContextMemory)
     memory.store = AsyncMock()
     memory.retrieve = AsyncMock()
+    memory.store_agent_output = AsyncMock()
+    memory.store_aggregate = AsyncMock()
     return memory
 
 
@@ -256,7 +258,7 @@ class TestReflectionAgentReviewMethods:
             assert review.review_type == ReviewType.INITIAL
             assert review.reviewer_agent_id == agent.agent_id
             mock_evaluate.assert_called_once()
-            mock_context_memory.store.assert_called_once()
+            mock_context_memory.store_agent_output.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_review_hypothesis_with_context(
@@ -417,11 +419,11 @@ class TestReflectionAgentReviewMethods:
         await agent.shutdown()
 
         # Verify statistics were stored
-        mock_context_memory.store.assert_called_once()
-        call_args = mock_context_memory.store.call_args
-        assert call_args[1]['key'].startswith('agent_stats_')
-        assert call_args[1]['metadata']['type'] == 'agent_statistics'
-        assert call_args[1]['metadata']['final'] is True
+        mock_context_memory.store_aggregate.assert_called_once()
+        call_args = mock_context_memory.store_aggregate.call_args
+        assert call_args[1]['aggregate_type'] == 'agent_statistics'
+        assert call_args[1]['data']['agent_type'] == 'reflection'
+        assert call_args[1]['data']['final'] is True
 
 
 class TestReflectionAgentReviewTypes:
@@ -524,3 +526,116 @@ class TestReflectionAgentReviewTypes:
             )
 
             assert review.review_type == ReviewType.SIMULATION
+
+
+class TestReflectionAgentGenerateMethods:
+    """Test generate_review and generate_critique methods for BAML integration."""
+
+    @pytest.mark.asyncio
+    async def test_generate_review(
+        self, mock_task_queue, mock_context_memory, mock_llm_provider,
+        sample_hypothesis, sample_review
+    ):
+        """Test generate_review method for BAML integration."""
+        agent = ReflectionAgent(
+            task_queue=mock_task_queue,
+            context_memory=mock_context_memory,
+            llm_provider=mock_llm_provider,
+            config={'enable_safety_logging': False}
+        )
+
+        # Mock BAML wrapper
+        with patch.object(agent.baml_wrapper, 'evaluate_hypothesis', new_callable=AsyncMock) as mock_evaluate:
+            mock_evaluate.return_value = sample_review
+
+            criteria = ["Scientific rigor", "Novelty", "Feasibility"]
+            context = {"research_area": "oncology", "priority": "high"}
+
+            review = await agent.generate_review(
+                hypothesis=sample_hypothesis,
+                review_type=ReviewType.FULL,
+                criteria=criteria,
+                context=context
+            )
+
+            # Verify BAML was called with correct parameters
+            mock_evaluate.assert_called_once_with(
+                hypothesis=sample_hypothesis,
+                review_type=ReviewType.FULL,
+                evaluation_criteria=criteria,
+                context=context
+            )
+
+            # Verify review structure
+            assert isinstance(review, Review)
+            assert review.hypothesis_id == sample_hypothesis.id
+            assert review.reviewer_agent_id == agent.agent_id
+            assert review.review_type == ReviewType.FULL
+            assert review.decision == sample_review.decision
+            assert review.scores == sample_review.scores
+
+    @pytest.mark.asyncio
+    async def test_generate_critique(
+        self, mock_task_queue, mock_context_memory, mock_llm_provider,
+        sample_hypothesis
+    ):
+        """Test generate_critique method for BAML integration."""
+        agent = ReflectionAgent(
+            task_queue=mock_task_queue,
+            context_memory=mock_context_memory,
+            llm_provider=mock_llm_provider,
+            config={'enable_safety_logging': False}
+        )
+
+        # Create a mock review that will be returned by generate_review
+        mock_review = Review(
+            hypothesis_id=sample_hypothesis.id,
+            reviewer_agent_id=agent.agent_id,
+            review_type=ReviewType.FULL,
+            decision=ReviewDecision.REVISE,
+            scores=ReviewScores(
+                correctness=0.7,
+                quality=0.6,
+                novelty=0.8,
+                safety=0.9,
+                feasibility=0.5
+            ),
+            narrative_feedback="Detailed critique of the hypothesis",
+            key_strengths=["Good novelty", "Safe approach"],
+            key_weaknesses=["Low feasibility", "Unclear methodology"],
+            improvement_suggestions=["Clarify methods", "Reduce complexity"],
+            confidence_level="medium"
+        )
+
+        # Mock the generate_review method
+        with patch.object(agent, 'generate_review', new_callable=AsyncMock) as mock_generate:
+            mock_generate.return_value = mock_review
+
+            focus_areas = ["Methodology", "Feasibility", "Innovation"]
+
+            critique = await agent.generate_critique(
+                hypothesis=sample_hypothesis,
+                focus_areas=focus_areas
+            )
+
+            # Verify generate_review was called with critique mode
+            mock_generate.assert_called_once_with(
+                hypothesis=sample_hypothesis,
+                review_type=ReviewType.FULL,
+                criteria=focus_areas,
+                context={'critique_mode': True, 'detailed_feedback': True}
+            )
+
+            # Verify critique structure
+            assert isinstance(critique, dict)
+            assert critique['strengths'] == mock_review.key_strengths
+            assert critique['weaknesses'] == mock_review.key_weaknesses
+            assert critique['suggestions'] == mock_review.improvement_suggestions
+            assert critique['overall_assessment'] == mock_review.narrative_feedback
+            assert critique['scores']['correctness'] == 0.7
+            assert critique['scores']['quality'] == 0.6
+            assert critique['scores']['novelty'] == 0.8
+            assert critique['scores']['safety'] == 0.9
+            assert critique['scores']['feasibility'] == 0.5
+            assert critique['confidence'] == "medium"
+            assert critique['review_type'] == ReviewType.FULL.value
