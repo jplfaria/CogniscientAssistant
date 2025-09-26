@@ -240,3 +240,28 @@ Maintain a TODO list between iterations:
 ```
 
 Remember: The specs are your truth. Implement exactly what's specified.
+
+## 🎯 Context Optimization Guidelines
+
+### ACE-FCA Integration Status
+
+The development loop has been enhanced with ACE-FCA context optimization principles:
+
+#### Context Relevance Scoring
+- **Intelligent Spec Selection**: 3-7 most relevant specifications based on current task
+- **Automatic Fallback**: Full context when optimization confidence is low
+- **Quality Validation**: Context selections validated against phase requirements
+
+#### Usage
+- **Automatic**: Context optimization runs automatically during development loop
+- **Monitoring**: Metrics logged to `.context_optimization_metrics.log`
+- **Manual Control**: Can be disabled with `.context_optimization_disabled` file
+
+#### Quality Requirements
+- **Same Standards Apply**: All existing quality gates must pass with optimized context
+- **Fallback Guarantee**: System automatically uses full context if quality issues detected
+- **Coverage Maintained**: ≥80% test coverage required regardless of context optimization
+
+### Implementation Priority
+
+Context optimization is production-ready and should be used for all development iterations.

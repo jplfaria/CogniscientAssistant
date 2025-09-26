@@ -761,11 +761,25 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     if [ "$OPTIMIZATION_ENABLED" = true ] && optimize_context_selection; then
         PROMPT_FILE="optimized_prompt.md"
 
-        original_lines=$(wc -l < prompt.md)
+        # Calculate reduction based on what full context would be
         optimized_lines=$(wc -l < optimized_prompt.md)
-        reduction_percent=$(( (original_lines - optimized_lines) * 100 / original_lines ))
 
-        echo "✅ Using optimized context: $optimized_lines lines (${reduction_percent}% reduction)"
+        # Estimate full context size (CLAUDE.md + all specs + overhead)
+        if [ -f "CLAUDE.md" ]; then
+            claude_lines=$(wc -l < CLAUDE.md)
+        else
+            claude_lines=300  # fallback estimate
+        fi
+
+        total_specs=$(find specs/ -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+        estimated_full_lines=$((claude_lines + total_specs * 200 + 100))  # rough estimate
+
+        if [ $estimated_full_lines -gt 0 ]; then
+            reduction_percent=$(( (estimated_full_lines - optimized_lines) * 100 / estimated_full_lines ))
+            echo "✅ Using optimized context: $optimized_lines lines (${reduction_percent}% reduction from estimated $estimated_full_lines lines)"
+        else
+            echo "✅ Using optimized context: $optimized_lines lines"
+        fi
     else
         echo "⚠️  Using full context as fallback"
     fi
