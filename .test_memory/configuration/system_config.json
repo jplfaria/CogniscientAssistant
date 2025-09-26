@@ -1,0 +1,7 @@
+{
+  "retention_days": 30,
+  "checkpoint_interval_minutes": 5,
+  "max_storage_gb": 50,
+  "created_at": "2025-09-25T21:53:48.621690",
+  "version": "1.0.0"
+}

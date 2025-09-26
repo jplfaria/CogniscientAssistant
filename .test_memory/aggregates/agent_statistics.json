@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "timestamp": "2025-09-25T21:56:50.977765",
+      "data": {
+        "agent_id": "reflection_agent_b419e1bf",
+        "agent_type": "reflection",
+        "stats": {
+          "agent_id": "reflection_agent_b419e1bf",
+          "total_reviews": 0,
+          "reviews_by_type": {
+            "initial": 0,
+            "full": 0,
+            "deep_verification": 0,
+            "observation": 0,
+            "simulation": 0,
+            "tournament": 0
+          },
+          "average_scores": {}
+        },
+        "final": true
+      }
+    }
+  ]
+}

@@ -114,6 +114,148 @@ detect_implementation_phase() {
     echo "17"  # Assume final phase if all complete
 }
 
+extract_current_task() {
+    # Extract detailed task description for context scoring
+    echo "🔍 Extracting current task details..." >&2
+
+    for phase in $(seq 1 17); do
+        pattern="## Phase $phase:"
+
+        # Find first unchecked task in this phase
+        unchecked_task=$(grep -A50 "$pattern" IMPLEMENTATION_PLAN.md | grep -m1 "^\- \[ \]" | sed 's/^- \[ \] //')
+
+        if [ ! -z "$unchecked_task" ]; then
+            echo "Phase $phase: $unchecked_task"
+            return 0
+        fi
+    done
+
+    echo "No active task found"
+    return 1
+}
+
+optimize_context_selection() {
+    echo "📖 Analyzing task context requirements..." >&2
+
+    # Extract current task
+    CURRENT_TASK=$(extract_current_task)
+    if [ $? -ne 0 ]; then
+        echo "⚠️  Could not extract current task, falling back to full context" >&2
+        return 1
+    fi
+
+    echo "🎯 Current task: $CURRENT_TASK" >&2
+
+    # Save current directory and ensure we're in project root for Python imports
+    ORIG_DIR=$(pwd)
+
+    # Find the actual project root (where src/ and specs/ directories are)
+    if [ -d "src" ] && [ -d "specs" ]; then
+        PROJECT_ROOT=$(pwd)
+    elif [ -d "../../src" ] && [ -d "../../specs" ]; then
+        PROJECT_ROOT=$(cd ../.. && pwd)
+    else
+        # Try to find project root by looking for src directory
+        PROJECT_ROOT=$(pwd)
+        while [ ! -d "$PROJECT_ROOT/src" ] && [ "$PROJECT_ROOT" != "/" ]; do
+            PROJECT_ROOT=$(dirname "$PROJECT_ROOT")
+        done
+    fi
+
+    cd "$PROJECT_ROOT"
+
+    CONTEXT_RESULT=$(python3 -c "
+import sys
+sys.path.append('src')
+from utils.context_relevance import SpecificationRelevanceScorer
+
+try:
+    scorer = SpecificationRelevanceScorer()
+    recommendation = scorer.select_optimal_specs('$CURRENT_TASK', max_specs=5)
+
+    print('SPECS:' + ' '.join(recommendation.specs))
+    print('CONFIDENCE:' + str(recommendation.confidence_score))
+    print('REASONING:' + recommendation.reasoning)
+    print('FALLBACK:' + str(recommendation.fallback_needed))
+except Exception as e:
+    print('ERROR:' + str(e))
+    sys.exit(1)
+")
+
+    if [ $? -ne 0 ]; then
+        echo "⚠️  Context optimization failed, falling back to full context" >&2
+        return 1
+    fi
+
+    # Parse results
+    SELECTED_SPECS=$(echo "$CONTEXT_RESULT" | grep "^SPECS:" | cut -d: -f2-)
+    CONFIDENCE=$(echo "$CONTEXT_RESULT" | grep "^CONFIDENCE:" | cut -d: -f2)
+    REASONING=$(echo "$CONTEXT_RESULT" | grep "^REASONING:" | cut -d: -f2)
+    FALLBACK=$(echo "$CONTEXT_RESULT" | grep "^FALLBACK:" | cut -d: -f2)
+
+    if [ "$FALLBACK" = "True" ]; then
+        echo "⚠️  Low confidence ($CONFIDENCE), falling back to full context" >&2
+        return 1
+    fi
+
+    echo "📋 Selected specs: $SELECTED_SPECS" >&2
+    echo "🎯 Confidence: $CONFIDENCE" >&2
+    echo "💡 Reasoning: $REASONING" >&2
+
+    # Generate optimized prompt
+    generate_optimized_prompt "$CURRENT_TASK" "$SELECTED_SPECS"
+
+    # Return to original directory
+    cd "$ORIG_DIR"
+    return 0
+}
+
+generate_optimized_prompt() {
+    local task="$1"
+    local selected_specs="$2"
+
+    echo "📝 Generating optimized prompt..." >&2
+
+    cat > optimized_prompt.md << EOF
+# CogniscientAssistant Implementation Task
+
+## Current Task Focus
+$task
+
+## Relevant Specifications
+$(for spec in $selected_specs; do
+    if [ -f "specs/$spec" ]; then
+        echo "### $(basename $spec .md | sed 's/-/ /g' | sed 's/\b\w/\u&/g')"
+        echo ""
+        cat "specs/$spec"
+        echo ""
+        echo "---"
+        echo ""
+    fi
+done)
+
+## Implementation Guidelines
+$(cat CLAUDE.md)
+
+## Quality Requirements
+- Maintain 100% test pass rate for must-pass tests
+- Follow specification requirements exactly
+- Implement atomic features only
+- Use BAML for all content generation methods
+- Maintain ≥80% test coverage
+
+## Context Optimization
+This prompt has been optimized to include only specifications relevant to the current task.
+If additional context is needed, the system will automatically fall back to full specifications.
+
+Generated at: $(date)
+Task: $task
+Selected specifications: $(echo $selected_specs | wc -w) of $(ls specs/*.md | wc -l) total
+EOF
+
+    echo "✅ Optimized prompt generated: optimized_prompt.md" >&2
+}
+
 # Function to analyze test failures against expectations
 analyze_test_failures() {
     local phase=$1
@@ -410,11 +552,19 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
     # Create temporary file for output
     TEMP_OUTPUT=".claude-implementation-output-$$.tmp"
     
-    # Read the prompt content
-    PROMPT_CONTENT=$(cat prompt.md)
-    
-    # Run Claude with implementation prompt
-    claude -p --dangerously-skip-permissions "$PROMPT_CONTENT" 2>&1 | tee "$TEMP_OUTPUT"
+    echo "🚀 Starting iteration $ITERATION with context optimization..."
+
+    # Attempt context optimization
+    PROMPT_FILE="prompt.md"
+    if optimize_context_selection; then
+        PROMPT_FILE="optimized_prompt.md"
+        echo "✅ Using optimized context ($(cat optimized_prompt.md | wc -l) lines vs $(cat prompt.md | wc -l) lines)"
+    else
+        echo "⚠️  Using full context as fallback"
+    fi
+
+    echo "🤖 Invoking Claude with implementation prompt..."
+    claude -p --dangerously-skip-permissions "$(cat "$PROMPT_FILE")" 2>&1 | tee "$TEMP_OUTPUT"
     
     echo -e "\n${MAGENTA}--- End of Claude's implementation ---${NC}"
     
