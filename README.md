@@ -1,121 +1,178 @@
 # AI Co-Scientist
 
-A multi-agent system for scientific hypothesis generation and research automation.
+An autonomous multi-agent system for scientific hypothesis generation, research automation, and knowledge synthesis.
 
-## Project Status
+## 🔬 What It Does
 
-✅ **Specification Phase**: Complete (28 specs)  
-🚧 **Implementation Phase**: In Progress (Phase 4 - Context Memory)
+The AI Co-Scientist accelerates scientific discovery by:
+- **Generating Novel Hypotheses** - Creates research hypotheses from scientific literature and data
+- **Automating Literature Review** - Searches and synthesizes relevant research papers
+- **Multi-Perspective Analysis** - Uses specialized agents to evaluate ideas from different angles
+- **Research Task Management** - Decomposes complex research goals into executable tasks
+- **Quality Assurance** - Implements multi-layer validation and safety checks
 
-## Development Setup
+## 🚀 Key Capabilities
 
-### Using uv (Recommended - Fast)
+### Multi-Agent Architecture
+- **Supervisor Agent** - Orchestrates research workflows and resource allocation
+- **Generation Agent** - Creates hypotheses using multiple strategies (literature-based, debate, etc.)
+- **Reflection Agent** - Reviews and critiques generated hypotheses
+- **Ranking Agent** - Evaluates and prioritizes research directions
+- **Evolution Agent** - Enhances and refines promising hypotheses
+- **Meta-Review Agent** - Synthesizes insights across multiple research threads
+
+### Research Automation Features
+- Web search integration for latest research
+- Citation tracking and management
+- Context memory for maintaining research state
+- Natural language interface for intuitive interaction
+- Export capabilities for research outputs
+
+## 📦 Installation
+
+### Prerequisites
+- Python 3.11 or higher
+- Access to LLM services (via Argo Gateway)
+
+### Quick Setup
 
 ```bash
-# Install uv (one time)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Clone the repository
+git clone https://github.com/yourusername/cogniscient-assistant.git
+cd cogniscient-assistant
 
-# Set up development environment
+# Set up development environment (uses uv for fast package management)
 ./scripts/development/setup-dev.sh
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your configuration
 
 # Activate virtual environment
 source .venv/bin/activate
 ```
 
-### Using pip (Traditional)
+### Argo Gateway Configuration
 
-```bash
-# Set up development environment
-./scripts/development/setup-dev.sh
-
-# Activate virtual environment
-source venv/bin/activate
-```
-
-### Argo Gateway Setup
-
-The system uses Argo gateway for LLM access. See [docs/argo-setup.md](docs/argo-setup.md) for detailed setup instructions.
+The system uses Argo Gateway for LLM access:
 
 ```bash
 # Install argo-proxy
 pip install argo-proxy
 
-# Configure environment
-cp .env.example .env
-# Edit .env and set ARGO_USER
+# Start the proxy (requires VPN connection)
+./scripts/argo-proxy.sh start
 
-# Start the proxy
-./scripts/start-argo-proxy.sh
+# Verify connection
+./scripts/argo-proxy.sh status
 ```
 
-## Quick Start for Implementation
+For detailed setup, see [Argo Gateway Setup Guide](docs/argo-gateway-complete-guide.md).
+
+## 💡 Usage
+
+### Basic Research Session
+
+```python
+from src.agents.supervisor import SupervisorAgent
+from src.core.models import ResearchGoal
+
+# Initialize the supervisor
+supervisor = SupervisorAgent()
+
+# Define your research goal
+goal = ResearchGoal(
+    description="Investigate novel approaches to quantum error correction",
+    constraints=["Focus on topological methods", "Consider near-term feasibility"]
+)
+
+# Start the research process
+results = await supervisor.conduct_research(goal)
+
+# Results include generated hypotheses, rankings, and synthesis
+print(results.top_hypotheses)
+print(results.literature_review)
+print(results.recommendations)
+```
+
+### Command Line Interface
 
 ```bash
-# After environment setup, run the validated implementation loop
-./run-loop.sh
+# Start interactive research session
+python -m src.cli.research_assistant
 
-# Or run continuously with automatic progression
-./run-loop.sh --letitrip
+# Generate hypotheses from a research question
+python -m src.cli.generate_hypotheses "How can we improve battery energy density?"
+
+# Analyze existing hypothesis
+python -m src.cli.analyze_hypothesis hypothesis.json
 ```
 
-## Project Structure
+## 🛡️ Safety and Ethics
 
-```
-.
-├── specs/                          # Complete behavioral specifications (001-028)
-├── src/                            # Implementation code
-│   └── core/                       # Core infrastructure components
-│       ├── models.py               # Data models (Task, Worker, etc.)
-│       └── task_queue.py           # Task queue implementation
-├── tests/                          # Test suite
-│   ├── unit/                       # Unit tests
-│   └── integration/                # Integration test harnesses
-├── docs/                           # Documentation
-│   ├── spec-development/           # Historical spec development
-│   ├── archive/                    # Archived workflow files
-│   └── AI_ASSISTED_DEVELOPMENT_WORKFLOW.md  # Complete workflow guide
-├── IMPLEMENTATION_PLAN.md          # Current implementation tasks (living document)
-├── INTEGRATION_TESTING_PLAN.md     # Integration testing strategy
-├── CLAUDE.md                       # Implementation guidelines for AI
-├── prompt.md                       # Implementation task prompt
-├── run-loop.sh                     # Quick access symlink
-├── view-logs.sh                    # Quick access symlink
-└── scripts/                        # Utility scripts (see SCRIPTS.md)
+The AI Co-Scientist implements comprehensive safety measures:
+- Multi-layer safety checks on all generated content
+- Ethical review of research directions
+- Configurable trust levels for different research domains
+- Audit logging of all agent decisions
+- Human-in-the-loop intervention points
 
-```
+## 🏗️ Architecture
 
-## Key Specifications
+The system uses:
+- **BAML** for structured LLM interactions
+- **Async Python** for concurrent agent operations
+- **Task Queue** for workflow orchestration
+- **Context Memory** for maintaining research state
+- **Circuit Breakers** for reliability
 
-- **001-003**: System foundation and principles
-- **004-006**: Multi-agent framework and task queue
-- **007-012**: Core agents (Generation, Reflection, Ranking, Evolution, Proximity, Meta-review)
-- **013-016**: Interfaces and tools
-- **017-019**: User interaction and outputs
-- **020-022**: Safety and validation
-- **023-025**: Integration and deployment
-- **026-028**: System completeness (timing, resources, states)
+## 📚 Documentation
 
-## Implementation Order
+- [User Guide](docs/USER_GUIDE.md) - Complete usage documentation
+- [API Reference](docs/API_REFERENCE.md) - Detailed API documentation
+- [Agent Specifications](specs/) - Behavioral specifications for each agent
+- [Safety Framework](docs/safety-framework.md) - Safety and ethics documentation
 
-1. Project setup and structure
-2. Core infrastructure (Task Queue, Context Memory)
-3. Safety framework and LLM abstraction
-4. Supervisor Agent
-5. Specialized agents in dependency order
-6. User interfaces
-7. Integration testing
+## 🧪 Current Status
 
-## Technologies
+**🚧 In Active Development**
 
-- Python 3.11+
-- BAML for LLM interactions
-- asyncio for concurrency
-- pytest for testing (≥80% coverage required)
-- Argo Gateway for model access
-- uv for package management (optional but recommended)
-- mypy for type checking
-- ruff for linting
+The AI Co-Scientist is currently in development with core infrastructure and several agents operational. See our [roadmap](ROADMAP.md) for upcoming features.
 
-## Safety First
+### What's Working Now
+- ✅ Core task queue and memory systems
+- ✅ Supervisor and Generation agents
+- ✅ BAML-based LLM integration
+- ✅ Safety framework
+- ✅ Basic hypothesis generation
 
-All components implement multi-layer safety checks as specified in spec 020.
+### Coming Soon
+- 🔄 Reflection and Ranking agents
+- 🔄 Evolution and Meta-Review capabilities
+- 🔄 Advanced web search integration
+- 🔄 Export and visualization tools
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+For development setup and implementation details, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+This project builds on research from:
+- The AI Scientist paper (Lu et al., 2024)
+- BAML framework for structured LLM interactions
+- The broader AI research automation community
+
+## 📧 Contact
+
+For questions or collaboration opportunities, please open an issue or contact the maintainers.
+
+---
+
+**Note**: This is a research prototype. Always validate generated hypotheses and research directions with domain experts before proceeding with experimental work.

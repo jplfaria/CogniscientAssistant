@@ -14,11 +14,11 @@ For convenience, symlinks are provided in the root:
 scripts/
 ├── development/
 │   ├── run-implementation-loop.sh   # Main implementation loop with quality gates
-│   └── view-loop-logs.sh           # Interactive log viewer
+│   ├── view-loop-logs.sh           # Interactive log viewer
+│   └── setup-dev.sh                # Development environment setup
 ├── testing/
 │   └── run-baml-tests.sh           # Run BAML unit tests
-└── maintenance/
-    └── fix-baml-issues.py          # Fix BAML configuration issues
+└── argo-proxy.sh                   # Argo Gateway proxy management
 ```
 
 ## Common Workflows
@@ -53,10 +53,16 @@ scripts/
 pytest --cov=src --cov-report=term-missing
 ```
 
-### 4. Fixing BAML Issues
+### 4. Managing Argo Proxy
 ```bash
-# If BAML tests fail
-python ./scripts/maintenance/fix-baml-issues.py
+# Start Argo proxy
+./scripts/argo-proxy.sh start
+
+# Check proxy status
+./scripts/argo-proxy.sh status
+
+# Stop proxy
+./scripts/argo-proxy.sh stop
 ```
 
 ## Logs Location
