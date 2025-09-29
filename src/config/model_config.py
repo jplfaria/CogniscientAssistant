@@ -22,6 +22,12 @@ class ModelConfig:
         "claudeopus4": "ArgoClaudeOpus4",
         "claudesonnet4": "ArgoClaudeSonnet4",
         "gemini25pro": "ArgoGemini25Pro",
+        # NEW: GPT-5 Models
+        "gpt5": "ArgoGPT5",  # GPT-5 main model - best reasoning
+        "gpt5mini": "ArgoGPT5Mini",  # GPT-5 mini - faster/cheaper
+        "gpt5nano": "ArgoGPT5Nano",  # GPT-5 nano - lightweight
+        # NEW: Claude Opus 4.1
+        "claudeopus41": "ArgoClaudeOpus41",  # Latest Claude reasoning model
     }
     
     # Agent types
@@ -38,8 +44,8 @@ class ModelConfig:
     @classmethod
     def from_env(cls) -> "ModelConfig":
         """Load configuration from environment variables."""
-        # Default model (GPT-o3 for better reasoning)
-        default = os.getenv("DEFAULT_MODEL", "gpto3")
+        # Default model (GPT-5 for best reasoning and latest knowledge)
+        default = os.getenv("DEFAULT_MODEL", "gpt5")
         
         # Per-agent overrides (optional)
         agent_models = {}

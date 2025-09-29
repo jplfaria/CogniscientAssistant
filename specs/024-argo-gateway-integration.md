@@ -141,7 +141,10 @@ The integration maintains mappings between:
 
 When routing to OpenAI models:
 - Map model names (e.g., "gpt-4o" → "argo:gpt-4o")
-- Handle specific parameter constraints
+- Handle specific parameter constraints:
+  - GPT-5 suite (gpt5, gpt5mini, gpt5nano) requires `max_completion_tokens` parameter
+  - o3 model also requires `max_completion_tokens` parameter
+  - GPT-4 and GPT-3.5 models use standard `max_tokens` parameter
 - Respect rate limiting per model tier
 - Implement appropriate retry strategies
 
@@ -290,25 +293,48 @@ Reflection Agent analyzes research figures:
 Define Argo clients in BAML:
 
 ```baml
-client<llm> ArgoGeminiPro {
-  provider openai-generic
+// GPT-5 models (require max_completion_tokens)
+client<llm> ArgoGPT5 {
+  provider openai
   options {
     base_url env.ARGO_PROXY_URL
-    model "argo:gemini-2.5-pro"
-    default_headers {
-      "X-User-Id" env.ARGO_AUTH_USER
-    }
+    model "gpt-5"
+    max_completion_tokens 4096  // Required for GPT-5
+    temperature 0.7
+    api_key env.ARGO_AUTH_KEY
+  }
+}
+
+client<llm> ArgoO3 {
+  provider openai
+  options {
+    base_url env.ARGO_PROXY_URL
+    model "o3"
+    max_completion_tokens 4096  // Required for o3
+    temperature 0.7
+    api_key env.ARGO_AUTH_KEY
+  }
+}
+
+// Standard models (use max_tokens)
+client<llm> ArgoGPT4o {
+  provider openai
+  options {
+    base_url env.ARGO_PROXY_URL
+    model "gpt-4o"
+    max_tokens 4096  // Standard parameter
+    temperature 0.7
+    api_key env.ARGO_AUTH_KEY
   }
 }
 
 client<llm> ArgoClaudeOpus {
-  provider openai-generic
+  provider anthropic
   options {
     base_url env.ARGO_PROXY_URL
-    model "argo:claude-opus-4"
-    default_headers {
-      "X-User-Id" env.ARGO_AUTH_USER
-    }
+    model "claude-opus-4"
+    max_tokens 4096  // Standard parameter
+    api_key env.ARGO_AUTH_KEY
   }
 }
 ```

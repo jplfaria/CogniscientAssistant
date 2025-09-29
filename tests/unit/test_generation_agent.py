@@ -147,49 +147,48 @@ class TestGenerateHypothesis:
     async def test_debate_routing(self, generation_agent):
         """Test routing to debate-based generation."""
         research_goal = ResearchGoal(description="Test research goal for unit testing")
-        
-        # Mock the internal methods
-        generation_agent._simulate_debate = AsyncMock(return_value=[])
+
+        # Mock the internal methods - new routing directly calls generate_from_debate with empty turns
         generation_agent.generate_from_debate = AsyncMock(
             return_value=Mock(spec=Hypothesis)
         )
-        
+
         result = await generation_agent.generate_hypothesis(
             research_goal=research_goal,
             generation_method='debate'
         )
-        
-        # Verify routing
-        generation_agent._simulate_debate.assert_called_once_with(research_goal, num_turns=3)
-        generation_agent.generate_from_debate.assert_called_once()
+
+        # Verify routing - should call generate_from_debate with empty debate_turns
+        generation_agent.generate_from_debate.assert_called_once_with(
+            research_goal, []  # Empty turns for LLM-internal debate simulation
+        )
         assert result is not None
     
     async def test_assumptions_routing(self, generation_agent):
         """Test routing to assumption-based generation."""
         research_goal = ResearchGoal(description="Test research goal for unit testing")
-        
-        # Mock the internal methods
-        generation_agent.identify_assumptions = AsyncMock(return_value=[])
+
+        # Mock the internal methods - new routing directly calls generate_from_assumptions with empty list
         generation_agent.generate_from_assumptions = AsyncMock(
             return_value=Mock(spec=Hypothesis)
         )
-        
+
         result = await generation_agent.generate_hypothesis(
             research_goal=research_goal,
             generation_method='assumptions'
         )
-        
-        # Verify routing
-        generation_agent.identify_assumptions.assert_called_once_with(research_goal)
-        generation_agent.generate_from_assumptions.assert_called_once()
+
+        # Verify routing - should call generate_from_assumptions with empty assumptions list
+        generation_agent.generate_from_assumptions.assert_called_once_with(
+            research_goal, []  # Empty assumptions for LLM-internal assumption identification
+        )
         assert result is not None
     
     async def test_expansion_routing(self, generation_agent):
         """Test routing to expansion-based generation."""
         research_goal = ResearchGoal(description="Test research goal for unit testing")
         
-        # Mock the internal methods
-        generation_agent._get_expansion_feedback = AsyncMock(return_value={})
+        # Mock the internal methods - new routing directly calls generate_from_feedback with empty dict
         generation_agent.generate_from_feedback = AsyncMock(
             return_value=Mock(spec=Hypothesis)
         )
@@ -199,9 +198,10 @@ class TestGenerateHypothesis:
             generation_method='expansion'
         )
         
-        # Verify routing
-        generation_agent._get_expansion_feedback.assert_called_once()
-        generation_agent.generate_from_feedback.assert_called_once()
+        # Verify routing - should call generate_from_feedback with empty feedback dict
+        generation_agent.generate_from_feedback.assert_called_once_with(
+            research_goal, {}  # Empty feedback for LLM-internal expansion guidance
+        )
         assert result is not None
 
 

@@ -53,19 +53,17 @@ client<llm> DynamicClient {
 }
 
 // Argo Gateway Clients for each available model
-// IMPORTANT: gpto3 (o3) IGNORES max_tokens parameter
-// O3 requires max_completion_tokens but BAML doesn't support it yet
-// This is a known limitation - o3 responses may be longer than expected
+// FIXED: gpto3 (o3) now uses proper parameters for reasoning models
 client<llm> ArgoGPTo3 {
   provider openai
   options {
     model "gpto3"
     base_url "http://localhost:8000/v1"  // Argo proxy
-    // WARNING: max_tokens is IGNORED by o3 models
-    // O3 needs max_completion_tokens which BAML doesn't support
-    // Consider using shorter prompts or post-processing responses
-    max_tokens 4000  // This has NO EFFECT on o3 but required by BAML
+    api_key env.BAML_API_KEY
+    max_tokens null  // REQUIRED: Set to null for reasoning models
+    max_completion_tokens 4000  // FIXED: Use this instead of max_tokens
     timeout_seconds 60
+    // NOTE: temperature and top_p are ignored by o3 API
   }
 }
 
@@ -121,6 +119,63 @@ client<llm> ArgoGemini25Pro {
     base_url "http://localhost:8000/v1"  // Argo proxy
     temperature 0.7
     max_tokens 4000
+    timeout_seconds 60
+  }
+}
+
+// NEW GPT-5 Models - Next generation reasoning models
+client<llm> ArgoGPT5 {
+  provider openai
+  options {
+    model "gpt5"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    api_key env.BAML_API_KEY
+    temperature 0.7
+    top_p 0.9
+    max_tokens null  // REQUIRED: Must be null for reasoning models
+    max_completion_tokens 4000  // REQUIRED: Use this instead of max_tokens
+    timeout_seconds 60
+  }
+}
+
+client<llm> ArgoGPT5Mini {
+  provider openai
+  options {
+    model "gpt5mini"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    api_key env.BAML_API_KEY
+    temperature 0.7
+    top_p 0.9
+    max_tokens null  // REQUIRED: Must be null for reasoning models
+    max_completion_tokens 4000  // REQUIRED: Use this instead of max_tokens
+    timeout_seconds 60
+  }
+}
+
+client<llm> ArgoGPT5Nano {
+  provider openai
+  options {
+    model "gpt5nano"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    api_key env.BAML_API_KEY
+    temperature 0.7
+    top_p 0.9
+    max_tokens null  // REQUIRED: Must be null for reasoning models
+    max_completion_tokens 4000  // REQUIRED: Use this instead of max_tokens
+    timeout_seconds 60
+  }
+}
+
+// NEW Claude Opus 4.1 - Latest Anthropic reasoning model
+client<llm> ArgoClaudeOpus41 {
+  provider openai
+  options {
+    model "claudeopus41"
+    base_url "http://localhost:8000/v1"  // Argo proxy
+    api_key env.BAML_API_KEY
+    temperature 0.7
+    top_p 0.9
+    max_tokens 4000  // CORRECT: Claude accepts max_tokens
     timeout_seconds 60
   }
 }
