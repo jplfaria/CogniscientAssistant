@@ -534,6 +534,8 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Write tests for CLI parsing
 - [ ] Implement interactive mode
 - [ ] Write tests for interactive mode
+- [ ] Add context optimization toggle commands
+- [ ] Write tests for optimization CLI commands
 
 ### Input Processing
 - [ ] Add research goal parsing

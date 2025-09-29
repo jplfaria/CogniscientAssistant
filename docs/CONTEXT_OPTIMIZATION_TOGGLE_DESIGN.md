@@ -50,8 +50,8 @@ import os
 from pathlib import Path
 
 @dataclass
-class ACEFCAConfig:
-    """Configuration for ACE-FCA context optimization."""
+class ContextOptimizationConfig:
+    """Configuration for context optimization."""
 
     # Main toggles
     optimization_enabled: bool = False
@@ -69,7 +69,7 @@ class ACEFCAConfig:
     model_overrides: dict = None
 
     @classmethod
-    def from_environment(cls) -> "ACEFCAConfig":
+    def from_environment(cls) -> "ContextOptimizationConfig":
         """Load configuration from environment variables."""
 
         # Check file overrides first
