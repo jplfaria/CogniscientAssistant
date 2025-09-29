@@ -187,3 +187,4 @@ scripts/**/*.tmp
 scripts/**/*.log
 argo-config.yaml
 test_results/
+backups/argo-proxy-pre-2.7.7/current_source_code/
