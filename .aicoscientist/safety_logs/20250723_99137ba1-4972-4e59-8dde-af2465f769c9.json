@@ -1,0 +1,17 @@
+{
+  "id": "99137ba1-4972-4e59-8dde-af2465f769c9",
+  "timestamp": "2025-07-23T18:19:39.890240+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "7d6d9b64c175e3a1fb3f63d9f0754505a612c92ce6d1b2763415de304ef9a663",
+  "metadata": {
+    "hypothesis_id": "b5a48f44-2a3f-45eb-9eb6-169dd7dbd98d",
+    "summary": "CRISPR-based cancer therapy hypothesis",
+    "category": "therapeutic",
+    "generation_method": "literature_based",
+    "confidence_score": 0.85,
+    "num_assumptions": 1,
+    "has_citations": true
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

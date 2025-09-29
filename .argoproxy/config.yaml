@@ -1,0 +1,8 @@
+argo_url: https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/chat/
+argo_stream_url: https://apps-dev.inside.anl.gov/argoapi/api/v1/resource/streamchat/
+argo_embedding_url: https://apps.inside.anl.gov/argoapi/api/v1/resource/embed/
+user: jplfaria
+verbose: true
+host: 127.0.0.1
+port: 8000
+real_stream: false

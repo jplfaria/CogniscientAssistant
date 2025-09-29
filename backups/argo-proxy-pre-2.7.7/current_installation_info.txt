@@ -1,0 +1,11 @@
+Name: argo-proxy
+Version: 2.7.6
+Summary: Proxy server to Argo API, OpenAI format compatible
+Home-page: 
+Author: 
+Author-email: Peng Ding <oaklight@gmx.com>
+License: 
+Location: /Users/jplfaria/miniconda3/lib/python3.11/site-packages
+Editable project location: /Users/jplfaria/repos/CogniscientAssistant/temp/argo-proxy-fix
+Requires: aiohttp, loguru, packaging, pydantic, PyYAML, tiktoken, tqdm
+Required-by: 

@@ -1,0 +1,17 @@
+{
+  "id": "7e03dd59-e7a1-4d47-adec-975bc11cbda8",
+  "timestamp": "2025-07-23T18:13:46.737381+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "2e06ec511044d472ae075bd4316b84add31dfe4d1e6010bd46108358cfe4c7e0",
+  "metadata": {
+    "hypothesis_id": "7cf0a535-9793-4576-8c57-377934330dcf",
+    "summary": "Hypothesis addressing: Understand cellular aging mechanisms",
+    "category": "mechanistic",
+    "generation_method": "assumptions",
+    "confidence_score": 0.8,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

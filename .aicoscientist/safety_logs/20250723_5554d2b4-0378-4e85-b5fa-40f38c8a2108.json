@@ -1,0 +1,17 @@
+{
+  "id": "5554d2b4-0378-4e85-b5fa-40f38c8a2108",
+  "timestamp": "2025-07-23T18:17:26.003532+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "21fca31c4d34f6e3dac45b26c05456714cea7fef96afb26a0c49e8916c50186a",
+  "metadata": {
+    "hypothesis_id": "13a05ca9-492e-4594-85fc-25b154d87c37",
+    "summary": "Hypothesis about whale communication synthesized from 3 debate perspectives",
+    "category": "mechanistic",
+    "generation_method": "debate",
+    "confidence_score": 0.75,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

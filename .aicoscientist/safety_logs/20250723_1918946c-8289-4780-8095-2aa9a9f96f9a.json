@@ -1,0 +1,17 @@
+{
+  "id": "1918946c-8289-4780-8095-2aa9a9f96f9a",
+  "timestamp": "2025-07-23T18:16:19.638742+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "1bc8f9643da096b6a83a017faca7b08cf22faa76a8b4b4b996d88d04fbd6ea6a",
+  "metadata": {
+    "hypothesis_id": "44aa1ec5-6d72-4e39-bf67-ff22f4db7f47",
+    "summary": "Hypothesis addressing: Test research goal for unit testing",
+    "category": "mechanistic",
+    "generation_method": "assumptions",
+    "confidence_score": 0.8,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

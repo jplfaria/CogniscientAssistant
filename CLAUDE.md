@@ -1,135 +1,267 @@
-# Claude AI Co-Scientist Specification Guidelines
+# Claude AI Co-Scientist Implementation Guidelines
 
-**PLEASE FOLLOW THESE RULES EXACTLY - CLEANROOM SPECS REQUIRE DISCIPLINE**
+**Core Philosophy: IMPLEMENT FROM SPECS. Build behavior exactly as specified.**
 
-**Core Philosophy: SPECS DESCRIBE BEHAVIOR, NOT IMPLEMENTATION. Keep it clean.**
+## 📖 Reading Requirements
 
-## 🚨 THE COMPLETE READ RULE - THIS IS NOT OPTIONAL
+### Before Implementation
+- Read ALL specs in specs/ directory first
+- Understand the complete system before coding
+- Trust the specs - they define all behaviors
 
-### READ ALL SOURCE MATERIALS BEFORE WRITING ANY SPEC
-Read the ENTIRE blog post, paper, and examine ALL figures. Every AI that skims thinks they understand, then they INVENT FEATURES THAT DON'T EXIST or MISS CRITICAL BEHAVIORS.
+### During Implementation
+- **New file**: Read ENTIRE file before modifying
+- **Small file (<500 lines)**: Read completely
+- **Large file (500+ lines)**: Read at least 1500 lines
+- **ALWAYS** understand existing code before adding new code
 
-**ONCE YOU'VE READ EVERYTHING, YOU UNDERSTAND THE SYSTEM.** Trust your complete read. Don't second-guess what you learned.
+## 📁 Test Organization
 
-## 📋 YOUR SPEC-WRITING TODO LIST
+### Test Directory Structure
+- **Unit tests**: `tests/unit/test_*.py` - Test individual components
+- **Integration tests**: `tests/integration/test_phase*_*.py` - Test system workflows
+- **NO other test subdirectories** - Don't create tests/baml/, tests/agents/, etc.
+- **NO tests in root tests/ directory** - All tests must be in unit/ or integration/
 
-**MAINTAIN THIS STRUCTURE FOR EACH SPEC:**
+### Test Naming Convention
+- Unit test: `tests/unit/test_<module_name>.py`
+- Integration test: `tests/integration/test_phase<N>_<feature>.py`
+- Example: `tests/unit/test_task_queue.py`, `tests/integration/test_phase3_queue_workflow.py`
 
-```markdown
-## Current TODO List for [Spec Name]
-1. [ ] Find first unchecked item in SPECS_PLAN.md
-2. [ ] Read all source materials completely (blog, paper, figures)
-3. [ ] Identify behaviors, inputs, outputs, interactions
-4. [ ] Write the specification following guidelines
-5. [ ] Update SPECS_PLAN.md and commit
-```
+## 🔄 Implementation Workflow
 
-## Project Context
-
-AI Co-Scientist is a multi-agent system for scientific hypothesis generation:
-- 6 specialized agents + 1 supervisor
-- Asynchronous task execution with queues
-- Tournament-based evolution (Elo ratings)
-- Multiple review types
-- Expert-in-the-loop design
-- Natural language interface
-
-## Resources for Multi-Agent Research
-When using AI assistants to help create specs, the Claude Code subagent pattern 
-can be effective. This is NOT about the AI Co-Scientist's architecture, but 
-about our specification development process.
-
-## 🔄 THE SPEC WORKFLOW THAT WORKS
-
-### Step 1: UNDERSTAND THE COMPLETE SYSTEM
-- Read BOTH blog and paper - they have different details
-- Study figures - they show agent interactions
-- Note the 3 validation examples (drug repurposing, liver fibrosis, AMR)
-
-### Step 2: FOCUS ON YOUR ASSIGNED COMPONENT
-- What does it DO? (not how it's built)
-- What does it RECEIVE? (inputs)
-- What does it PRODUCE? (outputs)
-- How does it INTERACT? (with other components)
-
-### Step 3: WRITE BEHAVIORAL SPECS
-```markdown
-# Generation Agent Specification
-
-**Type**: Agent  
-**Interactions**: Supervisor, Context Memory, Web Search
-
-## Behavior
-The Generation Agent creates novel research hypotheses...
-
-## Inputs
-- Research goal (natural language)
-- Meta-review feedback (optional)
-- ...
-
-## Outputs  
-- Generated hypotheses with:
-  - Summary
-  - Full description
-  - Experimental protocol
-  - ...
-```
-
-## 🎯 CLEANROOM PRINCIPLES - NEVER VIOLATE
-
-### WHAT TO INCLUDE:
-- Behaviors and responsibilities
-- Input/output specifications
-- Interaction protocols
-- Error conditions
-- Safety boundaries
-- Natural language examples
-
-### WHAT TO EXCLUDE:
-- Implementation language (except Python/BAML as specified)
-- Data structures (except interfaces)
-- Algorithms
-- Performance details
-- Internal logic
-
-## 📊 UNDERSTANDING THE SYSTEM
-
-From your complete read, you know:
-- **Generation Agent**: Literature exploration, scientific debates, assumption identification
-- **Reflection Agent**: Multiple review types (initial, full, deep verification, observation, simulation, tournament)
-- **Ranking Agent**: Elo tournaments with scientific debates
-- **Evolution Agent**: Enhancement, combination, simplification, out-of-box thinking
-- **Proximity Agent**: Similarity graph for hypothesis clustering
-- **Meta-review Agent**: Feedback synthesis, research overview generation
-- **Supervisor Agent**: Task queue management, resource allocation
-
-## ✅ SPEC QUALITY CHECKLIST
-
-**Before committing any spec:**
-- [ ] Describes WHAT, not HOW
-- [ ] All behaviors documented
-- [ ] Inputs/outputs clearly defined
-- [ ] Interaction patterns specified
-- [ ] Examples from scientific domains
-- [ ] No implementation details
-- [ ] Consistent with source materials
-- [ ] Follows guidelines.md patterns
-
-## 🚨 REMEMBER: YOU'VE READ THE SOURCES
-
-**Once you've done the complete read, YOU KNOW THE SYSTEM.** The blog shows the high-level view. The paper has the details. The figures show the interactions. Trust your understanding.
-
-Other AIs skim and guess. You read completely and specify precisely.
-
-**When you follow these rules, you write specs that are: Clear. Complete. CLEANROOM.**
-
-## 🔄 COMMIT EACH SPEC INDIVIDUALLY
-
+### 1. Check Status
 ```bash
-git add specs/[new-spec].md SPECS_PLAN.md
-git commit -m "spec: add [component] specification"
+# At start of each iteration, check for errors
+if [ -f ".implementation_flags" ]; then
+    if grep -q "INTEGRATION_REGRESSION=true" .implementation_flags; then
+        echo "❌ Fix regression before continuing"
+    elif grep -q "IMPLEMENTATION_ERROR=true" .implementation_flags; then
+        echo "❌ Fix implementation to match specs"
+    fi
+    # After fixing: rm .implementation_flags
+fi
 ```
 
-One spec per commit - maintain clear history.
+### 2. One Task Per Iteration
+- Pick FIRST unchecked [ ] task from IMPLEMENTATION_PLAN.md
+- Implement it COMPLETELY with tests
+- Don't start multiple tasks
+- Each iteration MUST have passing tests before commit
 
-**CRITICAL: We're building specs, not code. If you find yourself writing HOW instead of WHAT, stop and refocus on behaviors.**
+### 3. Test-First Development
+- Write failing tests BEFORE implementation
+- Implement minimal code to pass tests
+- All tests must pass (pytest)
+- Coverage must meet 80% threshold
+- Integration tests use test_expectations.json
+
+### 4. Commit and Continue
+```bash
+# Only if all tests pass:
+git add -A
+git commit -m "feat: implement [component] - [what you did]"
+# Then exit - the loop will continue
+```
+
+## 🧪 Testing Requirements
+
+### Integration Test Categories
+- **✅ Pass**: Implementation correct
+- **⚠️ Expected Failure**: Tests in `may_fail` list
+- **❌ Critical Failure**: Tests in `must_pass` list failed
+- **❌ Unexpected Failure**: Unlisted tests failed
+- **❌ Regression**: Previously passing test fails
+
+### Test Expectations
+The file `tests/integration/test_expectations.json` defines:
+- `must_pass`: Critical tests that block progress
+- `may_fail`: Tests allowed to fail (waiting for future components)
+- `real_llm_tests`: Optional tests that verify actual AI behavior
+- `must_use_baml`: Methods that MUST call BAML functions (Phase 1 improvement)
+
+### BAML Mocking Requirements
+When adding new BAML functions or types:
+1. **Update `/tests/conftest.py`** with new function mocks
+2. **Add new BAML types** to mock_types as MockBAMLType
+3. **Create enum mocks** with MockEnumValue for enum types
+4. **Use side_effects** for complex mock behaviors
+5. See `docs/BAML_TESTING_STRATEGY.md` for detailed patterns
+
+### BAML Integration Requirements (Phase 1 Improvements)
+For agent implementations:
+1. **Content-generating methods MUST use BAML** - no hardcoded mock data
+2. **Check `must_use_baml` in test_expectations.json** - lists required BAML methods
+3. **Verify BAML integration before marking complete** - test with real calls
+4. **Mock implementations only for data transformation** - not content generation
+5. See `docs/IMPLEMENTATION_LOOP_IMPROVEMENTS.md` for rationale
+
+## 🤖 Real LLM Testing
+
+### Purpose
+Verify that agents exhibit expected AI behaviors with actual models (not mocked).
+
+### Implementation
+- Write alongside regular integration tests
+- Use naming: `test_phaseN_component_real.py`
+- Mark with `@pytest.mark.real_llm`
+- Test behaviors, not exact outputs
+- Keep token usage minimal (<100 per test)
+
+### Example Structure
+```python
+@pytest.mark.real_llm
+async def test_supervisor_real_orchestration():
+    """Test Supervisor exhibits planning behavior with o3."""
+    supervisor = SupervisorAgent()
+    result = await supervisor.plan_research("Why does ice float?")
+    
+    # Test behavioral expectations
+    assert len(result.subtasks) >= 3  # Proper decomposition
+    assert "density" in str(result).lower()  # Key concepts
+    # Verify o3 shows reasoning steps
+    assert any(marker in result.reasoning.lower() 
+              for marker in ["step", "first", "then"])
+```
+
+### When to Write
+- For agent phases (9+) that use LLMs
+- Focus on model-specific behaviors (o3 reasoning, Claude creativity)
+- Not needed for infrastructure phases
+
+### Execution
+- NOT part of automated loop (too slow/expensive)
+- Run manually: `pytest tests/integration/*_real.py -v --real-llm`
+- Run before major releases or when debugging AI behavior
+
+## 🛡️ Safety & Security
+
+### Argo Gateway Security
+- **NEVER** commit usernames or API keys
+- Use environment variables for configuration
+- Keep argo-api-documentation.md in .gitignore
+- Ensure VPN connection for Argo access
+
+### Safety Framework
+- Check research goals before processing
+- Filter unsafe hypotheses
+- Monitor research directions
+- Log everything for auditing
+
+## 🏗️ Technical Stack
+
+### Core Technologies
+- **Python 3.11+**: Async/await for concurrency
+- **BAML**: ALL LLM interactions (no direct API calls)
+- **pytest**: Comprehensive testing with ≥80% coverage
+- **File-based storage**: .aicoscientist/ directory
+
+## 🎯 BAML Prompt Requirements
+
+### Critical: All BAML Functions MUST Use System + User Roles
+**Why**: Claude and Gemini models require at least one user message. Using only system messages causes API errors.
+
+### Correct BAML Prompt Structure
+```baml
+function FunctionName(param: string) -> ReturnType {
+  client ProductionClient
+  
+  prompt #"
+    {{ _.role("system") }}
+    You are an expert at [specific task].
+    [General instructions and capabilities]
+    
+    {{ _.role("user") }}
+    [Specific request that needs the LLM's help]
+    
+    Input: {{ param }}
+    
+    [Detailed task-specific instructions]
+  "#
+}
+```
+
+### NEVER Do This (Will Fail with Claude/Gemini)
+```baml
+// ❌ WRONG - System message only
+prompt #"
+  You are an expert...
+  Input: {{ param }}
+"#
+```
+
+### Implementation Checklist
+- [ ] Every BAML function has `{{ _.role("system") }}` AND `{{ _.role("user") }}`
+- [ ] System role contains general instructions
+- [ ] User role contains the specific request
+- [ ] Parameters are referenced in the user section
+- [ ] Test with multiple models (o3, Claude, Gemini)
+
+### Implementation Phases (1-17)
+1. **Project Setup**: Structure and dependencies
+2. **Core Models**: Task, Hypothesis, Review
+3. **Task Queue**: First integrable component
+4. **Context Memory**: Persistent state management
+5. **Safety Framework**: Multi-layer protection
+6. **LLM Abstraction**: Interface layer
+7. **BAML Infrastructure**: Argo Gateway setup
+8. **Supervisor Agent**: Orchestration
+9. **Generation Agent**: Hypothesis creation
+10. **Reflection Agent**: Review system
+11. **Ranking Agent**: Tournament system
+12. **Evolution Agent**: Enhancement
+13. **Proximity Agent**: Clustering
+14. **Meta-Review Agent**: Synthesis
+15. **Natural Language Interface**: CLI
+16. **Integration and Polish**: Full system
+17. **Final Validation**: Complete testing
+
+## 🚨 Critical Rules
+
+1. **Follow specs exactly** - no deviations
+2. **Integration tests start at Phase 3** (first integrable component)
+3. **Every file should get smaller after iteration 10+**
+4. **Use BAML for all AI interactions**
+5. **Maintain ≥80% test coverage always**
+6. **One atomic feature per iteration**
+7. **Update IMPLEMENTATION_PLAN.md after each task**
+
+## 📋 Working Memory
+
+Maintain a TODO list between iterations:
+```markdown
+## Current TODO List
+1. [ ] Current task from IMPLEMENTATION_PLAN.md
+2. [ ] Files to read before modifying
+3. [ ] Tests to write
+4. [ ] Integration points to verify
+5. [ ] Refactoring opportunities
+6. [ ] Duplicate code to remove
+```
+
+Remember: The specs are your truth. Implement exactly what's specified.
+
+## 🎯 Context Optimization Guidelines
+
+### ACE-FCA Integration Status
+
+The development loop has been enhanced with ACE-FCA context optimization principles:
+
+#### Context Relevance Scoring
+- **Intelligent Spec Selection**: 3-7 most relevant specifications based on current task
+- **Automatic Fallback**: Full context when optimization confidence is low
+- **Quality Validation**: Context selections validated against phase requirements
+
+#### Usage
+- **Automatic**: Context optimization runs automatically during development loop
+- **Monitoring**: Metrics logged to `.context_optimization_metrics.log`
+- **Manual Control**: Can be disabled with `.context_optimization_disabled` file
+
+#### Quality Requirements
+- **Same Standards Apply**: All existing quality gates must pass with optimized context
+- **Fallback Guarantee**: System automatically uses full context if quality issues detected
+- **Coverage Maintained**: ≥80% test coverage required regardless of context optimization
+
+### Implementation Priority
+
+Context optimization is production-ready and should be used for all development iterations.

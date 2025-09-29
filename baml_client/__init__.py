@@ -1,0 +1,1 @@
+# This makes baml_client a proper Python package

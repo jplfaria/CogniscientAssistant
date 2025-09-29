@@ -1,0 +1,4 @@
+# Editable install with no version control (argo-proxy==2.7.6)
+-e /Users/jplfaria/repos/CogniscientAssistant/temp/argo-proxy-fix
+argon2-cffi==23.1.0
+argon2-cffi-bindings==21.2.0

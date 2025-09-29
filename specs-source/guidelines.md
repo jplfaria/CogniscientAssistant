@@ -50,15 +50,21 @@ This helps readers know what context they need before diving into the spec.
 
 ### 5. **Technology Decisions**
 For AI Co-Scientist:
-- Python with types
+- Python 3.11+ with types
 - BAML for ALL AI interactions
 - Multiple LLM support via Argo Gateway:
   - o3, Gemini 2.5, Claude 4 Opus, and others
-  - Access via argo-openai-proxy on localhost:8050
+  - Access via argo-openai-proxy on localhost:8000
   - Use BAML openai-generic provider
 - Simple file-based storage
 - Event-driven architecture
 - Follow 12-factor agent principles
+- Modern development environment:
+  - Use `uv` for fast package management and virtual environments
+  - `pytest` for testing with ≥80% coverage requirement
+  - `mypy` for type checking
+  - `ruff` for linting
+  - Integration testing with test_expectations.json
 
 ### 6. **Document Organization**
 Create separate specs for:
@@ -99,7 +105,7 @@ Reference: specs-source/references/Argo Gateway API Documentation.md
 - Configure BAML clients with:
   ```
   provider: "openai-generic"
-  base_url: "http://localhost:8050/v1"
+  base_url: "http://localhost:8000/v1"
   ```
 - Model names (e.g., "gpt4o", "claudeopus4", "gemini25pro")
 - See references/README_argo-openai-proxy.md for setup
@@ -147,7 +153,28 @@ For each agent, specify:
 - Tool call interfaces
 - Error and retry patterns
 
-### 16. **Validation Framework**
+### 16. **Development Environment Setup**
+When implementing the AI Co-Scientist:
+1. **Project Setup Phase** should include:
+   - Install `uv` for package management: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+   - Create development setup script in `scripts/setup-dev.sh`
+   - Use `uv` for virtual environment: `uv venv`
+   - Install dependencies with `uv`: `uv pip install -e ".[dev]"`
+   - Configure pyproject.toml with all dependencies
+   
+2. **Testing Infrastructure**:
+   - Unit tests in `tests/unit/`
+   - Integration tests in `tests/integration/`
+   - Use `test_expectations.json` to define must_pass vs may_fail tests
+   - Run tests with pytest: `pytest --cov=src --cov-fail-under=80`
+   
+3. **Implementation Loop**:
+   - Use `run-implementation-loop-validated.sh` for automated development
+   - Loop enforces quality gates (tests, coverage, linting)
+   - Integration tests run after each phase
+   - Regression detection prevents breaking existing functionality
+
+### 17. **Validation Framework**
 The AI Co-Scientist paper demonstrates three successful validations:
 1. **Drug Repurposing for AML**: KIRA6 showed IC50 of 13 nM in KG-1 cells
 2. **Liver Fibrosis Targets**: 4 epigenetic targets reduced fibroblast activity
