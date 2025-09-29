@@ -9,7 +9,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from uuid import uuid4
 
 from src.core.models import (
@@ -18,6 +18,8 @@ from src.core.models import (
     Citation,
     ExperimentalProtocol,
     ResearchGoal,
+    Paper,
+    MemoryEntry,
     utcnow
 )
 from src.core.task_queue import TaskQueue
@@ -25,6 +27,13 @@ from src.core.context_memory import ContextMemory
 from src.llm.base import LLMProvider
 from src.llm.baml_wrapper import BAMLWrapper
 from src.core.safety import SafetyLevel, SafetyLogger, SafetyConfig
+
+# ACE-FCA Context Optimization imports
+from src.config.ace_fca_config import ACEFCAConfig
+from src.utils.research_context import LiteratureRelevanceScorer
+from src.utils.memory_optimization import MemoryContextOptimizer
+from src.utils.agent_validation import AgentOutputValidator
+from src.utils.ace_fca_runtime import AgentContextMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +108,20 @@ class GenerationAgent:
             self.safety_logger = SafetyLogger(safety_config)
         else:
             self.safety_logger = None
-        
+
+        # Initialize ACE-FCA context optimization components
+        self.ace_fca_config = ACEFCAConfig.from_environment()
+        self.literature_scorer = LiteratureRelevanceScorer()
+        self.memory_optimizer = MemoryContextOptimizer()
+        self.output_validator = AgentOutputValidator()
+        self.context_metrics = AgentContextMetrics()
+
         logger.info(f"GenerationAgent initialized with strategies: {self.generation_strategies}")
+
+        if self.ace_fca_config.optimization_enabled:
+            logger.info("ACE-FCA context optimization enabled")
+        else:
+            logger.debug("ACE-FCA context optimization disabled")
     
     async def generate_hypothesis(
         self,
@@ -157,20 +178,59 @@ class GenerationAgent:
     async def generate_from_literature(
         self,
         research_goal: ResearchGoal,
-        literature: List[Dict[str, Any]]
+        literature: Union[List[Paper], List[Dict[str, Any]]]
     ) -> Hypothesis:
         """Generate hypothesis based on literature exploration.
-        
+
         Args:
             research_goal: Research goal to address
-            literature: Relevant literature articles
-            
+            literature: Relevant literature papers (Paper objects or dictionaries)
+
         Returns:
             Generated hypothesis grounded in literature
         """
+        # Convert literature to Paper objects if needed (backward compatibility)
+        paper_objects = self._ensure_paper_objects(literature)
+
+        original_paper_count = len(paper_objects)
+        optimized_literature = paper_objects
+        literature_confidence = 1.0
+
+        # Apply literature context optimization if enabled
+        if (self.ace_fca_config.literature_optimization and
+            len(paper_objects) > self.ace_fca_config.literature_max_papers):
+
+            logger.debug(f"Applying literature optimization: {len(paper_objects)} papers -> "
+                        f"max {self.ace_fca_config.literature_max_papers}")
+
+            literature_selection = self.literature_scorer.select_relevant_papers(
+                papers=paper_objects,
+                research_context=research_goal.description,
+                max_papers=self.ace_fca_config.literature_max_papers
+            )
+
+            if not literature_selection.fallback_needed:
+                optimized_literature = literature_selection.papers
+                literature_confidence = literature_selection.confidence_score
+
+                logger.info(f"Literature optimized: {original_paper_count} -> "
+                           f"{len(optimized_literature)} papers "
+                           f"(confidence: {literature_confidence:.2f})")
+
+                # Log optimization metrics
+                self.context_metrics.log_literature_optimization(
+                    agent_type='generation',
+                    original_papers=original_paper_count,
+                    optimized_papers=len(optimized_literature),
+                    quality_score=literature_confidence
+                )
+            else:
+                logger.warning(f"Literature optimization confidence too low "
+                              f"({literature_confidence:.2f}), using full context")
+
         # Prepare context from literature
-        literature_context = self._prepare_literature_context(literature)
-        
+        literature_context = self._prepare_literature_context_from_papers(optimized_literature)
+
         # Call BAML function to generate hypothesis
         try:
             baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
@@ -180,21 +240,58 @@ class GenerationAgent:
                 focus_area=literature_context.get('focus_area'),
                 generation_method='literature_based'
             )
-            
+
             # Convert BAML hypothesis to our model
             hypothesis = self._convert_baml_hypothesis(baml_hypothesis)
-            
-            # Add literature citations
-            hypothesis.supporting_evidence = self._extract_citations(literature)
-            
+
+            # Add literature citations from optimized papers
+            hypothesis.supporting_evidence = self._extract_citations_from_papers(optimized_literature)
+
+            # Validate output if optimization was used
+            if (self.ace_fca_config.output_validation and
+                len(optimized_literature) < original_paper_count):
+
+                validation_result = await self.output_validator.validate_output(
+                    agent_output=hypothesis,
+                    agent_type='generation',
+                    context=research_goal.description,
+                    original_context_size=original_paper_count,
+                    optimized_context_size=len(optimized_literature)
+                )
+
+                if validation_result.requires_fallback:
+                    logger.warning(f"Output validation failed (confidence: "
+                                  f"{validation_result.confidence:.2f}), "
+                                  f"regenerating with full context")
+
+                    # Fallback to full literature context
+                    literature_context = self._prepare_literature_context_from_papers(literature)
+                    baml_hypothesis = await self.baml_wrapper.generate_hypothesis(
+                        goal=research_goal.description,
+                        constraints=research_goal.constraints,
+                        existing_hypotheses=[],
+                        focus_area=literature_context.get('focus_area'),
+                        generation_method='literature_based'
+                    )
+                    hypothesis = self._convert_baml_hypothesis(baml_hypothesis)
+                    hypothesis.supporting_evidence = self._extract_citations_from_papers(literature)
+
+                    # Log fallback usage
+                    self.context_metrics.log_literature_optimization(
+                        agent_type='generation',
+                        original_papers=original_paper_count,
+                        optimized_papers=original_paper_count,  # Full context used
+                        quality_score=validation_result.confidence
+                    )
+
             # Update generation count
             self._generation_count += 1
-            
+
             # Store in context memory
             await self._store_hypothesis(hypothesis)
-            
+
             return hypothesis
-            
+
         except Exception as e:
             logger.error(f"Failed to generate hypothesis from literature: {e}")
             raise RuntimeError(f"Generation failed: {e}")
@@ -395,7 +492,10 @@ class GenerationAgent:
     # Private helper methods
     
     async def _search_literature(self, research_goal: ResearchGoal) -> List[Dict[str, Any]]:
-        """Search for relevant literature using web search if available."""
+        """Search for relevant literature using web search if available.
+
+        Returns literature as dictionaries for backward compatibility.
+        """
         if self.web_search:
             # Use injected web search
             search_result = await self.web_search.search(
@@ -403,18 +503,27 @@ class GenerationAgent:
                 search_type='EXPLORATION',
                 max_results=10
             )
+
+            # Return articles directly as dictionaries for backward compatibility
             return search_result.get('articles', [])
-        
-        # Fallback to mock implementation
-        return [
-            {
-                'title': 'Related research paper',
-                'abstract': 'Abstract content...',
-                'relevance': 0.9,
-                'doi': '10.1234/test.2024.001',
-                'journal': 'Nature Medicine'
+
+        # Fallback to mock implementation with dictionaries for backward compatibility
+        mock_papers = []
+        for i in range(15):  # Create more papers to test optimization
+            paper = {
+                'title': f'Related research paper {i+1}: {research_goal.description}',
+                'abstract': f'Abstract content for paper {i+1} discussing {research_goal.description}...',
+                'authors': [f'Author{i+1}A', f'Author{i+1}B'],
+                'journal': 'Nature Medicine' if i % 2 == 0 else 'Science',
+                'year': 2024 - (i % 5),  # Vary years
+                'doi': f'10.1234/test.2024.{i+1:03d}',
+                'relevance_score': 0.9 - (i * 0.05),  # Decreasing relevance
+                'methodology_type': 'experimental' if i % 3 == 0 else 'computational',
+                'research_domain': 'biology'
             }
-        ]
+            mock_papers.append(paper)
+
+        return mock_papers
     
     async def _simulate_debate(self, research_goal: ResearchGoal, num_turns: int) -> List[Dict[str, str]]:
         """Simulate scientific debate (mock implementation)."""
@@ -435,18 +544,84 @@ class GenerationAgent:
         }
     
     def _prepare_literature_context(self, literature: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Prepare context from literature for generation."""
+        """Prepare context from literature for generation (legacy method)."""
         if not literature:
             return {}
-        
+
         # Extract key themes
         titles = [article.get('title', '') for article in literature]
         abstracts = [article.get('abstract', '') for article in literature]
-        
+
         return {
             'focus_area': ' '.join(titles[:3]),  # Simplified
             'key_findings': ' '.join(abstracts[:2])
         }
+
+    def _ensure_paper_objects(self, literature: Union[List[Paper], List[Dict[str, Any]]]) -> List[Paper]:
+        """Convert literature to Paper objects if needed (backward compatibility).
+
+        Args:
+            literature: Literature as Paper objects or dictionaries
+
+        Returns:
+            List of Paper objects
+        """
+        if not literature:
+            return []
+
+        # Check if already Paper objects
+        if isinstance(literature[0], Paper):
+            return literature
+
+        # Convert dictionaries to Paper objects
+        paper_objects = []
+        for item in literature:
+            if isinstance(item, dict):
+                paper = Paper(
+                    title=item.get('title', ''),
+                    abstract=item.get('abstract', ''),
+                    authors=item.get('authors', []),
+                    year=item.get('year'),
+                    journal=item.get('journal', ''),
+                    doi=item.get('doi', ''),
+                    keywords=item.get('keywords', []),
+                    methodology_type=item.get('methodology_type', ''),
+                    research_domain=item.get('research_domain', ''),
+                    relevance_score=item.get('relevance_score', 0.5)
+                )
+                paper_objects.append(paper)
+            else:
+                # Already a Paper object
+                paper_objects.append(item)
+
+        return paper_objects
+
+    def _prepare_literature_context_from_papers(self, papers: List[Paper]) -> Dict[str, Any]:
+        """Prepare context from Paper objects for generation."""
+        if not papers:
+            return {}
+
+        # Extract key themes from Paper objects
+        titles = [paper.title for paper in papers]
+        abstracts = [paper.abstract for paper in papers if paper.abstract]
+
+        # Extract methodology and domain information
+        methodologies = [paper.methodology_type for paper in papers
+                        if paper.methodology_type]
+        domains = [paper.research_domain for paper in papers
+                  if paper.research_domain]
+
+        # Build comprehensive context
+        context = {
+            'focus_area': ' '.join(titles[:3]),  # Top 3 most relevant titles
+            'key_findings': ' '.join(abstracts[:2]) if abstracts else '',
+            'methodologies': list(set(methodologies)) if methodologies else [],
+            'research_domains': list(set(domains)) if domains else [],
+            'paper_count': len(papers),
+            'high_relevance_papers': len([p for p in papers if p.relevance_score > 0.7])
+        }
+
+        return context
     
     def _prepare_debate_context(self, debate_turns: List[Dict[str, str]]) -> str:
         """Prepare context from debate turns for generation."""
@@ -526,7 +701,7 @@ class GenerationAgent:
         )
     
     def _extract_citations(self, literature: List[Dict[str, Any]]) -> List[Citation]:
-        """Extract citations from literature."""
+        """Extract citations from literature (legacy method)."""
         citations = []
         for article in literature:
             if 'doi' in article:
@@ -538,6 +713,15 @@ class GenerationAgent:
                     doi=article.get('doi')
                 )
                 citations.append(citation)
+        return citations
+
+    def _extract_citations_from_papers(self, papers: List[Paper]) -> List[Citation]:
+        """Extract citations from Paper objects."""
+        citations = []
+        for paper in papers:
+            # Use the Paper's built-in citation conversion method
+            citation = paper.get_citation()
+            citations.append(citation)
         return citations
     
     def _create_mock_protocol(self) -> ExperimentalProtocol:

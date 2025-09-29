@@ -1,0 +1,17 @@
+{
+  "id": "b6ab69de-c74c-46cd-8d81-ab1152eec3f7",
+  "timestamp": "2025-09-29T17:14:41.474504+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "6fadc0379b0b15371c082e3a5cf6495a5628e70840df0f3ca14883181e1d4343",
+  "metadata": {
+    "hypothesis_id": "03c56686-777a-4f74-ab5b-32834b4184fd",
+    "summary": "Combined PD-1 blockade with engineered CAR-T cells",
+    "category": "therapeutic",
+    "generation_method": "literature_based",
+    "confidence_score": 0.85,
+    "num_assumptions": 1,
+    "has_citations": true
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

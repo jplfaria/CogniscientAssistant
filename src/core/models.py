@@ -387,3 +387,123 @@ class ResearchGoal(BaseModel):
     def update(self) -> None:
         """Update the timestamp when goal is modified."""
         self.updated_at = utcnow()
+
+
+class Paper(BaseModel):
+    """Scientific paper model for literature context."""
+
+    id: str = Field(default_factory=lambda: f"paper_{uuid4().hex[:8]}")
+    title: str = Field(min_length=5)
+    abstract: str = Field(default="")
+    authors: List[str] = Field(default_factory=list)
+    journal: Optional[str] = None
+    year: Optional[int] = Field(default=None, ge=1900, le=2100)
+    doi: Optional[str] = None
+    url: Optional[str] = None
+    relevance_score: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    # Content analysis fields
+    keywords: List[str] = Field(default_factory=list)
+    methodology_type: Optional[str] = None
+    research_domain: Optional[str] = None
+
+    # Metadata
+    retrieved_at: datetime = Field(default_factory=utcnow)
+    source: Optional[str] = Field(default="web_search")
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        """Ensure title is meaningful."""
+        if len(v.strip()) < 5:
+            raise ValueError("Title must be at least 5 characters")
+        return v.strip()
+
+    @field_serializer("retrieved_at")
+    def serialize_retrieved_at(self, value: datetime) -> str:
+        """Serialize datetime to ISO format string."""
+        return value.isoformat()
+
+    def get_citation(self) -> Citation:
+        """Convert paper to citation format.
+
+        Returns:
+            Citation object for this paper
+        """
+        return Citation(
+            authors=self.authors or ["Unknown Author"],
+            title=self.title,
+            journal=self.journal,
+            year=self.year or 2024,
+            doi=self.doi,
+            url=self.url
+        )
+
+
+class MemoryEntry(BaseModel):
+    """Memory entry model for context memory system."""
+
+    id: str = Field(default_factory=lambda: f"mem_{uuid4().hex[:8]}")
+    entry_type: str = Field(description="Type of memory entry (hypothesis, task, result, etc.)")
+    content: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=utcnow)
+    agent_id: Optional[str] = None
+    task_id: Optional[str] = None
+    relevance_score: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    # Context tags for filtering
+    tags: List[str] = Field(default_factory=list)
+    iteration_number: Optional[int] = None
+    research_phase: Optional[str] = None
+
+    @field_serializer("timestamp")
+    def serialize_timestamp(self, value: datetime) -> str:
+        """Serialize datetime to ISO format string."""
+        return value.isoformat()
+
+    def is_recent(self, hours: int = 24) -> bool:
+        """Check if memory entry is recent.
+
+        Args:
+            hours: Number of hours to consider recent
+
+        Returns:
+            True if entry is within the specified hours
+        """
+        from datetime import timedelta
+        cutoff = utcnow() - timedelta(hours=hours)
+        return self.timestamp > cutoff
+
+    def matches_context(self, context: str, agent_type: str = None) -> float:
+        """Calculate relevance to given context.
+
+        Args:
+            context: Context string to match against
+            agent_type: Optional agent type for context-specific matching
+
+        Returns:
+            Relevance score between 0.0 and 1.0
+        """
+        # Simple keyword matching implementation
+        context_lower = context.lower()
+        content_str = str(self.content).lower()
+
+        # Base relevance score
+        relevance = 0.0
+
+        # Check content similarity
+        context_words = set(context_lower.split())
+        content_words = set(content_str.split())
+        if context_words and content_words:
+            overlap = len(context_words & content_words)
+            relevance += overlap / len(context_words | content_words)
+
+        # Boost for agent type match
+        if agent_type and self.agent_id and agent_type.lower() in self.agent_id.lower():
+            relevance *= 1.2
+
+        # Boost for recent entries
+        if self.is_recent(6):  # Recent within 6 hours
+            relevance *= 1.1
+
+        return min(relevance, 1.0)

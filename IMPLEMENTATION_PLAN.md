@@ -602,6 +602,44 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_stress_testing (may_fail)
 - [ ] Implement test_production_simulation (may_fail)
 
+## ACE-FCA Context Optimization (Phase 1)
+
+### Core Configuration System
+- [x] Create ACE-FCA configuration system (ace_fca_config.py)
+- [x] Implement environment variable loading with file overrides
+- [x] Add conservative defaults (optimization disabled by default)
+- [x] Write tests for configuration system
+
+### Literature Context Optimization
+- [x] Create Literature Context Scorer (research_context.py)
+- [x] Implement domain-weighted relevance scoring
+- [x] Add paper selection with confidence assessment
+- [x] Write tests for literature optimization
+
+### Memory Context Optimization
+- [x] Create Memory Context Optimizer (memory_optimization.py)
+- [x] Implement agent-specific memory selection strategies
+- [x] Add temporal and relevance filtering
+- [x] Write tests for memory optimization
+
+### Output Validation System
+- [x] Create Agent Output Validator (agent_validation.py)
+- [x] Implement confidence assessment for optimized outputs
+- [x] Add fallback logic for low-confidence results
+- [x] Write tests for output validation
+
+### Runtime Control
+- [x] Create ACE-FCA runtime control utilities (ace_fca_runtime.py)
+- [x] Implement dynamic enable/disable mechanisms
+- [x] Add metrics collection and effectiveness tracking
+- [x] Write tests for runtime control
+
+### Generation Agent Integration
+- [x] Integrate context optimization into Generation Agent
+- [x] Add backward compatibility for existing tests
+- [x] Implement fallback to full context when needed
+- [x] Run automated verification tests
+
 ## Notes
 
 - Each checkbox represents an atomic, testable unit
