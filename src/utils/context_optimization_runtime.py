@@ -1,8 +1,7 @@
-"""ACE-FCA Runtime Control for context optimization.
+"""Context Optimization Runtime Control.
 
-This module provides runtime control capabilities for the ACE-FCA context
-optimization system, including dynamic enable/disable, metrics collection,
-and status monitoring.
+This module provides runtime control capabilities for the context optimization
+system, including dynamic enable/disable, metrics collection, and status monitoring.
 """
 
 import json
@@ -10,18 +9,18 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from src.config.ace_fca_config import ACEFCAConfig
+from src.config.context_optimization_config import ContextOptimizationConfig
 
 logger = logging.getLogger(__name__)
 
 
-class ACEFCARuntimeControl:
-    """Runtime control for ACE-FCA optimization."""
+class ContextOptimizationRuntimeControl:
+    """Runtime control for context optimization."""
 
     def __init__(self):
         """Initialize runtime control with current configuration."""
         self._override_enabled = None
-        self.config = ACEFCAConfig.from_environment()
+        self.config = ContextOptimizationConfig.from_environment()
         self.metrics_file = Path(".context_optimization_metrics.log")
 
     def enable_optimization(self, temporary: bool = True):
@@ -33,11 +32,11 @@ class ACEFCARuntimeControl:
         """
         if temporary:
             self._override_enabled = True
-            logger.info("ACE-FCA optimization enabled temporarily for this session")
+            logger.info("Context optimization enabled temporarily for this session")
         else:
             Path(".context_optimization_enabled").touch()
-            self.config = ACEFCAConfig.from_environment()
-            logger.info("ACE-FCA optimization enabled persistently")
+            self.config = ContextOptimizationConfig.from_environment()
+            logger.info("Context optimization enabled persistently")
 
     def disable_optimization(self, temporary: bool = True):
         """Disable optimization at runtime.
@@ -48,11 +47,11 @@ class ACEFCARuntimeControl:
         """
         if temporary:
             self._override_enabled = False
-            logger.info("ACE-FCA optimization disabled temporarily for this session")
+            logger.info("Context optimization disabled temporarily for this session")
         else:
             Path(".context_optimization_disabled").touch()
-            self.config = ACEFCAConfig.from_environment()
-            logger.info("ACE-FCA optimization disabled persistently")
+            self.config = ContextOptimizationConfig.from_environment()
+            logger.info("Context optimization disabled persistently")
 
     def is_enabled(self, model_name: Optional[str] = None, context_size: int = 0) -> bool:
         """Check if optimization is currently enabled.
@@ -182,7 +181,7 @@ class ACEFCARuntimeControl:
         """
         metrics = self.get_metrics()
 
-        report = "🎯 ACE-FCA Context Optimization Status\n"
+        report = "🎯 Context Optimization Status\n"
         report += "=" * 40 + "\n\n"
 
         # Status
@@ -334,9 +333,9 @@ class ACEFCARuntimeControl:
         self._override_enabled = None
 
         # Reload configuration from environment
-        self.config = ACEFCAConfig.from_environment()
+        self.config = ContextOptimizationConfig.from_environment()
 
-        logger.info("ACE-FCA configuration reset to environment defaults")
+        logger.info("Context optimization configuration reset to environment defaults")
 
 
 class AgentContextMetrics:
@@ -344,7 +343,7 @@ class AgentContextMetrics:
 
     def __init__(self):
         """Initialize metrics collector."""
-        self.runtime_control = ACEFCARuntimeControl()
+        self.runtime_control = ContextOptimizationRuntimeControl()
 
     def log_literature_optimization(self, agent_type: str,
                                   original_papers: int,

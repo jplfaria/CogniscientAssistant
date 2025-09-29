@@ -1,0 +1,17 @@
+{
+  "id": "65451347-dea7-4757-906f-2563ee4f2486",
+  "timestamp": "2025-09-29T19:06:37.219363+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "944928bfafba267e8f62c608a856af4ce1d7797e78558c23cd8dfbb3ee2ebcdb",
+  "metadata": {
+    "hypothesis_id": "cd574f6b-b46e-43fc-b7ed-9cb96aee470c",
+    "summary": "Expanded hypothesis building on existing research networks",
+    "category": "mechanistic",
+    "generation_method": "expansion",
+    "confidence_score": 0.85,
+    "num_assumptions": 2,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

@@ -1,4 +1,4 @@
-"""Literature Context Scorer for ACE-FCA optimization.
+"""Literature Context Scorer for context optimization.
 
 This module implements intelligent literature relevance scoring to select the most
 relevant papers for hypothesis generation, reducing context size while maintaining

@@ -1,7 +1,7 @@
-"""ACE-FCA Context Optimization Configuration.
+"""Context Optimization Configuration.
 
-This module provides configuration management for the ACE-FCA (Advanced Context
-Engineering - Focused Context Analytics) context optimization system.
+This module provides configuration management for the context optimization system,
+enabling intelligent filtering and selection of relevant context for LLM operations.
 """
 
 import os
@@ -11,8 +11,8 @@ from typing import Dict, Optional
 
 
 @dataclass
-class ACEFCAConfig:
-    """Configuration for ACE-FCA context optimization."""
+class ContextOptimizationConfig:
+    """Configuration for context optimization."""
 
     # Main toggles
     optimization_enabled: bool = False
@@ -30,7 +30,7 @@ class ACEFCAConfig:
     model_overrides: Dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_environment(cls) -> "ACEFCAConfig":
+    def from_environment(cls) -> "ContextOptimizationConfig":
         """Load configuration from environment variables."""
 
         # Check file overrides first

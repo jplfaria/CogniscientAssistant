@@ -1,4 +1,4 @@
-"""Agent Output Validator for ACE-FCA optimization.
+"""Agent Output Validator for context optimization.
 
 This module implements validation and confidence assessment for agent outputs
 when using optimized context, ensuring quality is maintained even with reduced

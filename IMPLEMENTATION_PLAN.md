@@ -602,10 +602,10 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [ ] Implement test_stress_testing (may_fail)
 - [ ] Implement test_production_simulation (may_fail)
 
-## ACE-FCA Context Optimization (Phase 1)
+## Context Optimization (Phase 1)
 
 ### Core Configuration System
-- [x] Create ACE-FCA configuration system (ace_fca_config.py)
+- [x] Create context optimization configuration system (context_optimization_config.py)
 - [x] Implement environment variable loading with file overrides
 - [x] Add conservative defaults (optimization disabled by default)
 - [x] Write tests for configuration system
@@ -629,7 +629,7 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 - [x] Write tests for output validation
 
 ### Runtime Control
-- [x] Create ACE-FCA runtime control utilities (ace_fca_runtime.py)
+- [x] Create context optimization runtime control utilities (context_optimization_runtime.py)
 - [x] Implement dynamic enable/disable mechanisms
 - [x] Add metrics collection and effectiveness tracking
 - [x] Write tests for runtime control

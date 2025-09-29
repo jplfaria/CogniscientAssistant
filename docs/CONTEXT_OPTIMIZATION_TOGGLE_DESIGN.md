@@ -1,8 +1,8 @@
-# ACE-FCA Context Optimization Toggle Design
+# Context Optimization Toggle Design
 
 ## Overview
 
-This document defines the toggle mechanism for ACE-FCA context optimization, allowing the system to be easily enabled/disabled based on context window size and model capabilities.
+This document defines the toggle mechanism for context optimization, allowing the system to be easily enabled/disabled based on context window size and model capabilities.
 
 ## Toggle Mechanisms
 
@@ -43,7 +43,7 @@ touch .context_optimization_aggressive
 ### 3. Configuration Class
 
 ```python
-# src/config/ace_fca_config.py
+# src/config/context_optimization_config.py
 from dataclasses import dataclass
 from typing import Optional
 import os

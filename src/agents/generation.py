@@ -28,12 +28,12 @@ from src.llm.base import LLMProvider
 from src.llm.baml_wrapper import BAMLWrapper
 from src.core.safety import SafetyLevel, SafetyLogger, SafetyConfig
 
-# ACE-FCA Context Optimization imports
-from src.config.ace_fca_config import ACEFCAConfig
+# Context Optimization imports
+from src.config.context_optimization_config import ContextOptimizationConfig
 from src.utils.research_context import LiteratureRelevanceScorer
 from src.utils.memory_optimization import MemoryContextOptimizer
 from src.utils.agent_validation import AgentOutputValidator
-from src.utils.ace_fca_runtime import AgentContextMetrics
+from src.utils.context_optimization_runtime import AgentContextMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +109,8 @@ class GenerationAgent:
         else:
             self.safety_logger = None
 
-        # Initialize ACE-FCA context optimization components
-        self.ace_fca_config = ACEFCAConfig.from_environment()
+        # Initialize context optimization components
+        self.context_optimization_config = ContextOptimizationConfig.from_environment()
         self.literature_scorer = LiteratureRelevanceScorer()
         self.memory_optimizer = MemoryContextOptimizer()
         self.output_validator = AgentOutputValidator()
@@ -118,10 +118,10 @@ class GenerationAgent:
 
         logger.info(f"GenerationAgent initialized with strategies: {self.generation_strategies}")
 
-        if self.ace_fca_config.optimization_enabled:
-            logger.info("ACE-FCA context optimization enabled")
+        if self.context_optimization_config.optimization_enabled:
+            logger.info("Context optimization enabled")
         else:
-            logger.debug("ACE-FCA context optimization disabled")
+            logger.debug("Context optimization disabled")
     
     async def generate_hypothesis(
         self,
@@ -197,16 +197,16 @@ class GenerationAgent:
         literature_confidence = 1.0
 
         # Apply literature context optimization if enabled
-        if (self.ace_fca_config.literature_optimization and
-            len(paper_objects) > self.ace_fca_config.literature_max_papers):
+        if (self.context_optimization_config.literature_optimization and
+            len(paper_objects) > self.context_optimization_config.literature_max_papers):
 
             logger.debug(f"Applying literature optimization: {len(paper_objects)} papers -> "
-                        f"max {self.ace_fca_config.literature_max_papers}")
+                        f"max {self.context_optimization_config.literature_max_papers}")
 
             literature_selection = self.literature_scorer.select_relevant_papers(
                 papers=paper_objects,
                 research_context=research_goal.description,
-                max_papers=self.ace_fca_config.literature_max_papers
+                max_papers=self.context_optimization_config.literature_max_papers
             )
 
             if not literature_selection.fallback_needed:
@@ -248,7 +248,7 @@ class GenerationAgent:
             hypothesis.supporting_evidence = self._extract_citations_from_papers(optimized_literature)
 
             # Validate output if optimization was used
-            if (self.ace_fca_config.output_validation and
+            if (self.context_optimization_config.output_validation and
                 len(optimized_literature) < original_paper_count):
 
                 validation_result = await self.output_validator.validate_output(

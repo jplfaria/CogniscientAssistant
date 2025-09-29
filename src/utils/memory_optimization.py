@@ -1,4 +1,4 @@
-"""Memory Context Optimizer for ACE-FCA optimization.
+"""Memory Context Optimizer for context optimization.
 
 This module implements intelligent memory context filtering to select the most
 relevant memory entries for agent operations, reducing context size while
