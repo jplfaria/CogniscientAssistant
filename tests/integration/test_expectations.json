@@ -92,10 +92,16 @@
     "must_pass": [
       "test_baml_schema_compilation",
       "test_baml_client_connectivity",
-      "test_baml_mock_responses"
+      "test_baml_mock_responses",
+      "test_enhanced_error_handling",
+      "test_baml_logging_configuration",
+      "test_retry_mechanisms",
+      "test_fallback_client_selection",
+      "test_circuit_breaker_integration"
     ],
     "may_fail": [
-      "test_baml_role_formatting_all_models"
+      "test_baml_role_formatting_all_models",
+      "test_baml_streaming_support"
     ],
     "real_llm_tests": [
       "test_baml_role_formatting_all_models",
@@ -103,7 +109,7 @@
       "test_baml_function_chaining",
       "test_baml_error_recovery_with_real_llm"
     ],
-    "description": "BAML infrastructure must be properly configured with correct role formatting"
+    "description": "BAML infrastructure must be properly configured with correct role formatting and enhanced error handling"
   },
   "phase_8": {
     "name": "Argo Gateway Integration",
