@@ -41,6 +41,8 @@ class BamlAsyncClient:
         client_registry: typing.Optional[baml_py.baml_py.ClientRegistry] = None,
         collector: typing.Optional[typing.Union[baml_py.baml_py.Collector, typing.List[baml_py.baml_py.Collector]]] = None,
         env: typing.Optional[typing.Dict[str, typing.Optional[str]]] = None,
+        tags: typing.Optional[typing.Dict[str, str]] = None,
+        on_tick: typing.Optional[typing.Callable[[str, baml_py.baml_py.FunctionLog], None]] = None,
     ) -> "BamlAsyncClient":
         options: BamlCallOptions = {}
         if tb is not None:
@@ -51,6 +53,10 @@ class BamlAsyncClient:
             options["collector"] = collector
         if env is not None:
             options["env"] = env
+        if tags is not None:
+            options["tags"] = tags
+        if on_tick is not None:
+            options["on_tick"] = on_tick
         return BamlAsyncClient(self.__options.merge_options(options))
 
     @property
@@ -76,59 +82,123 @@ class BamlAsyncClient:
     async def CalculateSimilarity(self, hypothesis1: types.Hypothesis,hypothesis2: types.Hypothesis,similarity_aspects: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> types.SimilarityScore:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="CalculateSimilarity", args={
-            "hypothesis1": hypothesis1,"hypothesis2": hypothesis2,"similarity_aspects": similarity_aspects,
-        })
-        return typing.cast(types.SimilarityScore, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.CalculateSimilarity(hypothesis1=hypothesis1,hypothesis2=hypothesis2,similarity_aspects=similarity_aspects,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="CalculateSimilarity", args={
+                "hypothesis1": hypothesis1,"hypothesis2": hypothesis2,"similarity_aspects": similarity_aspects,
+            })
+            return typing.cast(types.SimilarityScore, result.cast_to(types, types, stream_types, False, __runtime__))
     async def CompareHypotheses(self, hypothesis1: types.Hypothesis,hypothesis2: types.Hypothesis,comparison_criteria: typing.List[str],debate_context: typing.Optional[str] = None,
         baml_options: BamlCallOptions = {},
     ) -> types.ComparisonResult:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="CompareHypotheses", args={
-            "hypothesis1": hypothesis1,"hypothesis2": hypothesis2,"comparison_criteria": comparison_criteria,"debate_context": debate_context,
-        })
-        return typing.cast(types.ComparisonResult, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.CompareHypotheses(hypothesis1=hypothesis1,hypothesis2=hypothesis2,comparison_criteria=comparison_criteria,debate_context=debate_context,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="CompareHypotheses", args={
+                "hypothesis1": hypothesis1,"hypothesis2": hypothesis2,"comparison_criteria": comparison_criteria,"debate_context": debate_context,
+            })
+            return typing.cast(types.ComparisonResult, result.cast_to(types, types, stream_types, False, __runtime__))
     async def EnhanceHypothesis(self, original_hypothesis: types.Hypothesis,enhancement_strategy: str,feedback: typing.Optional[typing.List[str]] = None,complementary_hypothesis: typing.Optional["types.Hypothesis"] = None,
         baml_options: BamlCallOptions = {},
     ) -> types.Hypothesis:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="EnhanceHypothesis", args={
-            "original_hypothesis": original_hypothesis,"enhancement_strategy": enhancement_strategy,"feedback": feedback,"complementary_hypothesis": complementary_hypothesis,
-        })
-        return typing.cast(types.Hypothesis, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EnhanceHypothesis(original_hypothesis=original_hypothesis,enhancement_strategy=enhancement_strategy,feedback=feedback,complementary_hypothesis=complementary_hypothesis,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EnhanceHypothesis", args={
+                "original_hypothesis": original_hypothesis,"enhancement_strategy": enhancement_strategy,"feedback": feedback,"complementary_hypothesis": complementary_hypothesis,
+            })
+            return typing.cast(types.Hypothesis, result.cast_to(types, types, stream_types, False, __runtime__))
     async def EvaluateHypothesis(self, hypothesis: types.Hypothesis,review_type: types.ReviewType,evaluation_criteria: typing.List[str],context: typing.Optional[typing.Dict[str, str]] = None,
         baml_options: BamlCallOptions = {},
     ) -> types.Review:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvaluateHypothesis", args={
-            "hypothesis": hypothesis,"review_type": review_type,"evaluation_criteria": evaluation_criteria,"context": context,
-        })
-        return typing.cast(types.Review, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.EvaluateHypothesis(hypothesis=hypothesis,review_type=review_type,evaluation_criteria=evaluation_criteria,context=context,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="EvaluateHypothesis", args={
+                "hypothesis": hypothesis,"review_type": review_type,"evaluation_criteria": evaluation_criteria,"context": context,
+            })
+            return typing.cast(types.Review, result.cast_to(types, types, stream_types, False, __runtime__))
     async def ExtractResearchPatterns(self, hypotheses: typing.List["types.Hypothesis"],reviews: typing.List["types.Review"],focus: str,
         baml_options: BamlCallOptions = {},
     ) -> types.ResearchPatterns:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="ExtractResearchPatterns", args={
-            "hypotheses": hypotheses,"reviews": reviews,"focus": focus,
-        })
-        return typing.cast(types.ResearchPatterns, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.ExtractResearchPatterns(hypotheses=hypotheses,reviews=reviews,focus=focus,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="ExtractResearchPatterns", args={
+                "hypotheses": hypotheses,"reviews": reviews,"focus": focus,
+            })
+            return typing.cast(types.ResearchPatterns, result.cast_to(types, types, stream_types, False, __runtime__))
     async def GenerateHypothesis(self, goal: str,constraints: typing.List[str],existing_hypotheses: typing.List["types.Hypothesis"],focus_area: typing.Optional[str],generation_method: str,
         baml_options: BamlCallOptions = {},
     ) -> types.Hypothesis:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="GenerateHypothesis", args={
-            "goal": goal,"constraints": constraints,"existing_hypotheses": existing_hypotheses,"focus_area": focus_area,"generation_method": generation_method,
-        })
-        return typing.cast(types.Hypothesis, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.GenerateHypothesis(goal=goal,constraints=constraints,existing_hypotheses=existing_hypotheses,focus_area=focus_area,generation_method=generation_method,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="GenerateHypothesis", args={
+                "goal": goal,"constraints": constraints,"existing_hypotheses": existing_hypotheses,"focus_area": focus_area,"generation_method": generation_method,
+            })
+            return typing.cast(types.Hypothesis, result.cast_to(types, types, stream_types, False, __runtime__))
     async def ParseResearchGoal(self, natural_language_goal: str,domain_context: typing.Optional[str] = None,
         baml_options: BamlCallOptions = {},
     ) -> types.ParsedResearchGoal:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="ParseResearchGoal", args={
-            "natural_language_goal": natural_language_goal,"domain_context": domain_context,
-        })
-        return typing.cast(types.ParsedResearchGoal, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.ParseResearchGoal(natural_language_goal=natural_language_goal,domain_context=domain_context,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="ParseResearchGoal", args={
+                "natural_language_goal": natural_language_goal,"domain_context": domain_context,
+            })
+            return typing.cast(types.ParsedResearchGoal, result.cast_to(types, types, stream_types, False, __runtime__))
     async def PerformSafetyCheck(self, target_type: str,target_content: str,trust_level: str,safety_criteria: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> types.SafetyCheck:
-        result = await self.__options.merge_options(baml_options).call_function_async(function_name="PerformSafetyCheck", args={
-            "target_type": target_type,"target_content": target_content,"trust_level": trust_level,"safety_criteria": safety_criteria,
-        })
-        return typing.cast(types.SafetyCheck, result.cast_to(types, types, stream_types, False, __runtime__))
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.PerformSafetyCheck(target_type=target_type,target_content=target_content,trust_level=trust_level,safety_criteria=safety_criteria,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="PerformSafetyCheck", args={
+                "target_type": target_type,"target_content": target_content,"trust_level": trust_level,"safety_criteria": safety_criteria,
+            })
+            return typing.cast(types.SafetyCheck, result.cast_to(types, types, stream_types, False, __runtime__))
     
 
 

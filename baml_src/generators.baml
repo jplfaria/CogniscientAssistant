@@ -4,7 +4,7 @@
 generator python {
   output_type "python/pydantic"
   output_dir "../baml_client"
-  version "0.90.2"
+  version "0.209.0"
 }
 
 // Future generator configurations can be added here

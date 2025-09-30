@@ -358,23 +358,30 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 11: Reflection Agent
 
+### BAML Functions Required
+- [ ] Implement GenerateReview BAML function
+- [ ] Implement GenerateCritique BAML function
+- [ ] Add wrapper methods in BAMLWrapper
+- [ ] Update test mocks in conftest.py
+- [ ] Write tests for BAML functions
+
 ### Agent Structure
 - [ ] Create ReflectionAgent class
 - [ ] Implement agent initialization
 - [ ] Write tests for initialization
 
 ### Review Types
-- [ ] Implement initial review
+- [ ] Implement initial review (uses GenerateReview)
 - [ ] Write tests for initial review
-- [ ] Add full review with literature
+- [ ] Add full review with literature (uses GenerateReview)
 - [ ] Write tests for full review
-- [ ] Implement deep verification
+- [ ] Implement deep verification (uses GenerateCritique)
 - [ ] Write tests for deep verification
-- [ ] Add observation review
+- [ ] Add observation review (uses GenerateReview)
 - [ ] Write tests for observation review
-- [ ] Implement simulation review
+- [ ] Implement simulation review (uses GenerateCritique)
 - [ ] Write tests for simulation review
-- [ ] Add tournament review
+- [ ] Add tournament review (uses GenerateReview)
 - [ ] Write tests for tournament review
 
 ### Phase 11 Integration Tests
@@ -398,15 +405,21 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 12: Ranking Agent
 
+### BAML Functions Required
+- [ ] Implement GenerateComparisonReasoning BAML function
+- [ ] Add wrapper methods in BAMLWrapper
+- [ ] Update test mocks in conftest.py
+- [ ] Write tests for BAML functions
+
 ### Agent Structure
 - [ ] Create RankingAgent class
 - [ ] Implement Elo rating system
 - [ ] Write tests for Elo calculations
 
 ### Tournament System
-- [ ] Implement pairwise comparison
+- [ ] Implement pairwise comparison (uses CompareHypotheses + GenerateComparisonReasoning)
 - [ ] Write tests for comparisons
-- [ ] Add multi-turn debates
+- [ ] Add multi-turn debates (uses GenerateComparisonReasoning)
 - [ ] Write tests for debates
 - [ ] Implement convergence detection
 - [ ] Write tests for convergence
@@ -432,18 +445,26 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 13: Evolution Agent
 
+### BAML Functions Required
+- [ ] Implement EvolveHypothesis BAML function
+- [ ] Implement CrossoverHypotheses BAML function
+- [ ] Implement MutateHypothesis BAML function
+- [ ] Add wrapper methods in BAMLWrapper
+- [ ] Update test mocks in conftest.py
+- [ ] Write tests for BAML functions
+
 ### Agent Structure
 - [ ] Create EvolutionAgent class
 - [ ] Write tests for initialization
 
 ### Evolution Strategies
-- [ ] Implement enhancement strategy
+- [ ] Implement enhancement strategy (uses EnhanceHypothesis + EvolveHypothesis)
 - [ ] Write tests for enhancement
-- [ ] Add combination strategy
+- [ ] Add combination strategy (uses CrossoverHypotheses)
 - [ ] Write tests for combination
-- [ ] Implement simplification strategy
+- [ ] Implement simplification strategy (uses EvolveHypothesis)
 - [ ] Write tests for simplification
-- [ ] Add paradigm shift strategy
+- [ ] Add paradigm shift strategy (uses MutateHypothesis)
 - [ ] Write tests for paradigm shifts
 
 ### Phase 13 Integration Tests
@@ -467,14 +488,21 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 14: Proximity Agent
 
+### BAML Functions Required
+- [ ] Implement CalculateSemanticSimilarity BAML function (enhanced version of existing CalculateSimilarity)
+- [ ] Implement GenerateClusterSummary BAML function
+- [ ] Add wrapper methods in BAMLWrapper
+- [ ] Update test mocks in conftest.py
+- [ ] Write tests for BAML functions
+
 ### Agent Structure
 - [ ] Create ProximityAgent class
 - [ ] Write tests for initialization
 
 ### Similarity Calculation
-- [ ] Implement semantic similarity
+- [ ] Implement semantic similarity (uses CalculateSemanticSimilarity)
 - [ ] Write tests for similarity
-- [ ] Add clustering logic
+- [ ] Add clustering logic (uses GenerateClusterSummary)
 - [ ] Write tests for clustering
 
 ### Phase 14 Integration Tests
@@ -496,16 +524,24 @@ specification archived due to API safety filter issues. See ADR-001 for details.
 
 ## Phase 15: Meta-Review Agent
 
+### BAML Functions Required
+- [ ] Implement SynthesizeFindings BAML function
+- [ ] Implement ExtractPatterns BAML function (enhanced version of existing ExtractResearchPatterns)
+- [ ] Implement GenerateInsights BAML function
+- [ ] Add wrapper methods in BAMLWrapper
+- [ ] Update test mocks in conftest.py
+- [ ] Write tests for BAML functions
+
 ### Agent Structure
 - [ ] Create MetaReviewAgent class
 - [ ] Write tests for initialization
 
 ### Synthesis Functions
-- [ ] Implement pattern extraction
+- [ ] Implement pattern extraction (uses ExtractPatterns)
 - [ ] Write tests for patterns
-- [ ] Add feedback generation
+- [ ] Add feedback generation (uses GenerateInsights)
 - [ ] Write tests for feedback
-- [ ] Implement research overview
+- [ ] Implement research overview (uses SynthesizeFindings)
 - [ ] Write tests for overview
 
 ### Phase 15 Integration Tests

@@ -16,7 +16,7 @@ dependencies = [
     "structlog>=24.1.0,<25.0",
     "rich>=13.7.0,<14.0",
     "typer>=0.12.0,<1.0",
-    "baml-py>=0.209.0,<1.0",  # Major upgrade: baml 0.19.1 -> baml-py 0.209.0 (huge feature jump!)
+    "baml>=0.209.0,<1.0",  # Major upgrade: 0.19.1 -> 0.209.0 (huge feature jump!)
     "argo-proxy>=2.7.7,<3.0",  # Argo Gateway for LLM API access
 ]
 
