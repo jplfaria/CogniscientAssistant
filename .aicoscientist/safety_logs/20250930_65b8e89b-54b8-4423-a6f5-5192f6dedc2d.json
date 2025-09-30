@@ -1,0 +1,17 @@
+{
+  "id": "65b8e89b-54b8-4423-a6f5-5192f6dedc2d",
+  "timestamp": "2025-09-30T14:49:18.620592+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "ca5d62701eb59c38d7f1cf906ad028732b72a7a0416c1871f11723f50ee648e9",
+  "metadata": {
+    "hypothesis_id": "cd76ef76-38d2-423e-97d7-13608a6b8452",
+    "summary": "Hypothesis based on key testable assumptions",
+    "category": "mechanistic",
+    "generation_method": "assumptions",
+    "confidence_score": 0.8,
+    "num_assumptions": 3,
+    "has_citations": false
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

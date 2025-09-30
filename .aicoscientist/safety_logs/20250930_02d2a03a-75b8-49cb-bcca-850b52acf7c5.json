@@ -1,0 +1,17 @@
+{
+  "id": "02d2a03a-75b8-49cb-bcca-850b52acf7c5",
+  "timestamp": "2025-09-30T14:53:18.996279+00:00",
+  "event_type": "hypothesis_generation",
+  "content_hash": "031c3945a1b8053293514e1d06d292d2da82a6da01f9c7956563d438f9cb825a",
+  "metadata": {
+    "hypothesis_id": "14506e5e-f68d-4bff-8f67-44a7775d77a3",
+    "summary": "Test hypothesis",
+    "category": "mechanistic",
+    "generation_method": "literature_based",
+    "confidence_score": 0.85,
+    "num_assumptions": 1,
+    "has_citations": true
+  },
+  "trust_level": "standard",
+  "user_id": null
+}

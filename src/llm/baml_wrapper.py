@@ -29,6 +29,7 @@ from baml_client.baml_client.types import (
 
 from .base import LLMProvider, LLMRequest, LLMResponse
 from .capabilities import ModelCapabilities
+from .baml_error_handler import BAMLErrorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +41,14 @@ class BAMLWrapper:
 
     def __init__(self, provider: Optional[LLMProvider] = None):
         """Initialize the BAML wrapper.
-        
+
         Args:
             provider: Optional LLM provider to use. If not provided,
                      uses the default BAML configuration.
         """
         self.provider = provider
         self._client = b
+        self.error_handler = BAMLErrorHandler()
         
     async def generate_hypothesis(
         self,
@@ -68,22 +70,29 @@ class BAMLWrapper:
         Returns:
             Generated hypothesis
         """
-        try:
-            # If we have a custom provider, we could use it here
-            # For now, BAML handles the LLM interaction directly
-            result = await self._client.GenerateHypothesis(
+        async def _generate():
+            """Inner function for BAML call."""
+            return await self._client.GenerateHypothesis(
                 goal=goal,
                 constraints=constraints,
                 existing_hypotheses=existing_hypotheses,
                 focus_area=focus_area,
                 generation_method=generation_method,
             )
-            
+
+        try:
+            # Use error handler for retry logic and fallback
+            result = await self.error_handler.call_with_retry(
+                _generate,
+                client_name="ProductionClient",  # Default BAML client
+                function_name="GenerateHypothesis"
+            )
+
             logger.info(f"Generated hypothesis: {result.id}")
             return result
-            
+
         except Exception as e:
-            logger.error(f"Error generating hypothesis: {e}")
+            logger.error(f"Error generating hypothesis after retries: {e}")
             raise
             
     async def evaluate_hypothesis(
